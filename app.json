@@ -30,6 +30,8 @@
     "pages/merchant-settings/index",
     "pages/merchant-store-photos/index",
     "pages/admin-dashboard/index",
+    "pages/admin-management/index",
+    "pages/admin-profile/index",
     "pages/admin-merchant-list/index",
     "pages/admin-statistics/index"
   ],
@@ -38,6 +40,32 @@
     "backgroundTextStyle": "light",
     "backgroundColor": "#F5F6F8",
     "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#007AFF",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/admin-dashboard/index",
+        "text": "数据概况",
+        "iconPath": "pages/小标/shouye.png",
+        "selectedIconPath": "pages/小标/shouye-copy.png"
+      },
+      {
+        "pagePath": "pages/admin-management/index",
+        "text": "管理系统",
+        "iconPath": "pages/小标/商家.png",
+        "selectedIconPath": "pages/小标/商家1.png"
+      },
+      {
+        "pagePath": "pages/admin-profile/index",
+        "text": "管理员信息",
+        "iconPath": "pages/小标/wode.png",
+        "selectedIconPath": "pages/小标/wode-copy.png"
+      }
+    ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"

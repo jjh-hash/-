@@ -2,7 +2,6 @@
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
-    currentTab: 0, // 当前选中的底部导航标签
     
     // 核心统计数据
     stats: {
@@ -95,29 +94,4 @@ Page({
   },
 
 
-  // 底部导航切换
-  onTabChange(e) {
-    const index = parseInt(e.currentTarget.dataset.index);
-    this.setData({
-      currentTab: index
-    });
-    
-    switch(index) {
-      case 0:
-        // 数据概况 - 当前页面
-        break;
-      case 1:
-        // 管理系统
-        wx.navigateTo({
-          url: '/pages/admin-management/index'
-        });
-        break;
-      case 2:
-        // 管理员信息
-        wx.navigateTo({
-          url: '/pages/admin-profile/index'
-        });
-        break;
-    }
-  }
 }); 
