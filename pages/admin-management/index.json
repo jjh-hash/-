@@ -1,5 +1,6 @@
 {
-  "navigationBarTitleText": "管理系统",
   "navigationStyle": "custom",
+  "backgroundColor": "#667eea",
+  "backgroundTextStyle": "light",
   "usingComponents": {}
 }

@@ -1,6 +1,7 @@
 // pages/admin-management/index.js
 Page({
   data: {
+    statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     currentTab: 1, // 当前选中的底部导航标签
     
     // 商家管理统计数据
@@ -43,6 +44,10 @@ Page({
   onShow() {
     // 页面显示时刷新数据
     this.loadManagementData();
+  },
+
+  onBack() {
+    wx.navigateBack();
   },
 
   onRefresh() {

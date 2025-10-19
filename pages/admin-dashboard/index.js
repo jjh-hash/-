@@ -1,6 +1,7 @@
 // pages/admin-dashboard/index.js
 Page({
   data: {
+    statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     currentTab: 0, // 当前选中的底部导航标签
     
     // 核心统计数据
@@ -49,6 +50,10 @@ Page({
   onShow() {
     // 页面显示时刷新数据
     this.loadDashboardData();
+  },
+
+  onBack() {
+    wx.navigateBack();
   },
 
   onRefresh() {
@@ -102,14 +107,14 @@ Page({
         // 数据概况 - 当前页面
         break;
       case 1:
-        // 订单管理
-        wx.redirectTo({
-          url: '/pages/admin-order-list/index'
+        // 管理系统
+        wx.navigateTo({
+          url: '/pages/admin-management/index'
         });
         break;
       case 2:
         // 管理员信息
-        wx.redirectTo({
+        wx.navigateTo({
           url: '/pages/admin-profile/index'
         });
         break;

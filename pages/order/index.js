@@ -1,5 +1,6 @@
 Page({
   data: {
+    statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     orders: [
       {
         id: 1,
@@ -66,6 +67,15 @@ Page({
       wx.navigateTo({
         url: '/pages/profile/index'
       });
+    }
+  }
+  ,
+  onBack() {
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      wx.navigateBack();
+    } else {
+      wx.reLaunch({ url: '/pages/home/index' });
     }
   }
 });

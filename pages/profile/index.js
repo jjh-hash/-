@@ -1,5 +1,6 @@
 Page({
   data: {
+    statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     userInfo: {
       nickname: "小二货",
       avatar: "https://picsum.photos/seed/avatar/120/120"
@@ -53,6 +54,15 @@ Page({
       case 'switch-merchant':
         wx.navigateTo({ url: '/pages/merchant/index' });
         break;
+    }
+  }
+  ,
+  onBack() {
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      wx.navigateBack();
+    } else {
+      wx.reLaunch({ url: '/pages/home/index' });
     }
   }
 });

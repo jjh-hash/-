@@ -1,4 +1,9 @@
 <view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  <view class="nav">
+    <view class="back-btn" bindtap="onBackTap">◀</view>
+    <text class="title">注册新商家</text>
+  </view>
   <view class="content">
     <view class="field">
       <text class="label">店铺名称</text>

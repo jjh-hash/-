@@ -1,4 +1,14 @@
 <view class="page">
+  <!-- 自定义导航 -->
+  <view class="nav">
+    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+    <view class="nav-bar">
+      <text class="back" bindtap="onBack">◀</text>
+      <text class="title">个人中心</text>
+      <view class="icons">
+      </view>
+    </view>
+  </view>
 
   <!-- 用户信息区域 -->
   <view class="profile-section">

@@ -1,7 +1,8 @@
 {
-  "navigationBarTitleText": "订单管理",
   "navigationStyle": "custom",
-  "enablePullDownRefresh": true,
-  "onReachBottomDistance": 50,
-  "usingComponents": {}
+  "backgroundColor": "#667eea",
+  "backgroundTextStyle": "light",
+  "usingComponents": {
+    "admin-tabbar": "../admin-dashboard/components/admin-tabbar"
+  }
 }

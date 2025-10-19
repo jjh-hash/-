@@ -1,5 +1,6 @@
 Page({
   data: {
+    statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     activeFilter: 0,
     filters: ["综合排序", "销量", "星级", "距离"],
     quickCats: [

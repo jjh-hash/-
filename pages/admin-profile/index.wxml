@@ -1,91 +1,5 @@
 <!--pages/admin-profile/index.wxml-->
 <view class="page">
-
-  <!-- 页面内容 -->
-  <view class="page-content">
-    <!-- 管理员信息卡片 -->
-    <view class="admin-card">
-      <view class="admin-avatar">
-        <image src="/pages/小标/wode.png" mode="aspectFit"></image>
-      </view>
-      <view class="admin-info">
-        <text class="admin-name">超级管理员</text>
-        <text class="admin-role">系统管理员</text>
-        <text class="admin-status">在线</text>
-      </view>
-    </view>
-
-    <!-- 功能菜单 -->
-    <view class="menu-section">
-      <view class="menu-item" bindtap="onMenuClick" data-menu="merchant">
-        <view class="menu-icon">
-          <image src="/pages/小标/商家.png" mode="aspectFit"></image>
-        </view>
-        <view class="menu-content">
-          <text class="menu-title">商家管理</text>
-          <text class="menu-desc">审核商家申请，管理商家状态</text>
-        </view>
-        <text class="menu-arrow">></text>
-      </view>
-
-      <view class="menu-item" bindtap="onMenuClick" data-menu="statistics">
-        <view class="menu-icon">
-          <image src="/pages/小标/shouye.png" mode="aspectFit"></image>
-        </view>
-        <view class="menu-content">
-          <text class="menu-title">数据统计</text>
-          <text class="menu-desc">查看平台运营数据</text>
-        </view>
-        <text class="menu-arrow">></text>
-      </view>
-
-      <view class="menu-item" bindtap="onMenuClick" data-menu="settings">
-        <view class="menu-icon">
-          <image src="/pages/小标/关于我们.png" mode="aspectFit"></image>
-        </view>
-        <view class="menu-content">
-          <text class="menu-title">系统设置</text>
-          <text class="menu-desc">平台参数配置</text>
-        </view>
-        <text class="menu-arrow">></text>
-      </view>
-
-      <view class="menu-item" bindtap="onMenuClick" data-menu="logs">
-        <view class="menu-icon">
-          <image src="/pages/小标/dingdan.png" mode="aspectFit"></image>
-        </view>
-        <view class="menu-content">
-          <text class="menu-title">操作日志</text>
-          <text class="menu-desc">查看系统操作记录</text>
-        </view>
-        <text class="menu-arrow">></text>
-      </view>
-    </view>
-
-    <!-- 系统信息 -->
-    <view class="system-info">
-      <text class="section-title">系统信息</text>
-      <view class="info-grid">
-        <view class="info-item">
-          <text class="info-label">版本号</text>
-          <text class="info-value">v1.0.0</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">最后登录</text>
-          <text class="info-value">2025-01-03 18:43</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">在线时长</text>
-          <text class="info-value">2小时30分</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">操作次数</text>
-          <text class="info-value">156次</text>
-        </view>
-      </view>
-    </view>
-  </view>
-
   <!-- 底部导航栏 -->
   <view class="admin-tabbar">
     <view class="tabbar-item {{currentTab === 0 ? 'active' : ''}}" bindtap="onTabChange" data-index="0">
@@ -97,9 +11,9 @@
     
     <view class="tabbar-item {{currentTab === 1 ? 'active' : ''}}" bindtap="onTabChange" data-index="1">
       <view class="tabbar-icon">
-        <image src="{{currentTab === 1 ? '/pages/小标/dingdan-copy.png' : '/pages/小标/dingdan.png'}}" mode="aspectFit"></image>
+        <image src="{{currentTab === 1 ? '/pages/小标/商家1.png' : '/pages/小标/商家.png'}}" mode="aspectFit"></image>
       </view>
-      <text class="tabbar-text">订单管理</text>
+      <text class="tabbar-text">管理系统</text>
     </view>
     
     <view class="tabbar-item {{currentTab === 2 ? 'active' : ''}}" bindtap="onTabChange" data-index="2">

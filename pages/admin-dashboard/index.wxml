@@ -1,5 +1,16 @@
 <!--pages/admin-dashboard/index.wxml-->
 <view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">◀</view>
+    <text class="title">数据概况</text>
+    <view class="nav-actions">
+      <text class="refresh-btn" bindtap="onRefresh">🔄</text>
+    </view>
+  </view>
 
   <!-- 页面内容 -->
   <view class="page-content">
@@ -164,9 +175,9 @@
     
     <view class="tabbar-item {{currentTab === 1 ? 'active' : ''}}" bindtap="onTabChange" data-index="1">
       <view class="tabbar-icon">
-        <image src="{{currentTab === 1 ? '/pages/小标/dingdan-copy.png' : '/pages/小标/dingdan.png'}}" mode="aspectFit"></image>
+        <image src="{{currentTab === 1 ? '/pages/小标/商家1.png' : '/pages/小标/商家.png'}}" mode="aspectFit"></image>
       </view>
-      <text class="tabbar-text">订单管理</text>
+      <text class="tabbar-text">管理系统</text>
     </view>
     
     <view class="tabbar-item {{currentTab === 2 ? 'active' : ''}}" bindtap="onTabChange" data-index="2">
