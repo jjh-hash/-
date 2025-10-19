@@ -1,0 +1,43 @@
+/* 自定义导航 */
+.nav { background:#ffffff; color:#111827; }
+.status-bar{ width:100%; }
+.nav-bar{ height:44px; display:flex; align-items:center; justify-content:center; padding:0 12px; position:relative; border-bottom:1px solid #f1f3f5; }
+.back{ position:absolute; left:12px; color:#374151; }
+.title{ font-size:17px; font-weight:600; color:#111827; }
+.icons{ display:none; }
+
+.content{ height: calc(100vh - 88px); background:#f5f6f8; }
+
+/* 订单列表 */
+.order-list{ padding:12px; }
+.order-card{ background:#fff; border-radius:12px; padding:12px; margin-bottom:16px; border:1px solid #eef0f3; }
+
+/* 订单头部 */
+.order-header{ display:flex; align-items:flex-start; margin-bottom:12px; }
+.food-img{ width:60px; height:60px; border-radius:8px; background:#eee; margin-right:12px; }
+.order-info{ flex:1; }
+.store-name{ font-size:16px; font-weight:600; color:#1f2937; display:block; margin-bottom:4px; }
+.order-date{ font-size:12px; color:#6b7280; }
+.order-status{ font-size:14px; font-weight:500; margin-left:auto; }
+.order-status.pending{ color:#f59e0b; }
+.order-status.normal{ color:#374151; }
+
+/* 订单商品 */
+.order-items{ margin:8px 0 12px; background:#f9fafb; border-radius:8px; padding:12px; }
+.item-name{ font-size:14px; color:#4b5563; display:block; margin-bottom:4px; }
+
+/* 订单底部 */
+.order-footer{ display:flex; justify-content:space-between; align-items:center; }
+.total-price{ font-size:14px; color:#6b7280; }
+.action-buttons{ display:flex; gap:10px; }
+.action-buttons button{ padding:6px 14px; border-radius:6px; font-size:12px; }
+.btn-cancel{ background:#fff; color:#374151; border:1px solid #e5e7eb; }
+.btn-pay{ background:#1a73e8; color:#fff; }
+.btn-again{ background:#fff; color:#374151; border:1px solid #e5e7eb; }
+
+/* 底部栏 */
+.tabbar{ position:fixed; left:0; right:0; bottom:0; background:#fff; display:flex; justify-content:space-around; padding:8px 0 env(safe-area-inset-bottom); border-top:1px solid #eef0f3; }
+.tab{ display:flex; flex-direction:column; align-items:center; color:#99a1ad; }
+.tab.active{ color:#1a73e8; }
+.t-icon{ width:20px; height:20px; }
+.t-text{ font-size:12px; margin-top:2px; }

@@ -1,0 +1,156 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">◀</view>
+    <text class="title">数据统计</text>
+    <view class="nav-actions">
+      <text class="export-btn" bindtap="onExportData">导出</text>
+      <text class="refresh-btn" bindtap="onRefresh">🔄</text>
+    </view>
+  </view>
+
+  <!-- 标签栏 -->
+  <view class="tabs">
+    <block wx:for="{{tabs}}" wx:key="key">
+      <view 
+        class="tab-item {{currentTab === item.key ? 'active' : ''}}"
+        bindtap="onTabChange"
+        data-tab="{{item.key}}"
+      >
+        {{item.name}}
+      </view>
+    </block>
+  </view>
+
+  <!-- 日期范围选择 -->
+  <view class="date-range">
+    <picker 
+      bindchange="onDateRangeChange" 
+      value="{{dateRange}}" 
+      range="['近一周', '近一月', '近三月']"
+    >
+      <view class="picker-text">
+        <text wx:if="{{dateRange === 'week'}}">近一周</text>
+        <text wx:elif="{{dateRange === 'month'}}">近一月</text>
+        <text wx:elif="{{dateRange === 'quarter'}}">近三月</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 数据概览 -->
+  <view wx:if="{{currentTab === 'overview'}}" class="content">
+    <view class="stats-grid">
+      <view class="stat-card">
+        <text class="stat-icon">👥</text>
+        <text class="stat-label">用户总数</text>
+        <text class="stat-number">{{overviewStats.userCount}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">🏪</text>
+        <text class="stat-label">商家总数</text>
+        <text class="stat-number">{{overviewStats.merchantCount}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">📦</text>
+        <text class="stat-label">今日订单</text>
+        <text class="stat-number">{{overviewStats.todayOrderCount}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">💰</text>
+        <text class="stat-label">今日营收</text>
+        <text class="stat-number">¥{{overviewStats.todayIncome}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 订单统计 -->
+  <view wx:elif="{{currentTab === 'orders'}}" class="content">
+    <view class="stats-grid">
+      <view class="stat-card">
+        <text class="stat-icon">📦</text>
+        <text class="stat-label">总订单数</text>
+        <text class="stat-number">{{orderStats.totalOrders}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">✅</text>
+        <text class="stat-label">已完成</text>
+        <text class="stat-number">{{orderStats.completedOrders}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">⏳</text>
+        <text class="stat-label">待处理</text>
+        <text class="stat-number">{{orderStats.pendingOrders}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">❌</text>
+        <text class="stat-label">已取消</text>
+        <text class="stat-number">{{orderStats.cancelledOrders}}</text>
+      </view>
+    </view>
+    
+    <view class="revenue-card">
+      <text class="revenue-label">总营收</text>
+      <text class="revenue-amount">¥{{orderStats.totalRevenue}}</text>
+    </view>
+  </view>
+
+  <!-- 用户统计 -->
+  <view wx:elif="{{currentTab === 'users'}}" class="content">
+    <view class="stats-grid">
+      <view class="stat-card">
+        <text class="stat-icon">👥</text>
+        <text class="stat-label">总用户数</text>
+        <text class="stat-number">{{userStats.totalUsers}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">🟢</text>
+        <text class="stat-label">活跃用户</text>
+        <text class="stat-number">{{userStats.activeUsers}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">📈</text>
+        <text class="stat-label">今日新增</text>
+        <text class="stat-number">{{userStats.newUsersToday}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">📊</text>
+        <text class="stat-label">本周新增</text>
+        <text class="stat-number">{{userStats.newUsersThisWeek}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 商家统计 -->
+  <view wx:elif="{{currentTab === 'merchants'}}" class="content">
+    <view class="stats-grid">
+      <view class="stat-card">
+        <text class="stat-icon">🏪</text>
+        <text class="stat-label">总商家数</text>
+        <text class="stat-number">{{merchantStats.totalMerchants}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">🟢</text>
+        <text class="stat-label">营业中</text>
+        <text class="stat-number">{{merchantStats.activeMerchants}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">⏳</text>
+        <text class="stat-label">待审核</text>
+        <text class="stat-number">{{merchantStats.pendingMerchants}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">⏸️</text>
+        <text class="stat-label">已暂停</text>
+        <text class="stat-number">{{merchantStats.suspendedMerchants}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+</view>

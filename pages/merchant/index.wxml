@@ -1,0 +1,18 @@
+<view class="page">
+  <view class="content">
+    <view class="card">
+      <text class="card-title">欢迎使用商家端</text>
+      <text class="card-sub">请选择要进行的操作</text>
+      <view class="actions">
+        <view class="btn primary" bindtap="onGoRegister">注册新商家</view>
+        <view class="btn" bindtap="onGoLogin">登录商家端</view>
+      </view>
+      <view class="tips">
+        <text>提示：</text>
+        <text>注册需管理端邀请码；登录暂按微信一键登录模拟。</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+

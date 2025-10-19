@@ -1,0 +1,82 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  <view class="nav">
+    <view class="back" bindtap="onBack">◀</view>
+    <text class="title">添加商品</text>
+  </view>
+
+  <view class="form-container">
+    <!-- 基本信息 -->
+    <view class="section">
+      <text class="section-title">基本信息</text>
+      
+      <view class="form-item">
+        <text class="label">商品名称</text>
+        <input class="input" placeholder="请输入商品名称" value="{{formData.name}}" bindinput="onInput" data-field="name" />
+      </view>
+      
+      <view class="form-item" bindtap="onSelectCategory">
+        <text class="label">商品分类</text>
+        <view class="select-value">
+          <text class="placeholder">{{formData.category || '请选择分类'}}</text>
+          <text class="arrow">></text>
+        </view>
+      </view>
+      
+      <view class="form-item">
+        <text class="label">备餐用时</text>
+        <input class="input" placeholder="如15 分" value="{{formData.prepTime}}" bindinput="onInput" data-field="prepTime" />
+      </view>
+      
+      <view class="form-item upload-item">
+        <text class="label">上传图片</text>
+        <text class="upload-hint">请保证图片的清晰度(400*400)</text>
+        <view class="upload-area" bindtap="onUploadImage">
+          <image wx:if="{{formData.image}}" class="uploaded-image" src="{{formData.image}}" mode="aspectFill" />
+          <view wx:else class="upload-placeholder">
+            <text class="camera-icon">📷</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 价格信息 -->
+    <view class="section">
+      <text class="section-title">价格信息</text>
+      
+      <view class="form-item">
+        <text class="label">价格</text>
+        <input class="input" placeholder="如17 元" value="{{formData.price}}" bindinput="onInput" data-field="price" />
+      </view>
+      
+      <view class="form-item">
+        <text class="label">餐盒费用</text>
+        <input class="input" placeholder="如17 元" value="{{formData.boxFee}}" bindinput="onInput" data-field="boxFee" />
+      </view>
+    </view>
+
+    <!-- 规格信息 -->
+    <view class="section">
+      <text class="section-title">规格信息</text>
+      
+      <view class="form-item" bindtap="onSelectSpec">
+        <text class="label">商品规格</text>
+        <view class="select-value">
+          <text class="placeholder">{{formData.spec || '如分量'}}</text>
+          <text class="arrow">></text>
+        </view>
+      </view>
+      
+      <view class="form-item" bindtap="onSelectAttr">
+        <text class="label">商品属性</text>
+        <view class="select-value">
+          <text class="placeholder">{{formData.attr || '如辣度'}}</text>
+          <text class="arrow">></text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 保存按钮 -->
+  <view class="save-btn" bindtap="onSave">保存</view>
+</view>

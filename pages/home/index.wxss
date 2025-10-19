@@ -1,0 +1,57 @@
+/* 自定义导航 */
+.nav { background: linear-gradient(180deg,#0a86ff,#2aa7ff); color:#fff; }
+.status-bar{ width:100%; }
+.nav-bar{ height:44px; display:flex; align-items:center; justify-content:center; padding:0 12px; position:relative; }
+.back{ opacity:.9; }
+.title{ font-size:18px; font-weight:600; }
+.icons{ font-size:16px; opacity:.9; position:absolute; right:12px; top:50%; transform:translateY(-50%); }
+
+.content{ height: calc(100vh - 88px); }
+
+/* 搜索 */
+.search{ margin:12px 16px; height:36px; border-radius:18px; background:#fff; display:flex; align-items:center; padding:0 12px; }
+.icon{ margin-right:6px; color:#9aa0a6; }
+.input{ flex:1; font-size:14px; }
+.ph{ color:#b0b5bd; }
+
+/* 快捷分类 */
+.quick{ margin:8px 12px; background:#fff; border-radius:12px; padding:14px 6px; display:flex; flex-wrap:wrap; justify-content:space-between; }
+.q-item{ display:flex; flex-direction:column; align-items:center; width:25%; margin-bottom:12px; }
+.q-icon{ width:54px; height:54px; border-radius:27px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,.08); }
+.q-emoji{ font-size:28px; }
+.q-text{ margin-top:6px; font-size:12px; color:#333; }
+
+/* 公告 */
+.notice{ margin:10px 12px; background:#fff; border-radius:12px; padding:10px 12px; display:flex; align-items:center; }
+.label{ color:#4e9bff; margin-right:10px; }
+.msg{ color:#6b7280; font-size:12px; }
+
+/* 轮播图 */
+.banner-swiper{ margin:10px 12px; border-radius:12px; height:120px; }
+.banner-item{ height:100%; border-radius:12px; padding:16px; display:flex; align-items:center; justify-content:space-between; }
+.b-title{ font-size:18px; font-weight:700; color:#1e3a8a; }
+.b-sub{ color:#2563eb; background:#dbeafe; padding:4px 12px; border-radius:999px; font-size:14px; }
+
+/* 筛选 */
+.filters{ margin:10px 12px; display:flex; gap:18px; color:#60708a; }
+.f-item.active{ color:#1a73e8; font-weight:600; }
+
+/* 店铺列表 */
+.shop-list{ margin:0 12px 80px; background:#fff; border-radius:12px; padding:8px 0; }
+.shop{ display:flex; padding:12px; border-bottom:1px solid #f1f3f5; }
+.shop:last-child{ border-bottom:none; }
+.cover{ width:88px; height:66px; border-radius:8px; background:#eee; }
+.meta{ flex:1; margin:0 10px; }
+.name{ font-size:16px; font-weight:600; color:#1f2937; }
+.rate-line{ margin-top:4px; color:#2563eb; font-size:12px; }
+.rate-line .month{ margin-left:8px; color:#6b7280; }
+.fee-line{ margin-top:6px; color:#6b7280; font-size:12px; }
+.extra{ width:72px; text-align:right; color:#6b7280; font-size:12px; display:flex; flex-direction:column; justify-content:center; }
+
+/* 底部栏 */
+.tabbar{ position:fixed; left:0; right:0; bottom:0; background:#fff; display:flex; justify-content:space-around; padding:8px 0 env(safe-area-inset-bottom); border-top:1px solid #eef0f3; }
+.tab{ display:flex; flex-direction:column; align-items:center; color:#99a1ad; }
+.tab.active{ color:#1a73e8; }
+.t-icon{ width:20px; height:20px; }
+.t-text{ font-size:12px; margin-top:2px; }
+

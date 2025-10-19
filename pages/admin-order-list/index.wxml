@@ -1,0 +1,108 @@
+<!--pages/admin-order-list/index.wxml-->
+<view class="page">
+
+  <!-- 页面内容 -->
+  <view class="page-content">
+    <!-- 筛选栏 -->
+    <view class="filter-section">
+      <view class="filter-row">
+        <picker bindchange="onStatusChange" value="{{statusIndex}}" range="{{statusOptions}}" range-key="label">
+          <view class="picker-item">
+            <text class="picker-text">{{currentStatusLabel}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+        
+        <picker bindchange="onPayStatusChange" value="{{payStatusIndex}}" range="{{payStatusOptions}}" range-key="label">
+          <view class="picker-item">
+            <text class="picker-text">{{currentPayStatusLabel}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+      
+      <view class="search-bar">
+        <input class="search-input" placeholder="搜索订单号或用户" bindinput="onSearch" />
+        <text class="search-icon">🔍</text>
+      </view>
+    </view>
+
+    <!-- 订单列表 -->
+    <view class="order-list">
+      <view class="order-item" wx:for="{{orders}}" wx:key="_id" bindtap="onViewDetail" data-id="{{item._id}}">
+        <view class="order-header">
+          <text class="order-no">订单号：{{item.orderNo}}</text>
+          <view class="order-status {{item.orderStatus}}">
+            <text class="status-text">{{item.orderStatus === 'created' ? '已创建' : item.orderStatus === 'accepted' ? '已接单' : item.orderStatus === 'making' ? '制作中' : item.orderStatus === 'delivering' ? '配送中' : item.orderStatus === 'completed' ? '已完成' : '已取消'}}</text>
+          </view>
+        </view>
+        
+        <view class="order-info">
+          <view class="info-row">
+            <text class="info-label">用户：</text>
+            <text class="info-value">{{item.userInfo.nickname}} ({{item.userInfo.phone}})</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">商家：</text>
+            <text class="info-value">{{item.storeInfo.name}}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">金额：</text>
+            <text class="info-value amount">¥{{item.formattedAmount}}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">支付状态：</text>
+            <text class="info-value {{item.payStatus}}">{{item.payStatus === 'unpaid' ? '未支付' : item.payStatus === 'paid' ? '已支付' : item.payStatus === 'refunding' ? '退款中' : '已退款'}}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">创建时间：</text>
+            <text class="info-value">{{item.createdAt}}</text>
+          </view>
+        </view>
+        
+        <view class="order-actions">
+          <button class="action-btn primary" bindtap="onProcessOrder" data-id="{{item._id}}" data-order-no="{{item.orderNo}}" catchtap="true">
+            处理订单
+          </button>
+          <button class="action-btn danger" bindtap="onCancelOrder" data-id="{{item._id}}" data-order-no="{{item.orderNo}}" catchtap="true">
+            取消订单
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载状态 -->
+    <view class="loading-section" wx:if="{{loading}}">
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-section" wx:if="{{!loading && orders.length === 0}}">
+      <text class="empty-text">暂无订单数据</text>
+    </view>
+  </view>
+
+  <!-- 底部导航栏 -->
+  <view class="admin-tabbar">
+    <view class="tabbar-item {{currentTab === 0 ? 'active' : ''}}" bindtap="onTabChange" data-index="0">
+      <view class="tabbar-icon">
+        <image src="{{currentTab === 0 ? '/pages/小标/shouye-copy.png' : '/pages/小标/shouye.png'}}" mode="aspectFit"></image>
+      </view>
+      <text class="tabbar-text">数据概况</text>
+    </view>
+    
+    <view class="tabbar-item {{currentTab === 1 ? 'active' : ''}}" bindtap="onTabChange" data-index="1">
+      <view class="tabbar-icon">
+        <image src="{{currentTab === 1 ? '/pages/小标/dingdan-copy.png' : '/pages/小标/dingdan.png'}}" mode="aspectFit"></image>
+      </view>
+      <text class="tabbar-text">订单管理</text>
+    </view>
+    
+    <view class="tabbar-item {{currentTab === 2 ? 'active' : ''}}" bindtap="onTabChange" data-index="2">
+      <view class="tabbar-icon">
+        <image src="{{currentTab === 2 ? '/pages/小标/wode-copy.png' : '/pages/小标/wode.png'}}" mode="aspectFit"></image>
+      </view>
+      <text class="tabbar-text">管理员信息</text>
+    </view>
+  </view>
+</view>

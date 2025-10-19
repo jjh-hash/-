@@ -1,0 +1,117 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px">
+  </view>
+
+  <!-- 头部导航 -->
+  <view class="header">
+    <view class="back-btn" bindtap="onBackTap">
+      <text class="back-icon">←</text>
+    </view>
+    <text class="title">闲置出售</text>
+    <view class="search-container">
+      <view class="search-icon">🔍</view>
+      <input 
+        class="search-input" 
+        placeholder="搜索商品" 
+        placeholder-class="search-placeholder"
+        value="{{searchValue}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchSubmit"
+      />
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 分类标签 -->
+    <view class="category-tabs">
+      <scroll-view scroll-x class="category-scroll">
+        <view class="category-list">
+          <block wx:for="{{categories}}" wx:key="index">
+            <view 
+              class="category-item {{index === activeCategory ? 'active' : ''}}"
+              bindtap="onCategoryTap"
+              data-index="{{index}}"
+            >
+              {{item}}
+            </view>
+          </block>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 排序选项 -->
+    <view class="sort-bar">
+      <view class="sort-options">
+        <block wx:for="{{sortOptions}}" wx:key="index">
+          <view 
+            class="sort-item {{index === activeSort ? 'active' : ''}}"
+            bindtap="onSortTap"
+            data-index="{{index}}"
+          >
+            {{item}}
+            <text class="sort-arrow">▼</text>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 商品列表 -->
+    <view class="product-list">
+      <block wx:for="{{products}}" wx:key="id">
+        <view class="product-card" bindtap="onProductTap" data-id="{{item.id}}">
+          <!-- 商品图片 -->
+          <view class="product-image">
+            <image class="image" src="{{item.images[0]}}" mode="aspectFill" />
+            <view class="price-tag">
+              <text class="price">¥{{item.price}}</text>
+            </view>
+          </view>
+          
+          <!-- 商品信息 -->
+          <view class="product-info">
+            <view class="product-title">{{item.title}}</view>
+            <view class="product-desc">{{item.description}}</view>
+            
+            <!-- 原价和折扣 -->
+            <view class="price-info">
+              <text class="original-price">原价¥{{item.originalPrice}}</text>
+              <text class="discount">{{Math.round((item.originalPrice - item.price) / item.originalPrice * 100)}}%</text>
+            </view>
+            
+            <!-- 标签 -->
+            <view class="product-tags">
+              <block wx:for="{{item.tags}}" wx:key="*this">
+                <view class="tag">{{item}}</view>
+              </block>
+            </view>
+            
+            <!-- 卖家信息 -->
+            <view class="seller-info">
+              <image class="seller-avatar" src="{{item.seller.avatar}}" mode="aspectFill" />
+              <view class="seller-details">
+                <text class="seller-name">{{item.seller.name}}</text>
+                <view class="seller-rating">
+                  <text class="star">⭐</text>
+                  <text class="rating">{{item.seller.rating}}</text>
+                </view>
+              </view>
+              <view class="location-time">
+                <text class="location">{{item.location}}</text>
+                <text class="time">{{item.publishTime}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+    
+    <view class="safe-area-bottom"></view>
+  </scroll-view>
+
+  <!-- 发布按钮 -->
+  <view class="publish-btn" bindtap="onPublishTap">
+    <text class="publish-icon">+</text>
+    <text class="publish-text">发布</text>
+  </view>
+</view>

@@ -1,0 +1,346 @@
+/* pages/admin-management/index.wxss */
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 120rpx; /* 为底部导航栏预留空间 */
+}
+
+/* 底部导航栏样式 */
+.admin-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100rpx;
+  background: #ffffff;
+  border-top: 1rpx solid #e5e5e5;
+  display: flex;
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tabbar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 0;
+  transition: all 0.3s ease;
+}
+
+.tabbar-item.active {
+  color: #007aff;
+}
+
+.tabbar-icon {
+  width: 48rpx;
+  height: 48rpx;
+  margin-bottom: 8rpx;
+}
+
+.tabbar-icon image {
+  width: 100%;
+  height: 100%;
+}
+
+.tabbar-text {
+  font-size: 20rpx;
+  color: #999999;
+  transition: color 0.3s ease;
+}
+
+.tabbar-item.active .tabbar-text {
+  color: #007aff;
+  font-weight: 500;
+}
+
+/* 状态栏 */
+.status-bar {
+  background: #667eea;
+}
+
+/* 导航栏 */
+.nav-bar {
+  height: 88rpx;
+  background: #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30rpx;
+  color: white;
+}
+
+.back-btn {
+  font-size: 36rpx;
+  padding: 10rpx;
+}
+
+.title {
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.refresh-btn {
+  font-size: 32rpx;
+  padding: 10rpx;
+}
+
+/* 页面内容 */
+.page-content {
+  padding: 20rpx;
+}
+
+/* 管理功能导航 */
+.management-nav {
+  text-align: center;
+  margin-bottom: 40rpx;
+  padding: 30rpx 0;
+}
+
+.nav-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.nav-subtitle {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 功能模块网格 */
+.function-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-bottom: 40rpx;
+}
+
+.function-card {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 6rpx 30rpx rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border-left: 6rpx solid #667eea;
+}
+
+.function-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 3rpx 15rpx rgba(0, 0, 0, 0.15);
+}
+
+.function-card.merchant {
+  border-left-color: #667eea;
+}
+
+.function-card.user {
+  border-left-color: #4CAF50;
+}
+
+.function-card.order {
+  border-left-color: #FF9800;
+}
+
+.function-card.finance {
+  border-left-color: #2196F3;
+}
+
+.function-card.platform {
+  border-left-color: #9C27B0;
+}
+
+.card-icon {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 30rpx;
+}
+
+.card-icon.merchant {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.card-icon.user {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+}
+
+.card-icon.order {
+  background: linear-gradient(135deg, #FF9800, #F57C00);
+}
+
+.card-icon.finance {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+}
+
+.card-icon.platform {
+  background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+}
+
+.card-icon image {
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.card-desc {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.4;
+}
+
+.card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.stat-item {
+  font-size: 22rpx;
+  color: #888;
+}
+
+.card-arrow {
+  font-size: 36rpx;
+  color: #ccc;
+  font-weight: bold;
+  margin-left: 20rpx;
+}
+
+/* 快速操作 */
+.quick-actions {
+  margin-bottom: 40rpx;
+}
+
+.section-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20rpx;
+  padding-left: 10rpx;
+}
+
+.action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.action-btn {
+  background: white;
+  border-radius: 16rpx;
+  padding: 30rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  border: none;
+  font-size: 24rpx;
+  transition: all 0.3s ease;
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.15);
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.action-btn.warning {
+  background: linear-gradient(135deg, #FF9800, #F57C00);
+  color: white;
+}
+
+.action-btn.success {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+}
+
+.action-btn.info {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+  color: white;
+}
+
+.btn-icon {
+  font-size: 40rpx;
+}
+
+.btn-text {
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+/* 系统状态 */
+.system-status {
+  margin-bottom: 40rpx;
+}
+
+.status-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.status-card {
+  background: white;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.status-label {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.status-value {
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.status-value.success {
+  color: #4CAF50;
+}
+
+.status-value.warning {
+  color: #FF9800;
+}
+
+.status-value.error {
+  color: #f44336;
+}

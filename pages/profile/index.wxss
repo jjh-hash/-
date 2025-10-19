@@ -1,0 +1,88 @@
+/* 自定义导航 */
+.nav { background: linear-gradient(180deg,#0a86ff,#2aa7ff); color:#fff; }
+.status-bar{ width:100%; }
+.nav-bar{ height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; }
+.back{ opacity:.9; }
+.title{ font-size:18px; font-weight:600; }
+.icons{ font-size:16px; opacity:.9; }
+
+/* 用户信息区域 */
+.profile-section{ 
+  background: linear-gradient(180deg,#0a86ff,#2aa7ff); 
+  padding:20px 16px 30px; 
+  display:flex; 
+  align-items:center; 
+  position:relative;
+  overflow:hidden;
+}
+
+.profile-section::before{
+  content:'';
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  height:20px;
+  background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><path d="M0,20 L20,0 L40,20 L60,0 L80,20 L100,0 L100,20 Z" fill="rgba(255,255,255,0.1)"/></svg>') repeat-x;
+  background-size:100px 20px;
+}
+
+.avatar{ margin-right:16px; }
+.avatar-img{ width:60px; height:60px; border-radius:30px; background:#fff; }
+.nickname{ color:#fff; font-size:18px; font-weight:600; }
+
+/* 功能菜单 */
+.menu-section{ 
+  background:#fff; 
+  margin-top:-10px; 
+  border-radius:16px 16px 0 0; 
+  padding:20px 0 80px;
+  min-height:calc(100vh - 200px);
+}
+
+.menu-list{ padding:0 16px; }
+.menu-item{ 
+  display:flex; 
+  align-items:center; 
+  padding:16px 0; 
+  border-bottom:1px solid #f1f3f5;
+}
+
+.menu-item:last-child{ border-bottom:none; }
+
+.menu-icon{ 
+  width:24px; 
+  height:24px; 
+  margin-right:16px; 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+}
+
+.menu-icon-img{
+  width:22px;
+  height:22px;
+}
+
+.menu-text{ 
+  flex:1; 
+  font-size:16px; 
+  color:#1f2937; 
+}
+
+.menu-arrow{ 
+  color:#9ca3af; 
+  font-size:16px; 
+}
+
+.menu-phone{ 
+  color:#6b7280; 
+  font-size:14px; 
+}
+
+/* 底部栏 */
+.tabbar{ position:fixed; left:0; right:0; bottom:0; background:#fff; display:flex; justify-content:space-around; padding:8px 0 env(safe-area-inset-bottom); border-top:1px solid #eef0f3; }
+.tab{ display:flex; flex-direction:column; align-items:center; color:#99a1ad; }
+.tab.active{ color:#1a73e8; }
+.t-icon{ width:20px; height:20px; }
+.t-text{ font-size:12px; margin-top:2px; }

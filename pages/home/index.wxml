@@ -1,0 +1,89 @@
+<view class="page">
+
+  <scroll-view scroll-y class="content">
+    <!-- 搜索框 -->
+    <view class="search">
+      <text class="icon">🔍</text>
+      <input class="input" placeholder="输入你想要的东西" placeholder-class="ph" disabled value="" />
+    </view>
+
+    <!-- 快捷分类 -->
+    <view class="quick">
+      <block wx:for="{{quickCats}}" wx:key="index">
+        <view class="q-item" bindtap="onQuickCatTap" data-index="{{index}}">
+          <view class="q-icon" style="background: {{item.bg}}">
+            <text class="q-emoji">{{item.emoji}}</text>
+          </view>
+          <text class="q-text">{{item.text}}</text>
+        </view>
+      </block>
+    </view>
+
+    <!-- 公告条 -->
+    <view class="notice">
+      <text class="label">平台公告</text>
+      <text class="msg ellipsis">这里是公告信息以及他显示的内容 2021.02.08</text>
+    </view>
+
+    <!-- 轮播图 -->
+    <swiper class="banner-swiper" indicator-dots="{{true}}" autoplay="{{true}}" interval="{{3000}}" duration="{{500}}">
+      <block wx:for="{{banners}}" wx:key="id">
+        <swiper-item>
+          <view class="banner-item" style="background: {{item.bg}}">
+            <text class="b-title">{{item.title}}</text>
+            <text class="b-sub">{{item.subtitle}}</text>
+          </view>
+        </swiper-item>
+      </block>
+    </swiper>
+
+    <!-- 筛选栏 -->
+    <view class="filters">
+      <block wx:for="{{filters}}" wx:key="text">
+        <text class="f-item {{index===activeFilter? 'active':''}}">{{item}}</text>
+      </block>
+    </view>
+
+    <!-- 店铺列表 -->
+    <view class="shop-list">
+      <block wx:for="{{shops}}" wx:key="id">
+        <view class="shop">
+          <image class="cover" src="{{item.img}}" mode="aspectFill" />
+          <view class="meta">
+            <text class="name ellipsis">{{item.name}}</text>
+            <view class="rate-line">
+              <text class="score">{{item.score}}分</text>
+              <text class="month">月售{{item.month}}</text>
+            </view>
+            <view class="fee-line">
+              <text>起送¥{{item.start}}</text>
+              <text>配送¥{{item.delivery}}</text>
+            </view>
+          </view>
+          <view class="extra">
+            <text class="time">10分钟</text>
+            <text class="dist">| 500m</text>
+          </view>
+        </view>
+      </block>
+    </view>
+    <view class="safe-area-bottom"></view>
+  </scroll-view>
+
+  <!-- 自定义底部栏 -->
+  <view class="tabbar">
+    <view class="tab active">
+      <image class="t-icon" src="/pages/小标/shouye-copy.png" mode="aspectFit" />
+      <text class="t-text">首页</text>
+    </view>
+    <view class="tab" bindtap="onTabTap" data-tab="order">
+      <image class="t-icon" src="/pages/小标/dingdan.png" mode="aspectFit" />
+      <text class="t-text">订单</text>
+    </view>
+    <view class="tab" bindtap="onTabTap" data-tab="profile">
+      <image class="t-icon" src="/pages/小标/wode.png" mode="aspectFit" />
+      <text class="t-text">我的</text>
+    </view>
+  </view>
+</view>
+

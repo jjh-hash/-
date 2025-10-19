@@ -1,0 +1,64 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  <view class="nav">
+    <view class="back" bindtap="onBack">◀</view>
+    <text class="title">评价管理</text>
+  </view>
+
+  <!-- 总体评分 -->
+  <view class="rating-overview">
+    <view class="rating-left">
+      <view class="stars">
+        <text class="star filled">★</text>
+        <text class="star filled">★</text>
+        <text class="star filled">★</text>
+        <text class="star filled">★</text>
+        <text class="star empty">☆</text>
+      </view>
+      <text class="review-count">共500人评价</text>
+    </view>
+    <view class="rating-right">
+      <text class="rating-score">4.8</text>
+      <text class="rating-label">商品质量</text>
+    </view>
+  </view>
+
+  <!-- 评价筛选标签 -->
+  <view class="filter-tabs">
+    <view class="tab {{activeTab===0?'active':''}}" bindtap="onTabTap" data-index="0">未回复</view>
+    <view class="tab {{activeTab===1?'active':''}}" bindtap="onTabTap" data-index="1">全部评价</view>
+  </view>
+
+  <!-- 评价列表 -->
+  <scroll-view scroll-y class="review-list">
+    <view class="review-item" wx:for="{{reviews}}" wx:key="id">
+      <view class="user-info">
+        <image class="avatar" src="{{item.avatar}}" mode="aspectFill" />
+        <view class="user-details">
+          <text class="username">{{item.username}}</text>
+          <view class="user-rating">
+            <text class="star filled">★</text>
+            <text class="star filled">★</text>
+            <text class="star filled">★</text>
+            <text class="star filled">★</text>
+            <text class="star filled">★</text>
+          </view>
+        </view>
+        <text class="review-date">{{item.date}}</text>
+      </view>
+      
+      <view class="review-content">
+        <text class="review-text">{{item.content}}</text>
+        
+        <view class="review-images" wx:if="{{item.images}}">
+          <image class="review-img" wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" src="{{img}}" mode="aspectFill" />
+        </view>
+        
+        <view class="merchant-reply" wx:if="{{item.reply}}">
+          <text class="reply-label">商家回复:</text>
+          <text class="reply-content">{{item.reply}}</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

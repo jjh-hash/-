@@ -1,0 +1,136 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px">
+  </view>
+
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBackTap">
+      <text class="back-icon">←</text>
+    </view>
+    <text class="title">互帮互助</text>
+    <view class="nav-actions">
+      <text class="more-btn">⋯</text>
+      <text class="dot-btn">●</text>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 横幅 -->
+    <view class="banner">
+      <view class="banner-content">
+        <view class="ribbon">
+          <text class="ribbon-text">优质服务等你来!</text>
+        </view>
+        <view class="banner-decoration">
+          <view class="ruler"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 帮助地点 -->
+    <view class="form-section">
+      <view class="section-header">
+        <view class="section-icon location-icon">起</view>
+        <text class="section-title">去哪里帮忙</text>
+        <view class="arrow" bindtap="onLocationTap">→</view>
+      </view>
+      <view class="location-input" bindtap="onLocationTap">
+        <text class="location-placeholder" wx:if="{{!helpLocation}}">去哪里帮忙</text>
+        <text class="location-value" wx:else>{{helpLocation}}</text>
+      </view>
+    </view>
+
+    <!-- 帮助内容 -->
+    <view class="form-section">
+      <view class="section-header">
+        <view class="section-icon content-icon">📄</view>
+        <text class="section-title">帮助内容</text>
+      </view>
+      <textarea 
+        class="content-input" 
+        placeholder="请输入需要帮助的内容" 
+        placeholder-class="content-placeholder"
+        value="{{helpContent}}"
+        bindinput="onContentInput"
+        maxlength="500"
+      ></textarea>
+      
+      <!-- 帮助类别 -->
+      <view class="category-buttons">
+        <block wx:for="{{categories}}" wx:key="id">
+          <view 
+            class="category-btn {{item.active ? 'active' : ''}}"
+            bindtap="onCategoryTap"
+            data-index="{{index}}"
+          >
+            {{item.name}}
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 图片上传 -->
+    <view class="form-section">
+      <view class="section-header">
+        <view class="section-icon image-icon">🏞️</view>
+        <text class="section-title">帮助图片上传({{uploadedImages.length}}/{{maxImages}})</text>
+        <text class="optional">选填</text>
+      </view>
+      <view class="image-upload">
+        <view class="upload-btn" bindtap="onUploadImage">
+          <text class="plus-icon">+</text>
+        </view>
+        <block wx:for="{{uploadedImages}}" wx:key="index">
+          <view class="uploaded-image">
+            <image class="image" src="{{item}}" mode="aspectFill" />
+            <view class="delete-btn" bindtap="onDeleteImage" data-index="{{index}}">
+              <text class="delete-icon">×</text>
+            </view>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 备注 -->
+    <view class="form-section">
+      <view class="section-header">
+        <view class="section-icon remarks-icon">✏️</view>
+        <text class="section-title">备注</text>
+      </view>
+      <input 
+        class="remarks-input" 
+        placeholder="输入内容" 
+        placeholder-class="remarks-placeholder"
+        value="{{remarks}}"
+        bindinput="onRemarksInput"
+      />
+    </view>
+
+    <!-- 赏金 -->
+    <view class="form-section">
+      <view class="section-header">
+        <view class="section-icon bounty-icon">💰</view>
+        <text class="section-title">赏金</text>
+      </view>
+      <view class="bounty-control">
+        <view class="bounty-btn decrease" bindtap="onBountyChange" data-type="decrease">
+          <view class="bounty-symbol">-</view>
+        </view>
+        <view class="bounty-value">{{bounty}}</view>
+        <view class="bounty-btn increase" bindtap="onBountyChange" data-type="increase">
+          <view class="bounty-symbol">+</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="safe-area-bottom"></view>
+  </scroll-view>
+
+  <!-- 下单按钮 -->
+  <view class="order-btn-container">
+    <view class="order-btn" bindtap="onPlaceOrder">
+      <text class="order-text">立即下单</text>
+    </view>
+  </view>
+</view>

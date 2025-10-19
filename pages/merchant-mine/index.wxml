@@ -1,0 +1,53 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  <view class="nav"><text class="title">我的</text></view>
+
+  <!-- 顶部用户卡片 -->
+  <view class="user-card">
+    <image class="avatar" src="https://picsum.photos/seed/merchant/80/80" mode="aspectFill" />
+    <view class="u-meta">
+      <view class="row">
+        <text class="name">可爱的麻辣土豆丝店</text>
+        <view class="tag">营业中</view>
+      </view>
+      <text class="info">联系方式：17864110900</text>
+    </view>
+  </view>
+
+  <!-- 收益提示 -->
+  <view class="income">
+    <view class="left">
+      <text class="strong">本月的收益财务报表已经出炉</text>
+      <text class="sub">快去看看你的最新收益吧</text>
+    </view>
+    <view class="right"></view>
+  </view>
+
+  <!-- 菜单列表 -->
+  <view class="list">
+    <block wx:for="{{items}}" wx:key="text">
+      <view class="cell" bindtap="onItemTap" data-text="{{item.text}}">
+        <text class="c-text">{{item.text}}</text>
+        <text class="arrow">></text>
+      </view>
+    </block>
+  </view>
+
+  <!-- 底部导航 -->
+  <view class="tabbar">
+    <view class="t-item" bindtap="onNav" data-tab="orders">
+      <image class="t-img" src="/pages/小标/dingdan.png" mode="aspectFit" />
+      <text class="t-txt">订单</text>
+    </view>
+    <view class="t-item" bindtap="onNav" data-tab="workbench">
+      <image class="t-img" src="/pages/小标/商家.png" mode="aspectFit" />
+      <text class="t-txt">工作台</text>
+    </view>
+    <view class="t-item active">
+      <image class="t-img" src="/pages/小标/wode-copy.png" mode="aspectFit" />
+      <text class="t-txt">我的</text>
+    </view>
+  </view>
+</view>
+
+

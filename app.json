@@ -1,0 +1,74 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/order/index",
+    "pages/profile/index",
+    "pages/address/index",
+    "pages/add-address/index",
+    "pages/canteen/index",
+    "pages/fruits/index",
+    "pages/reward/index",
+    "pages/gaming/index",
+    "pages/express/index",
+    "pages/drinks/index",
+    "pages/secondhand/index",
+    "pages/store/index",
+    "pages/merchant/index",
+    "pages/merchant-register/index",
+    "pages/merchant-login/index",
+    "pages/merchant-orders/index",
+    "pages/merchant-workbench/index",
+    "pages/merchant-mine/index",
+    "pages/merchant-store-info/index",
+    "pages/merchant-goods/index",
+    "pages/merchant-category/index",
+    "pages/merchant-reviews/index",
+    "pages/merchant-add-product/index",
+    "pages/merchant-sales-stats/index",
+    "pages/merchant-delivery-plan/index",
+    "pages/merchant-store-announcement/index",
+    "pages/merchant-settings/index",
+    "pages/merchant-store-photos/index",
+    "pages/admin-dashboard/index",
+    "pages/admin-merchant-list/index",
+    "pages/admin-statistics/index",
+    "pages/admin-management/index",
+    "pages/admin-profile/index",
+    "pages/admin-order-list/index"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "backgroundTextStyle": "light",
+    "backgroundColor": "#F5F6F8",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "custom": false,
+    "color": "#7A7E83",
+    "selectedColor": "#3cc51f",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "iconPath": "pages/小标/shouye.png",
+        "selectedIconPath": "pages/小标/shouye-copy.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/order/index",
+        "iconPath": "pages/小标/dingdan.png",
+        "selectedIconPath": "pages/小标/dingdan-copy.png",
+        "text": "订单"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "iconPath": "pages/小标/wode.png",
+        "selectedIconPath": "pages/小标/wode-copy.png",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

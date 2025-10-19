@@ -1,0 +1,16 @@
+<view class="page">
+  <view class="content">
+    <view class="field">
+      <text class="label">店铺名称</text>
+      <input class="input" placeholder="请输入店铺名称" bindinput="onNameInput" />
+    </view>
+    <view class="field">
+      <text class="label">管理员邀请码</text>
+      <input class="input" placeholder="请输入邀请码" bindinput="onCodeInput" />
+    </view>
+    <view class="tip">需由平台管理端分配邀请码后方可注册。</view>
+    <view class="btn primary" bindtap="onSubmit">提交注册</view>
+  </view>
+</view>
+
+

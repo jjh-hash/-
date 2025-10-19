@@ -1,0 +1,132 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">◀</view>
+    <text class="title">商家管理</text>
+    <view class="nav-actions">
+      <text class="refresh-btn" bindtap="loadMerchantList">🔄</text>
+    </view>
+  </view>
+
+  <!-- 搜索和筛选 -->
+  <view class="filter-section">
+    <view class="search-box">
+      <input 
+        class="search-input" 
+        placeholder="搜索商家名称或手机号" 
+        bindinput="onSearch"
+        value="{{keyword}}"
+      />
+    </view>
+    <view class="filter-box">
+      <picker 
+        bindchange="onStatusChange" 
+        value="{{status}}" 
+        range="{{statusOptions}}" 
+        range-key="label"
+      >
+        <view class="picker-text">
+          {{statusOptions[status].label}}
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 商家列表 -->
+  <view class="merchant-list">
+    <block wx:for="{{merchants}}" wx:key="_id">
+      <view class="merchant-item">
+        <view class="merchant-header">
+          <view class="merchant-info">
+            <text class="merchant-name">{{item.merchantName}}</text>
+            <text class="merchant-phone">{{item.contactPhone}}</text>
+          </view>
+          <view class="merchant-status status-{{item.status}}">
+            <text wx:if="{{item.status === 'pending'}}">待审核</text>
+            <text wx:elif="{{item.status === 'active'}}">已通过</text>
+            <text wx:elif="{{item.status === 'suspended'}}">已暂停</text>
+            <text wx:elif="{{item.status === 'rejected'}}">已拒绝</text>
+          </view>
+        </view>
+        
+        <view class="merchant-details">
+          <view class="detail-item">
+            <text class="detail-label">店铺名称：</text>
+            <text class="detail-value">{{item.storeInfo.name}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">资质状态：</text>
+            <text class="detail-value status-{{item.qualificationStatus}}">
+              <text wx:if="{{item.qualificationStatus === 'pending'}}">待审核</text>
+              <text wx:elif="{{item.qualificationStatus === 'approved'}}">已通过</text>
+              <text wx:elif="{{item.qualificationStatus === 'rejected'}}">已拒绝</text>
+            </text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">申请时间：</text>
+            <text class="detail-value">{{item.createdAt}}</text>
+          </view>
+        </view>
+
+        <view class="merchant-actions">
+          <view 
+            class="action-btn detail-btn" 
+            bindtap="onViewDetail" 
+            data-id="{{item._id}}"
+          >
+            查看详情
+          </view>
+          
+          <view wx:if="{{item.status === 'pending'}}" class="action-buttons">
+            <view 
+              class="action-btn approve-btn" 
+              bindtap="onApprove" 
+              data-id="{{item._id}}" 
+              data-name="{{item.merchantName}}"
+            >
+              通过
+            </view>
+            <view 
+              class="action-btn reject-btn" 
+              bindtap="onReject" 
+              data-id="{{item._id}}" 
+              data-name="{{item.merchantName}}"
+            >
+              拒绝
+            </view>
+          </view>
+          
+          <view wx:elif="{{item.status === 'active'}}" class="action-buttons">
+            <view 
+              class="action-btn suspend-btn" 
+              bindtap="onSuspend" 
+              data-id="{{item._id}}" 
+              data-name="{{item.merchantName}}"
+            >
+              暂停
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{merchants.length === 0}}" class="empty">
+    <text class="empty-icon">📝</text>
+    <text class="empty-text">暂无商家数据</text>
+  </view>
+
+  <!-- 加载更多 -->
+  <view wx:if="{{merchants.length < total && !loading}}" class="load-more">
+    <text>上拉加载更多</text>
+  </view>
+</view>

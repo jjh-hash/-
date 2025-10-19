@@ -1,0 +1,243 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-left" bindtap="goBack">
+      <text class="back-icon">‹</text>
+    </view>
+    <view class="nav-title">设置</view>
+    <view class="nav-right"></view>
+  </view>
+
+  <!-- 内容区域 -->
+  <view class="content">
+    <!-- 店铺管理 -->
+    <view class="section">
+      <view class="section-title">店铺管理</view>
+      <view class="setting-item" bindtap="onSettingTap" data-type="store-info">
+        <view class="item-left">
+          <view class="item-icon store">🏪</view>
+          <view class="item-content">
+            <text class="item-title">店铺信息</text>
+            <text class="item-desc">店铺名称、logo、公告等</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+      
+      <view class="setting-item" bindtap="onSettingTap" data-type="business-hours">
+        <view class="item-left">
+          <view class="item-icon time">🕐</view>
+          <view class="item-content">
+            <text class="item-title">营业时间</text>
+            <text class="item-desc">{{businessHours}}</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+      
+      <view class="setting-item" bindtap="onSettingTap" data-type="delivery-area">
+        <view class="item-left">
+          <view class="item-icon delivery">🚚</view>
+          <view class="item-content">
+            <text class="item-title">配送范围</text>
+            <text class="item-desc">{{deliveryArea}}</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+      
+      <view class="setting-item" bindtap="onSettingTap" data-type="min-order">
+        <view class="item-left">
+          <view class="item-icon money">💰</view>
+          <view class="item-content">
+            <text class="item-title">起送金额</text>
+            <text class="item-desc">¥{{minOrderAmount}}</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+    </view>
+
+    <!-- 订单管理 -->
+    <view class="section">
+      <view class="section-title">订单管理</view>
+      <view class="setting-item">
+        <view class="item-left">
+          <view class="item-icon order">📋</view>
+          <view class="item-content">
+            <text class="item-title">自动接单</text>
+            <text class="item-desc">{{autoAccept ? '已开启' : '已关闭'}}</text>
+          </view>
+        </view>
+        <switch checked="{{autoAccept}}" bindchange="onAutoAcceptChange" color="#1677ff" />
+      </view>
+      
+      <view class="setting-item" bindtap="onSettingTap" data-type="order-reminder">
+        <view class="item-left">
+          <view class="item-icon bell">🔔</view>
+          <view class="item-content">
+            <text class="item-title">订单提醒</text>
+            <text class="item-desc">新订单通知设置</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+      
+      <view class="setting-item" bindtap="onSettingTap" data-type="print-settings">
+        <view class="item-left">
+          <view class="item-icon print">🖨️</view>
+          <view class="item-content">
+            <text class="item-title">打印设置</text>
+            <text class="item-desc">打印机配置</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+    </view>
+
+    <!-- 支付设置 -->
+    <view class="section">
+      <view class="section-title">支付设置</view>
+      <view class="setting-item" bindtap="onSettingTap" data-type="payment-methods">
+        <view class="item-left">
+          <view class="item-icon payment">💳</view>
+          <view class="item-content">
+            <text class="item-title">支付方式</text>
+            <text class="item-desc">微信支付、校园卡等</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+      
+      <view class="setting-item" bindtap="onSettingTap" data-type="settlement">
+        <view class="item-left">
+          <view class="item-icon settlement">📊</view>
+          <view class="item-content">
+            <text class="item-title">结算周期</text>
+            <text class="item-desc">{{settlementCycle}}</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+    </view>
+
+    <!-- 通知设置 -->
+    <view class="section">
+      <view class="section-title">通知设置</view>
+      <view class="setting-item">
+        <view class="item-left">
+          <view class="item-icon notification">📱</view>
+          <view class="item-content">
+            <text class="item-title">消息推送</text>
+            <text class="item-desc">{{pushEnabled ? '已开启' : '已关闭'}}</text>
+          </view>
+        </view>
+        <switch checked="{{pushEnabled}}" bindchange="onPushChange" color="#1677ff" />
+      </view>
+      
+      <view class="setting-item">
+        <view class="item-left">
+          <view class="item-icon sound">🔊</view>
+          <view class="item-content">
+            <text class="item-title">声音提醒</text>
+            <text class="item-desc">{{soundEnabled ? '已开启' : '已关闭'}}</text>
+          </view>
+        </view>
+        <switch checked="{{soundEnabled}}" bindchange="onSoundChange" color="#1677ff" />
+      </view>
+    </view>
+
+    <!-- 安全设置 -->
+    <view class="section">
+      <view class="section-title">安全设置</view>
+      <view class="setting-item" bindtap="onSettingTap" data-type="change-password">
+        <view class="item-left">
+          <view class="item-icon security">🔒</view>
+          <view class="item-content">
+            <text class="item-title">修改密码</text>
+            <text class="item-desc">定期更新密码</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+      
+      <view class="setting-item" bindtap="onSettingTap" data-type="login-verification">
+        <view class="item-left">
+          <view class="item-icon verify">✅</view>
+          <view class="item-content">
+            <text class="item-title">登录验证</text>
+            <text class="item-desc">{{loginVerification ? '已开启' : '已关闭'}}</text>
+          </view>
+        </view>
+        <switch checked="{{loginVerification}}" bindchange="onLoginVerificationChange" color="#1677ff" />
+      </view>
+    </view>
+
+    <!-- 系统设置 -->
+    <view class="section">
+      <view class="section-title">系统设置</view>
+      <view class="setting-item" bindtap="onSettingTap" data-type="language">
+        <view class="item-left">
+          <view class="item-icon language">🌐</view>
+          <view class="item-content">
+            <text class="item-title">语言设置</text>
+            <text class="item-desc">{{language}}</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+      
+      <view class="setting-item" bindtap="onSettingTap" data-type="theme">
+        <view class="item-left">
+          <view class="item-icon theme">🎨</view>
+          <view class="item-content">
+            <text class="item-title">主题设置</text>
+            <text class="item-desc">{{theme}}</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+      
+      <view class="setting-item" bindtap="onClearCache">
+        <view class="item-left">
+          <view class="item-icon cache">🗑️</view>
+          <view class="item-content">
+            <text class="item-title">清理缓存</text>
+            <text class="item-desc">释放存储空间</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+    </view>
+
+    <!-- 关于我们 -->
+    <view class="section">
+      <view class="setting-item" bindtap="onSettingTap" data-type="about">
+        <view class="item-left">
+          <view class="item-icon about">ℹ️</view>
+          <view class="item-content">
+            <text class="item-title">关于我们</text>
+            <text class="item-desc">版本 {{version}}</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+      
+      <view class="setting-item" bindtap="onLogout">
+        <view class="item-left">
+          <view class="item-icon logout">🚪</view>
+          <view class="item-content">
+            <text class="item-title logout-text">退出登录</text>
+            <text class="item-desc">安全退出当前账号</text>
+          </view>
+        </view>
+        <text class="arrow">></text>
+      </view>
+    </view>
+  </view>
+
+  <view class="safe-area-bottom"></view>
+</view>

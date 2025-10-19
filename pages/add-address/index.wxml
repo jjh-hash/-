@@ -1,0 +1,66 @@
+<view class="page">
+  <!-- 自定义导航 -->
+  <view class="nav">
+    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+    <view class="nav-bar">
+      <text class="back" bindtap="onBack">◀</text>
+      <text class="title">新增地址</text>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 地址表单 -->
+    <view class="form-section">
+      <!-- 地址选择 -->
+      <view class="form-item" bindtap="onSelectAddress">
+        <view class="form-icon"><image class="form-icon-img" src="/pages/小标/地址.png" mode="aspectFit" /></view>
+        <view class="form-content">
+          <text class="form-label">地址</text>
+          <text class="form-value">{{addressDetail || '请选择地址'}}</text>
+        </view>
+        <text class="form-arrow">></text>
+      </view>
+
+      <!-- 楼栋名 -->
+      <view class="form-item">
+        <view class="form-icon"><image class="form-icon-img" src="/pages/小标/楼房-大厦.png" mode="aspectFit" /></view>
+        <view class="form-content">
+          <text class="form-label">楼栋名</text>
+          <input class="form-input" placeholder="大楼名,如知新楼" value="{{buildingName}}" bindinput="onBuildingInput" />
+        </view>
+      </view>
+
+      <!-- 门牌号 -->
+      <view class="form-item">
+        <view class="form-icon"><image class="form-icon-img" src="/pages/小标/门牌.png" mode="aspectFit" /></view>
+        <view class="form-content">
+          <text class="form-label">门牌号</text>
+          <input class="form-input" placeholder="门牌号,如101" value="{{houseNumber}}" bindinput="onHouseInput" />
+        </view>
+      </view>
+
+      <!-- 姓名 -->
+      <view class="form-item">
+        <view class="form-icon"><image class="form-icon-img" src="/pages/小标/姓名.png" mode="aspectFit" /></view>
+        <view class="form-content">
+          <text class="form-label">姓名</text>
+          <input class="form-input" placeholder="姓名" value="{{name}}" bindinput="onNameInput" />
+        </view>
+      </view>
+
+      <!-- 电话号码 -->
+      <view class="form-item">
+        <view class="form-icon"><image class="form-icon-img" src="/pages/小标/电 话.png" mode="aspectFit" /></view>
+        <view class="form-content">
+          <text class="form-label">电话号码</text>
+          <input class="form-input" placeholder="电话号码" value="{{phone}}" bindinput="onPhoneInput" />
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 确定按钮 -->
+  <view class="footer">
+    <button class="btn-confirm" bindtap="onConfirm">确定</button>
+  </view>
+</view>

@@ -1,0 +1,164 @@
+.page {
+  min-height: 100vh;
+  background: #f5f6f8;
+}
+
+.status-bar {
+  background: transparent;
+}
+
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 30rpx;
+  background: white;
+  border-bottom: 1rpx solid #eee;
+}
+
+.back-btn, .refresh-btn, .export-btn {
+  color: #333;
+  font-size: 32rpx;
+  padding: 10rpx;
+}
+
+.title {
+  color: #333;
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.export-btn {
+  background: #667eea;
+  color: white;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 26rpx;
+}
+
+/* 标签栏 */
+.tabs {
+  display: flex;
+  background: white;
+  border-bottom: 1rpx solid #eee;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 30rpx 0;
+  font-size: 28rpx;
+  color: #666;
+  position: relative;
+}
+
+.tab-item.active {
+  color: #667eea;
+  font-weight: bold;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60rpx;
+  height: 4rpx;
+  background: #667eea;
+  border-radius: 2rpx;
+}
+
+/* 日期范围选择 */
+.date-range {
+  padding: 20rpx 30rpx;
+  background: white;
+  border-bottom: 1rpx solid #eee;
+}
+
+.picker-text {
+  display: inline-block;
+  padding: 12rpx 24rpx;
+  background: #f8f9fa;
+  border: 1rpx solid #ddd;
+  border-radius: 20rpx;
+  font-size: 26rpx;
+  color: #333;
+}
+
+/* 内容区域 */
+.content {
+  padding: 30rpx;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  margin-bottom: 30rpx;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.stat-icon {
+  font-size: 48rpx;
+  display: block;
+  margin-bottom: 15rpx;
+}
+
+.stat-label {
+  display: block;
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+}
+
+.stat-number {
+  display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 营收卡片 */
+.revenue-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20rpx;
+  padding: 40rpx;
+  text-align: center;
+  color: white;
+  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.3);
+}
+
+.revenue-label {
+  display: block;
+  font-size: 28rpx;
+  margin-bottom: 15rpx;
+  opacity: 0.9;
+}
+
+.revenue-amount {
+  display: block;
+  font-size: 48rpx;
+  font-weight: bold;
+}
+
+/* 加载状态 */
+.loading {
+  text-align: center;
+  padding: 100rpx;
+  color: #666;
+  font-size: 28rpx;
+}

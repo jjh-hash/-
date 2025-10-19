@@ -1,0 +1,14 @@
+page {
+  background: #F5F6F8;
+}
+
+.safe-area-bottom {
+  height: env(safe-area-inset-bottom);
+}
+
+.ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+

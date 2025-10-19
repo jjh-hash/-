@@ -1,0 +1,176 @@
+<!--pages/admin-management/index.wxml-->
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">◀</view>
+    <text class="title">管理系统</text>
+    <view class="nav-actions">
+      <text class="refresh-btn" bindtap="onRefresh">🔄</text>
+    </view>
+  </view>
+
+  <!-- 页面内容 -->
+  <view class="page-content">
+    <!-- 管理功能导航 -->
+    <view class="management-nav">
+      <text class="nav-title">管理功能</text>
+      <text class="nav-subtitle">选择要管理的功能模块</text>
+    </view>
+
+    <!-- 功能模块网格 -->
+    <view class="function-grid">
+      <!-- 商家管理 -->
+      <view class="function-card" bindtap="onFunctionClick" data-function="merchant">
+        <view class="card-icon merchant">
+          <image src="/pages/小标/商家.png" mode="aspectFit"></image>
+        </view>
+        <view class="card-content">
+          <text class="card-title">商家管理</text>
+          <text class="card-desc">管理商家入驻、审核、状态控制</text>
+          <view class="card-stats">
+            <text class="stat-item">总商家: {{merchantStats.total}}</text>
+            <text class="stat-item">待审核: {{merchantStats.pending}}</text>
+          </view>
+        </view>
+        <view class="card-arrow">></view>
+      </view>
+
+      <!-- 用户管理 -->
+      <view class="function-card" bindtap="onFunctionClick" data-function="user">
+        <view class="card-icon user">
+          <image src="/pages/小标/wode.png" mode="aspectFit"></image>
+        </view>
+        <view class="card-content">
+          <text class="card-title">用户管理</text>
+          <text class="card-desc">管理用户信息、权限、状态</text>
+          <view class="card-stats">
+            <text class="stat-item">总用户: {{userStats.total}}</text>
+            <text class="stat-item">活跃用户: {{userStats.active}}</text>
+          </view>
+        </view>
+        <view class="card-arrow">></view>
+      </view>
+
+      <!-- 订单管理 -->
+      <view class="function-card" bindtap="onFunctionClick" data-function="order">
+        <view class="card-icon order">
+          <image src="/pages/小标/dingdan.png" mode="aspectFit"></image>
+        </view>
+        <view class="card-content">
+          <text class="card-title">订单管理</text>
+          <text class="card-desc">处理订单、退款、异常订单</text>
+          <view class="card-stats">
+            <text class="stat-item">总订单: {{orderStats.total}}</text>
+            <text class="stat-item">待处理: {{orderStats.pending}}</text>
+          </view>
+        </view>
+        <view class="card-arrow">></view>
+      </view>
+
+      <!-- 财务管理 -->
+      <view class="function-card" bindtap="onFunctionClick" data-function="finance">
+        <view class="card-icon finance">
+          <image src="/pages/小标/关于我们.png" mode="aspectFit"></image>
+        </view>
+        <view class="card-content">
+          <text class="card-title">财务管理</text>
+          <text class="card-desc">查看收益、分账、财务报表</text>
+          <view class="card-stats">
+            <text class="stat-item">总收益: ¥{{financeStats.totalRevenue}}</text>
+            <text class="stat-item">今日收益: ¥{{financeStats.todayRevenue}}</text>
+          </view>
+        </view>
+        <view class="card-arrow">></view>
+      </view>
+
+      <!-- 平台管理 -->
+      <view class="function-card" bindtap="onFunctionClick" data-function="platform">
+        <view class="card-icon platform">
+          <image src="/pages/小标/关于我们.png" mode="aspectFit"></image>
+        </view>
+        <view class="card-content">
+          <text class="card-title">平台管理</text>
+          <text class="card-desc">系统设置、公告、活动管理</text>
+          <view class="card-stats">
+            <text class="stat-item">活跃公告: {{platformStats.activeAnnouncements}}</text>
+            <text class="stat-item">进行中活动: {{platformStats.activeActivities}}</text>
+          </view>
+        </view>
+        <view class="card-arrow">></view>
+      </view>
+    </view>
+
+    <!-- 快速操作 -->
+    <view class="quick-actions">
+      <text class="section-title">快速操作</text>
+      <view class="action-buttons">
+        <button class="action-btn primary" bindtap="onQuickAction" data-action="approve_merchants">
+          <text class="btn-icon">✅</text>
+          <text class="btn-text">批量审核商家</text>
+        </button>
+        <button class="action-btn warning" bindtap="onQuickAction" data-action="process_orders">
+          <text class="btn-icon">📦</text>
+          <text class="btn-text">处理待办订单</text>
+        </button>
+        <button class="action-btn success" bindtap="onQuickAction" data-action="view_reports">
+          <text class="btn-icon">📊</text>
+          <text class="btn-text">查看报表</text>
+        </button>
+        <button class="action-btn info" bindtap="onQuickAction" data-action="system_settings">
+          <text class="btn-icon">⚙️</text>
+          <text class="btn-text">系统设置</text>
+        </button>
+      </view>
+    </view>
+
+    <!-- 系统状态 -->
+    <view class="system-status">
+      <text class="section-title">系统状态</text>
+      <view class="status-cards">
+        <view class="status-card">
+          <text class="status-label">系统运行状态</text>
+          <text class="status-value success">正常</text>
+        </view>
+        <view class="status-card">
+          <text class="status-label">数据库连接</text>
+          <text class="status-value success">正常</text>
+        </view>
+        <view class="status-card">
+          <text class="status-label">支付系统</text>
+          <text class="status-value success">正常</text>
+        </view>
+        <view class="status-card">
+          <text class="status-label">存储服务</text>
+          <text class="status-value success">正常</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部导航栏 -->
+  <view class="admin-tabbar">
+    <view class="tabbar-item {{currentTab === 0 ? 'active' : ''}}" bindtap="onTabChange" data-index="0">
+      <view class="tabbar-icon">
+        <image src="{{currentTab === 0 ? '/pages/小标/shouye-copy.png' : '/pages/小标/shouye.png'}}" mode="aspectFit"></image>
+      </view>
+      <text class="tabbar-text">数据概况</text>
+    </view>
+    
+    <view class="tabbar-item {{currentTab === 1 ? 'active' : ''}}" bindtap="onTabChange" data-index="1">
+      <view class="tabbar-icon">
+        <image src="{{currentTab === 1 ? '/pages/小标/商家1.png' : '/pages/小标/商家.png'}}" mode="aspectFit"></image>
+      </view>
+      <text class="tabbar-text">管理系统</text>
+    </view>
+    
+    <view class="tabbar-item {{currentTab === 2 ? 'active' : ''}}" bindtap="onTabChange" data-index="2">
+      <view class="tabbar-icon">
+        <image src="{{currentTab === 2 ? '/pages/小标/wode-copy.png' : '/pages/小标/wode.png'}}" mode="aspectFit"></image>
+      </view>
+      <text class="tabbar-text">管理员信息</text>
+    </view>
+  </view>
+</view>

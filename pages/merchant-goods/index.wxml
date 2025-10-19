@@ -1,0 +1,52 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  <view class="nav">
+    <view class="back" bindtap="onBack">◀</view>
+    <text class="title">商品管理</text>
+    <view class="tools">🔍</view>
+  </view>
+
+  <!-- 顶部tab -->
+  <view class="tabs">
+    <view class="tab {{activeTab===0?'active':''}}" data-index="0" bindtap="onTab">上架中</view>
+    <view class="tab {{activeTab===1?'active':''}}" data-index="1" bindtap="onTab">下架中</view>
+  </view>
+
+  <view class="content">
+    <!-- 左侧分类 -->
+    <scroll-view scroll-y class="cats">
+      <block wx:for="{{categories}}" wx:key="name">
+        <view class="cat {{index===activeCat? 'active':''}}" bindtap="onCat" data-index="{{index}}">{{item.name}}</view>
+      </block>
+    </scroll-view>
+
+    <!-- 右侧商品列表 -->
+    <scroll-view scroll-y class="goods" bindtap="onGoodsAreaTap">
+      <block wx:for="{{goods}}" wx:key="id">
+        <view class="swipe-item" data-id="{{item.id}}">
+          <view class="swipe-content" 
+                style="transform: translateX({{item.swipeOffset || 0}}px)"
+                bindtouchstart="onTouchStart" 
+                bindtouchmove="onTouchMove" 
+                bindtouchend="onTouchEnd"
+                data-id="{{item.id}}">
+            <image class="thumb" src="{{item.img}}" mode="aspectFill" />
+            <view class="meta">
+              <text class="name">{{item.name}}</text>
+              <text class="price">¥{{item.price}}</text>
+            </view>
+          </view>
+          <view class="swipe-actions">
+            <view class="action-btn edit" bindtap="onEdit" data-id="{{item.id}}">编辑</view>
+            <view class="action-btn delete" bindtap="onDelete" data-id="{{item.id}}">删除</view>
+          </view>
+        </view>
+      </block>
+      <view class="add-wrap">
+        <view class="add-btn" bindtap="onAdd">+添加商品</view>
+      </view>
+    </scroll-view>
+  </view>
+</view>
+
+

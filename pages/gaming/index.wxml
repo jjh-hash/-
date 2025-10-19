@@ -1,0 +1,160 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px">
+  </view>
+
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBackTap">
+      <text class="back-icon">←</text>
+    </view>
+    <text class="title">游戏开黑</text>
+    <view class="nav-actions">
+      <text class="more-btn">⋯</text>
+      <text class="target-btn">🎯</text>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 横幅 -->
+    <view class="banner">
+      <view class="banner-content">
+        <view class="banner-text">
+          <text class="banner-subtitle">JUXIKAIHEI</text>
+          <text class="banner-title">游戏开黑</text>
+        </view>
+        <view class="ribbon">
+          <text class="ribbon-text">优质服务等你来!</text>
+        </view>
+        <view class="game-controller">
+          <view class="controller-body">
+            <view class="d-pad">
+              <view class="d-pad-up"></view>
+              <view class="d-pad-down"></view>
+              <view class="d-pad-left"></view>
+              <view class="d-pad-right"></view>
+            </view>
+            <view class="action-buttons">
+              <view class="action-btn"></view>
+              <view class="action-btn"></view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 游戏类型 -->
+    <view class="form-section">
+      <view class="section-header">
+        <view class="section-icon game-type-icon">📱</view>
+        <text class="section-title">游戏类型</text>
+        <view class="arrow" bindtap="onGameTypeTap">></view>
+      </view>
+      <view class="game-type-input" bindtap="onGameTypeTap">
+        <text class="game-type-value">{{gameType}}</text>
+      </view>
+    </view>
+
+    <!-- 开黑时间 -->
+    <view class="form-section">
+      <view class="section-header">
+        <view class="section-icon duration-icon">⏰</view>
+        <text class="section-title">开黑时间 (最低1小时)</text>
+      </view>
+      <view class="duration-control">
+        <view class="duration-btn decrease" bindtap="onDurationChange" data-type="decrease">
+          <text class="duration-symbol">-</text>
+        </view>
+        <view class="duration-value">{{sessionDuration}}</view>
+        <view class="duration-btn increase" bindtap="onDurationChange" data-type="increase">
+          <text class="duration-symbol">+</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 开黑要求 -->
+    <view class="form-section">
+      <view class="section-header">
+        <view class="section-icon requirements-icon">📋</view>
+        <text class="section-title">开黑要求</text>
+      </view>
+      <textarea 
+        class="requirements-input" 
+        placeholder="输入游戏开黑的要求" 
+        placeholder-class="requirements-placeholder"
+        value="{{requirements}}"
+        bindinput="onRequirementsInput"
+        maxlength="500"
+      ></textarea>
+      
+      <!-- 要求标签 -->
+      <view class="requirement-tags">
+        <block wx:for="{{requirementTags}}" wx:key="id">
+          <view 
+            class="requirement-tag {{item.active ? 'active' : ''}}"
+            bindtap="onRequirementTagTap"
+            data-index="{{index}}"
+          >
+            {{item.name}}
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 赏金 -->
+    <view class="form-section">
+      <view class="section-header">
+        <view class="section-icon bounty-icon">🏆</view>
+        <text class="section-title">赏金</text>
+      </view>
+      <view class="bounty-input-container">
+        <input 
+          class="bounty-input" 
+          placeholder="金额" 
+          placeholder-class="bounty-placeholder"
+          value="{{bounty}}"
+          bindinput="onBountyInput"
+          type="number"
+        />
+        <text class="bounty-unit">元</text>
+      </view>
+    </view>
+
+    <view class="safe-area-bottom"></view>
+  </scroll-view>
+
+  <!-- 下单按钮 -->
+  <view class="order-btn-container">
+    <view class="order-btn" bindtap="onPlaceOrder">
+      <text class="order-text">立即下单</text>
+    </view>
+  </view>
+
+  <!-- 游戏选择弹窗 -->
+  <view class="modal-overlay {{showGameModal ? 'show' : ''}}" bindtap="onCancelGame">
+    <view class="game-modal" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">选择游戏</text>
+      </view>
+      <view class="game-list">
+        <block wx:for="{{gameTypes}}" wx:key="index">
+          <view 
+            class="game-item {{index === selectedGameIndex ? 'selected' : ''}}"
+            bindtap="onSelectGame"
+            data-index="{{index}}"
+          >
+            <text class="game-name">{{item}}</text>
+          </view>
+        </block>
+      </view>
+      <view class="modal-buttons">
+        <view class="modal-btn cancel-btn" bindtap="onCancelGame">
+          <text class="btn-text">取消</text>
+        </view>
+        <view class="modal-btn confirm-btn" bindtap="onConfirmGame">
+          <text class="btn-text">确定</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

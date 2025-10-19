@@ -1,0 +1,157 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px">
+  </view>
+
+  <!-- 头部导航 -->
+  <view class="header">
+    <view class="back-btn" bindtap="onBackTap">
+      <text class="back-icon">←</text>
+    </view>
+    <view class="search-container">
+      <input 
+        class="search-input" 
+        placeholder="爆款零食0.01元起" 
+        placeholder-class="search-placeholder"
+        value="{{searchValue}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchSubmit"
+      />
+    </view>
+    <view class="header-actions">
+      <text class="search-btn">搜索</text>
+      <text class="more-btn">⋯</text>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 主分类导航 -->
+    <view class="main-categories">
+      <scroll-view scroll-x class="category-scroll">
+        <view class="category-list">
+          <block wx:for="{{mainCategories}}" wx:key="index">
+            <view 
+              class="category-item {{index === activeMainCategory ? 'active' : ''}}"
+              bindtap="onMainCategoryTap"
+              data-index="{{index}}"
+            >
+              <view class="category-icon">{{item.icon}}</view>
+              <text class="category-name">{{item.name}}</text>
+            </view>
+          </block>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 子分类/筛选栏 -->
+    <view class="sub-categories">
+      <scroll-view scroll-x class="sub-category-scroll">
+        <view class="sub-category-list">
+          <block wx:for="{{subCategories}}" wx:key="index">
+            <view 
+              class="sub-category-item {{index === activeSubCategory ? 'active' : ''}}"
+              bindtap="onSubCategoryTap"
+              data-index="{{index}}"
+            >
+              <view class="sub-category-icon">{{item.icon}}</view>
+              <text class="sub-category-name">{{item.name}}</text>
+            </view>
+          </block>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 商家列表 -->
+    <view class="merchant-list">
+      <block wx:for="{{merchants}}" wx:key="id">
+        <view class="merchant-card" bindtap="onMerchantTap" data-id="{{item.id}}">
+          <!-- 销量排行榜标签 -->
+          <view class="sales-rank" wx:if="{{item.salesRank}}">
+            <text class="rank-text">《第{{item.salesRank}}名》销量榜</text>
+          </view>
+
+          <!-- 商家信息头部 -->
+          <view class="merchant-header">
+            <view class="merchant-logo">
+              <image class="logo-image" src="{{item.logo}}" mode="aspectFill" />
+            </view>
+            <view class="merchant-info">
+              <view class="merchant-name-row">
+                <text class="brand-tag" wx:if="{{item.brand}}">{{item.brand}}</text>
+                <text class="merchant-name">{{item.name}}</text>
+                <view class="delivery-type">{{item.deliveryType}}</view>
+              </view>
+              <text class="merchant-desc" wx:if="{{item.description}}">{{item.description}}</text>
+              <view class="merchant-stats">
+                <view class="rating" wx:if="{{item.rating}}">
+                  <text class="rating-text">评分 {{item.rating}}</text>
+                  <text class="star">⭐</text>
+                </view>
+                <text class="monthly-sales" wx:if="{{item.monthlySales}}">月售 {{item.monthlySales}}+</text>
+                <text class="interested" wx:if="{{item.interested}}">感兴趣 {{item.interested}}人</text>
+                <text class="no-rating" wx:if="{{!item.rating}}">评分 暂无评分</text>
+              </view>
+              <view class="delivery-info">
+                <text class="min-order">起送 ¥{{item.minOrder}}</text>
+                <text class="delivery-fee">
+                  配送 {{item.deliveryFee === 0 ? '免配送费' : '¥' + item.deliveryFee}}
+                </text>
+                <text class="delivery-time">{{item.deliveryTime}}分钟</text>
+                <text class="distance">{{item.distance}}km</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 保障和评价 -->
+          <view class="guarantee-section" wx:if="{{item.guarantee}}">
+            <view class="guarantee">
+              <text class="guarantee-icon">✅</text>
+              <text class="guarantee-text">{{item.guarantee}}</text>
+            </view>
+            <text class="quote">{{item.quote}}</text>
+          </view>
+
+          <!-- 优惠券 -->
+          <view class="coupons">
+            <block wx:for="{{item.coupons}}" wx:key="*this">
+              <view class="coupon">{{item}}</view>
+            </block>
+          </view>
+
+          <!-- 店铺位置 -->
+          <view class="store-location" wx:if="{{item.storeLocation}}">
+            <text class="location-text">{{item.storeLocation}}</text>
+          </view>
+
+          <!-- 商品列表 -->
+          <view class="products">
+            <scroll-view scroll-x class="product-scroll">
+              <view class="product-list">
+                <block wx:for="{{item.products}}" wx:key="id">
+                  <view class="product-item" bindtap="onProductTap" data-product-id="{{item.id}}" data-merchant-id="{{item.merchantId}}">
+                    <view class="product-image">
+                      <image class="image" src="{{item.image}}" mode="aspectFill" />
+                      <view class="product-tag" wx:if="{{item.tag}}">{{item.tag}}</view>
+                    </view>
+                    <view class="product-info">
+                      <text class="product-name">{{item.name}}</text>
+                      <text class="product-subtitle" wx:if="{{item.subtitle}}">{{item.subtitle}}</text>
+                      <view class="product-price">
+                        <text class="price" wx:if="{{item.isFirstItem}}">第1件¥{{item.price}}</text>
+                        <text class="price" wx:elif="{{item.quantity}}">{{item.quantity}}¥{{item.price}}</text>
+                        <text class="price" wx:elif="{{item.deliveryPrice}}">¥{{item.price}}{{item.deliveryPrice}}</text>
+                        <text class="price" wx:else>¥{{item.price}}</text>
+                      </view>
+                    </view>
+                  </view>
+                </block>
+              </view>
+            </scroll-view>
+          </view>
+        </view>
+      </block>
+    </view>
+    
+    <view class="safe-area-bottom"></view>
+  </scroll-view>
+</view>

@@ -1,0 +1,99 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  <view class="nav">
+    <view class="back" bindtap="onBack">◀</view>
+    <text class="title">店铺信息</text>
+  </view>
+
+  <view class="section-title">基本信息</view>
+  <view class="list">
+    <view class="cell avatar">
+      <text class="label">头像</text>
+      <view class="right">
+        <image class="avatar-img" src="{{form.avatar}}" mode="aspectFill" />
+        <text class="arrow">></text>
+      </view>
+    </view>
+    <view class="cell">
+      <text class="label">店铺名</text>
+      <input class="input" value="{{form.name}}" bindinput="onInput" data-key="name" />
+      <text class="arrow">></text>
+    </view>
+    <view class="cell">
+      <text class="label">联系方式</text>
+      <input class="input" value="{{form.phone}}" bindinput="onInput" data-key="phone" />
+      <text class="arrow">></text>
+    </view>
+    <view class="cell">
+      <text class="label">店铺地</text>
+      <input class="input" value="{{form.address}}" bindinput="onInput" data-key="address" />
+      <text class="arrow">></text>
+    </view>
+    <view class="cell">
+      <text class="label">经营分类</text>
+      <input class="input" value="{{form.category}}" bindinput="onInput" data-key="category" />
+      <text class="arrow">></text>
+    </view>
+  </view>
+
+  <view class="section-title">营业信息</view>
+  <view class="list">
+    <view class="cell" bindtap="showTimePicker">
+      <text class="label">营业时间</text>
+      <text class="time-display">{{businessHours.startTime}} ~ {{businessHours.endTime}}</text>
+      <text class="arrow">></text>
+    </view>
+    <view class="cell">
+      <text class="label">起步价</text>
+      <view class="price">
+        <input class="input short" value="{{form.startPrice}}" bindinput="onInput" data-key="startPrice" />
+        <text class="unit">元</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="save-wrap">
+    <view class="btn primary" bindtap="onSave">保存</view>
+  </view>
+
+  <!-- 营业时间选择弹窗 -->
+  <view class="time-picker-modal {{showTimePicker ? 'show' : ''}}" bindtap="hideTimePicker">
+    <view class="modal-content" catchtap="stopPropagation">
+      <view class="modal-header">
+        <text class="cancel-btn" bindtap="hideTimePicker">取消</text>
+        <text class="confirm-btn" bindtap="confirmTimeSelection">确定</text>
+      </view>
+      
+      <view class="time-display-section">
+        <view class="time-box {{selectedTimeType === 'start' ? 'active' : ''}}" bindtap="selectTimeType" data-type="start">
+          <text class="time-text">{{tempBusinessHours.startTime}}</text>
+        </view>
+        <text class="time-separator">~</text>
+        <view class="time-box {{selectedTimeType === 'end' ? 'active' : ''}}" bindtap="selectTimeType" data-type="end">
+          <text class="time-text">{{tempBusinessHours.endTime}}</text>
+        </view>
+      </view>
+      
+      <view class="time-picker-container">
+        <view class="picker-column">
+          <view class="picker-item" wx:for="{{hourOptions}}" wx:key="*this" 
+                style="color: {{item === selectedHour ? '#1677ff' : '#333'}}"
+                bindtap="selectHour" data-hour="{{item}}">
+            {{item}}
+          </view>
+        </view>
+        <text class="picker-label">时</text>
+        <view class="picker-column">
+          <view class="picker-item" wx:for="{{minuteOptions}}" wx:key="*this" 
+                style="color: {{item === selectedMinute ? '#1677ff' : '#333'}}"
+                bindtap="selectMinute" data-minute="{{item}}">
+            {{item}}
+          </view>
+        </view>
+        <text class="picker-label">分</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+

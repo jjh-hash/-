@@ -1,0 +1,52 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-left" bindtap="goBack">
+      <text class="back-icon">‹</text>
+    </view>
+    <view class="nav-title">配送方案</view>
+    <view class="nav-right"></view>
+  </view>
+
+  <!-- 内容区域 -->
+  <view class="content">
+    <!-- 配送设置 -->
+    <view class="section">
+      <text class="section-title">配送设置</text>
+      
+      <!-- 配送方式 -->
+      <view class="setting-row">
+        <text class="setting-label">配送方式</text>
+        <view class="delivery-method">
+          <view class="method-btn {{deliveryMethod === 'platform' ? 'active' : ''}}" 
+                bindtap="selectDeliveryMethod" 
+                data-method="platform">
+            平台配送
+          </view>
+          <view class="method-btn {{deliveryMethod === 'merchant' ? 'active' : ''}}" 
+                bindtap="selectDeliveryMethod" 
+                data-method="merchant">
+            商家配送
+          </view>
+        </view>
+      </view>
+      
+      <!-- 配送费 -->
+      <view class="setting-row">
+        <text class="setting-label">配送费</text>
+        <view class="delivery-fee">
+          <text class="fee-amount">{{deliveryFee}}</text>
+          <text class="fee-unit">元</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 确定按钮 -->
+  <view class="confirm-btn" bindtap="confirmSettings">
+    确定
+  </view>
+</view>

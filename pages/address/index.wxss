@@ -1,0 +1,23 @@
+/* 导航 */
+.nav{ background:#fff; }
+.nav-bar{ height:44px; display:flex; align-items:center; justify-content:center; border-bottom:1px solid #f1f3f5; }
+.back{ position:absolute; left:12px; color:#374151; }
+.title{ font-size:17px; font-weight:600; color:#111827; }
+
+.content{ height: calc(100vh - 120px); background:#fff; display:flex; align-items:center; justify-content:center; }
+
+/* 空态 */
+.empty{ padding:80px 16px; text-align:center; color:#9ca3af; }
+.empty-title{ display:block; font-size:16px; color:#6b7280; margin-bottom:8px; }
+.empty-sub{ font-size:12px; }
+
+/* 列表态（备用） */
+.list{ padding:0 16px; }
+.addr-item{ padding:16px 0; border-bottom:1px solid #f1f3f5; }
+.addr-name{ font-size:16px; color:#1f2937; display:block; margin-bottom:6px; }
+.addr-desc{ font-size:12px; color:#6b7280; }
+
+/* 底部按钮 */
+.footer{ position:fixed; left:0; right:0; bottom:0; background:#fff; padding:20px 40px env(safe-area-inset-bottom); }
+.btn-add{ width:100%; background:#f8fafc; color:#1a73e8 !important; border:none; border-radius:999px; height:48px; font-size:14px; text-align:center; line-height:30px; }
+

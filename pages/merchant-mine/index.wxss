@@ -1,0 +1,29 @@
+.page{min-height:100vh;background:#f5f5f5}
+.status-bar{width:100%}
+.nav{height:44px;background:#fff;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center}
+.title{font-size:18px;color:#333;font-weight:600}
+
+.user-card{margin:12px;background:linear-gradient(135deg,#f6fbff,#eef5ff);border-radius:12px;display:flex;align-items:center;padding:12px}
+.avatar{width:48px;height:48px;border-radius:24px;margin-right:10px}
+.u-meta{flex:1}
+.row{display:flex;align-items:center;gap:6px}
+.name{font-weight:600;color:#333}
+.tag{font-size:12px;color:#1677ff;background:#eaf2ff;border:1px solid #cfe3ff;border-radius:12px;padding:2px 8px}
+.info{display:block;color:#666;font-size:12px;margin-top:4px}
+
+.income{margin:12px;background:#fff;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center}
+.strong{display:block;color:#333;font-weight:600}
+.sub{display:block;color:#999;font-size:12px;margin-top:4px}
+.right{width:72px;height:48px;background:linear-gradient(135deg,#eaf2ff,#fff);border-radius:8px}
+
+.list{background:#fff;margin:12px;border-radius:12px;overflow:hidden}
+.cell{display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid #f2f3f5;color:#333}
+.cell:last-child{border-bottom:none}
+.arrow{color:#c0c4cc}
+
+.tabbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #eee;display:flex;justify-content:space-around;padding:6px 0}
+.t-item{display:flex;flex-direction:column;align-items:center;color:#999}
+.t-item.active{color:#1677ff}
+.t-img{width:22px;height:22px}
+.t-txt{font-size:12px;margin-top:2px}
+

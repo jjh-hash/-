@@ -1,0 +1,232 @@
+.page {
+  min-height: 100vh;
+  background: #f5f6f8;
+}
+
+.status-bar {
+  background: transparent;
+}
+
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 30rpx;
+  background: white;
+  border-bottom: 1rpx solid #eee;
+}
+
+.back-btn, .refresh-btn {
+  color: #333;
+  font-size: 32rpx;
+  padding: 10rpx;
+}
+
+.title {
+  color: #333;
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+/* 搜索和筛选 */
+.filter-section {
+  display: flex;
+  padding: 20rpx 30rpx;
+  background: white;
+  border-bottom: 1rpx solid #eee;
+  gap: 20rpx;
+}
+
+.search-box {
+  flex: 1;
+}
+
+.search-input {
+  width: 100%;
+  height: 70rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 35rpx;
+  font-size: 28rpx;
+  background: #f8f9fa;
+}
+
+.filter-box {
+  width: 200rpx;
+}
+
+.picker-text {
+  height: 70rpx;
+  line-height: 70rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 35rpx;
+  font-size: 28rpx;
+  text-align: center;
+  background: #f8f9fa;
+  color: #333;
+}
+
+/* 商家列表 */
+.merchant-list {
+  padding: 20rpx 30rpx;
+}
+
+.merchant-item {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.merchant-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.merchant-info {
+  flex: 1;
+}
+
+.merchant-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.merchant-phone {
+  display: block;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.merchant-status {
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-suspended {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.merchant-details {
+  margin-bottom: 20rpx;
+}
+
+.detail-item {
+  display: flex;
+  margin-bottom: 10rpx;
+}
+
+.detail-label {
+  font-size: 26rpx;
+  color: #666;
+  width: 160rpx;
+}
+
+.detail-value {
+  font-size: 26rpx;
+  color: #333;
+  flex: 1;
+}
+
+.merchant-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.action-btn {
+  padding: 12rpx 24rpx;
+  border-radius: 20rpx;
+  font-size: 26rpx;
+  text-align: center;
+  min-width: 120rpx;
+}
+
+.detail-btn {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 15rpx;
+}
+
+.approve-btn {
+  background: #d4edda;
+  color: #155724;
+}
+
+.reject-btn {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.suspend-btn {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* 加载状态 */
+.loading {
+  text-align: center;
+  padding: 60rpx;
+  color: #666;
+  font-size: 28rpx;
+}
+
+/* 空状态 */
+.empty {
+  text-align: center;
+  padding: 100rpx 60rpx;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 40rpx;
+  color: #999;
+  font-size: 26rpx;
+}

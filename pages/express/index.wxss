@@ -1,0 +1,468 @@
+/* 页面基础样式 */
+.page {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 状态栏 */
+.status-bar {
+  background: #fff;
+  padding: 0 12px;
+}
+
+
+/* 导航栏 */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.back-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.back-icon {
+  font-size: 18px;
+  color: #333;
+}
+
+.title {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.more-btn {
+  font-size: 16px;
+  color: #333;
+  transform: rotate(90deg);
+}
+
+.target-btn {
+  font-size: 16px;
+  color: #333;
+}
+
+/* 内容区域 */
+.content {
+  flex: 1;
+  padding-bottom: 80px;
+}
+
+/* 横幅 */
+.banner {
+  background: linear-gradient(135deg, #8b5cf6, #4a90e2);
+  margin: 12px;
+  border-radius: 12px;
+  height: 160px;
+  position: relative;
+  overflow: hidden;
+}
+
+.banner-content {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.banner-text {
+  flex: 1;
+}
+
+.banner-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.banner-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  display: block;
+}
+
+.ribbon {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: #ffd700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  z-index: 2;
+}
+
+.ribbon::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 6px solid #ffd700;
+}
+
+.ribbon::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 6px solid #ffd700;
+}
+
+.ribbon-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+}
+
+.package-icon {
+  width: 80px;
+  height: 80px;
+  position: relative;
+}
+
+.package-body {
+  width: 100%;
+  height: 100%;
+  background: #ffd700;
+  border-radius: 8px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.package-top {
+  width: 60px;
+  height: 20px;
+  background: #fff;
+  border-radius: 4px 4px 0 0;
+  position: absolute;
+  top: 10px;
+}
+
+.package-lines {
+  position: absolute;
+  bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.line {
+  width: 40px;
+  height: 2px;
+  background: #000;
+  border-radius: 1px;
+}
+
+/* 表单区域 */
+.form-section {
+  background: #fff;
+  margin: 6px 12px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.section-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin-right: 10px;
+}
+
+.location-icon {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.delivery-icon {
+  background: #8b5cf6;
+}
+
+.image-icon {
+  background: #8b5cf6;
+}
+
+.code-icon {
+  background: #8b5cf6;
+}
+
+.section-title {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.arrow {
+  font-size: 16px;
+  color: #999;
+}
+
+.optional {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 包裹列表 */
+.package-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.package-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.package-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.package-icon-item {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.package-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.package-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.package-description {
+  font-size: 12px;
+  color: #666;
+}
+
+.package-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ff4757;
+}
+
+.package-actions {
+  display: flex;
+  align-items: center;
+}
+
+.add-btn {
+  width: 32px;
+  height: 32px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-icon {
+  font-size: 18px;
+  color: #666;
+}
+
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quantity-btn {
+  width: 28px;
+  height: 28px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #666;
+}
+
+.quantity-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* 图片上传 */
+.image-upload {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.upload-btn {
+  width: 60px;
+  height: 60px;
+  background: #f5f5f5;
+  border: 2px dashed #ccc;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plus-icon {
+  font-size: 24px;
+  color: #999;
+}
+
+.uploaded-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+}
+
+.delete-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  background: #ff4757;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-icon {
+  font-size: 12px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.pickup-code-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+  color: #333;
+  height: 36px;
+  line-height: 20px;
+  /* 关键：设置盒模型为border-box，使width包含padding和border */
+  box-sizing: border-box;
+}
+
+.code-placeholder {
+  color: #999;
+}
+
+/* 总价显示 */
+.total-price {
+  background: #fff;
+  margin: 6px 12px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-align: right;
+}
+
+.total-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ff4757;
+}
+
+.safe-area-bottom {
+  height: env(safe-area-inset-bottom);
+}
+
+/* 下单按钮 */
+.order-btn-container {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px;
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+.order-btn {
+  width: 100%;
+  height: 48px;
+  background: #333;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}

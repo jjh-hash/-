@@ -1,0 +1,153 @@
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.status-bar {
+  width: 100%;
+  background: #fff;
+}
+
+.nav-bar {
+  height: 44px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.nav-left {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-icon {
+  font-size: 24px;
+  color: #333;
+  font-weight: 300;
+}
+
+.nav-title {
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+}
+
+.nav-right {
+  width: 44px;
+}
+
+.content {
+  padding: 16px;
+}
+
+.section {
+  background: #fff;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.section-title {
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+  padding: 16px 16px 8px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #f2f3f5;
+  transition: background-color 0.2s ease;
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-item:active {
+  background-color: #f8f9fa;
+}
+
+.item-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.item-icon.store { background: #e6f7ff; }
+.item-icon.time { background: #fff7e6; }
+.item-icon.delivery { background: #f6ffed; }
+.item-icon.money { background: #fff2e8; }
+.item-icon.order { background: #f0f5ff; }
+.item-icon.bell { background: #fff1f0; }
+.item-icon.print { background: #f9f0ff; }
+.item-icon.payment { background: #e6fffb; }
+.item-icon.settlement { background: #f0f9ff; }
+.item-icon.notification { background: #f0f5ff; }
+.item-icon.sound { background: #fff7e6; }
+.item-icon.security { background: #fff1f0; }
+.item-icon.verify { background: #f6ffed; }
+.item-icon.language { background: #e6f7ff; }
+.item-icon.theme { background: #f9f0ff; }
+.item-icon.cache { background: #f5f5f5; }
+.item-icon.about { background: #f0f9ff; }
+.item-icon.logout { background: #fff1f0; }
+
+.item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-title {
+  display: block;
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.logout-text {
+  color: #ff4d4f;
+}
+
+.item-desc {
+  display: block;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.arrow {
+  font-size: 16px;
+  color: #c0c4cc;
+  font-weight: 300;
+  margin-left: 8px;
+}
+
+.safe-area-bottom {
+  height: env(safe-area-inset-bottom);
+}

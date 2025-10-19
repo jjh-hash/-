@@ -1,0 +1,75 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  <view class="nav"><text class="title">工作台</text></view>
+
+  <!-- 概览卡片 -->
+  <view class="overview">
+    <view class="row">
+      <view class="col main">
+        <text class="label">账户余额/元</text>
+        <text class="amount">20842.00</text>
+      </view>
+      <view class="col right">
+        <view class="btn primary">提现</view>
+      </view>
+    </view>
+    <view class="row bottom">
+      <view class="kpi">
+        <text class="k-amount">55842.00</text>
+        <text class="k-label">最新收益/元</text>
+      </view>
+      <view class="kpi">
+        <text class="k-amount">58844.00</text>
+        <text class="k-label">总收益/元</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 店铺管理 -->
+  <view class="section">
+    <text class="sec-title">店铺管理</text>
+    <view class="grid">
+      <block wx:for="{{manageItems}}" wx:key="text">
+        <view class="g-item" bindtap="handleGridTap" data-text="{{item.text}}">
+          <view class="ico">{{item.icon}}</view>
+          <text class="g-text">{{item.text}}</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 店铺开关 -->
+  <view class="section">
+    <text class="sec-title">店铺开关</text>
+    <view class="switch-row">
+      <text class="s-label">店铺状态</text>
+      <text class="s-status">{{storeOpen ? '营业中' : '休息中'}}</text>
+      <switch checked="{{storeOpen}}" bindchange="onStoreSwitch" color="#1677ff" />
+    </view>
+    <view class="switch-row">
+      <text class="s-label">自动接单</text>
+      <text class="s-status">{{autoAccept ? '自动接单' : '手动接单'}}</text>
+      <switch checked="{{autoAccept}}" bindchange="onAutoAcceptSwitch" color="#1677ff" />
+    </view>
+  </view>
+
+  <view class="safe-area-bottom"></view>
+
+  <!-- 底部导航 -->
+  <view class="tabbar">
+    <view class="t-item" bindtap="onNav" data-tab="orders">
+      <image class="t-img" src="/pages/小标/dingdan.png" mode="aspectFit" />
+      <text class="t-txt">订单</text>
+    </view>
+    <view class="t-item active">
+      <image class="t-img" src="/pages/小标/商家1.png" mode="aspectFit" />
+      <text class="t-txt">工作台</text>
+    </view>
+    <view class="t-item" bindtap="onNav" data-tab="mine">
+      <image class="t-img" src="/pages/小标/wode.png" mode="aspectFit" />
+      <text class="t-txt">我的</text>
+    </view>
+  </view>
+</view>
+
+
