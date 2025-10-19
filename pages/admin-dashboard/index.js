@@ -31,13 +31,13 @@ Page({
     
     // 收入趋势图表数据
     revenueChart: [
-      { label: '周一', value: '1,250', height: 60 },
-      { label: '周二', value: '1,680', height: 80 },
-      { label: '周三', value: '1,420', height: 70 },
-      { label: '周四', value: '1,890', height: 90 },
-      { label: '周五', value: '2,150', height: 100 },
-      { label: '周六', value: '1,750', height: 85 },
-      { label: '周日', value: '1,320', height: 65 }
+      { label: '周一', value: '1,250', height: 58 },
+      { label: '周二', value: '1,680', height: 78 },
+      { label: '周三', value: '1,420', height: 68 },
+      { label: '周四', value: '1,890', height: 88 },
+      { label: '周五', value: '2,150', height: 95 },
+      { label: '周六', value: '1,750', height: 82 },
+      { label: '周日', value: '1,320', height: 63 }
     ]
   },
 
