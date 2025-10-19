@@ -1,308 +1,185 @@
 /* pages/admin-management/index.wxss */
 .page {
   min-height: 100vh;
-  background: #f5f5f5;
-  padding-bottom: 120rpx; /* 为底部导航栏预留空间 */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding-bottom: 100rpx; /* 为tabBar留出空间 */
 }
 
-/* 底部导航栏样式 */
-.admin-tabbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 100rpx;
-  background: #ffffff;
-  border-top: 1rpx solid #e5e5e5;
-  display: flex;
-  z-index: 1000;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.tabbar-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 10rpx 0;
-  transition: all 0.3s ease;
-}
-
-.tabbar-item.active {
-  color: #007aff;
-}
-
-.tabbar-icon {
-  width: 48rpx;
-  height: 48rpx;
-  margin-bottom: 8rpx;
-}
-
-.tabbar-icon image {
-  width: 100%;
-  height: 100%;
-}
-
-.tabbar-text {
-  font-size: 20rpx;
-  color: #999999;
-  transition: color 0.3s ease;
-}
-
-.tabbar-item.active .tabbar-text {
-  color: #007aff;
-  font-weight: 500;
-}
-
-/* 状态栏 */
 .status-bar {
-  background: #667eea;
+  background: transparent;
 }
 
-/* 导航栏 */
 .nav-bar {
-  height: 88rpx;
-  background: #667eea;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 30rpx;
-  color: white;
+  padding: 20rpx 30rpx;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10rpx);
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.2);
 }
 
 .back-btn {
   font-size: 36rpx;
+  color: #fff;
   padding: 10rpx;
 }
 
 .title {
-  font-size: 32rpx;
-  font-weight: 500;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #fff;
 }
 
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 20rpx;
 }
 
 .refresh-btn {
   font-size: 32rpx;
+  color: #fff;
   padding: 10rpx;
 }
 
-/* 页面内容 */
 .page-content {
-  padding: 20rpx;
-}
-
-/* 管理功能导航 */
-.management-nav {
-  text-align: center;
-  margin-bottom: 40rpx;
-  padding: 30rpx 0;
-}
-
-.nav-title {
-  display: block;
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 10rpx;
-}
-
-.nav-subtitle {
-  font-size: 26rpx;
-  color: #666;
-}
-
-/* 功能模块网格 */
-.function-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-  margin-bottom: 40rpx;
-}
-
-.function-card {
-  background: white;
-  border-radius: 20rpx;
   padding: 30rpx;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 6rpx 30rpx rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  border-left: 6rpx solid #667eea;
-}
-
-.function-card:active {
-  transform: scale(0.98);
-  box-shadow: 0 3rpx 15rpx rgba(0, 0, 0, 0.15);
-}
-
-.function-card.merchant {
-  border-left-color: #667eea;
-}
-
-.function-card.user {
-  border-left-color: #4CAF50;
-}
-
-.function-card.order {
-  border-left-color: #FF9800;
-}
-
-.function-card.finance {
-  border-left-color: #2196F3;
-}
-
-.function-card.platform {
-  border-left-color: #9C27B0;
-}
-
-.card-icon {
-  width: 100rpx;
-  height: 100rpx;
-  border-radius: 20rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 30rpx;
-}
-
-.card-icon.merchant {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-}
-
-.card-icon.user {
-  background: linear-gradient(135deg, #4CAF50, #45a049);
-}
-
-.card-icon.order {
-  background: linear-gradient(135deg, #FF9800, #F57C00);
-}
-
-.card-icon.finance {
-  background: linear-gradient(135deg, #2196F3, #1976D2);
-}
-
-.card-icon.platform {
-  background: linear-gradient(135deg, #9C27B0, #7B1FA2);
-}
-
-.card-icon image {
-  width: 60rpx;
-  height: 60rpx;
-}
-
-.card-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-}
-
-.card-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-}
-
-.card-desc {
-  font-size: 26rpx;
-  color: #666;
-  line-height: 1.4;
-}
-
-.card-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
-
-.stat-item {
-  font-size: 22rpx;
-  color: #888;
-}
-
-.card-arrow {
-  font-size: 36rpx;
-  color: #ccc;
-  font-weight: bold;
-  margin-left: 20rpx;
-}
-
-/* 快速操作 */
-.quick-actions {
-  margin-bottom: 40rpx;
 }
 
 .section-title {
-  display: block;
   font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 20rpx;
-  padding-left: 10rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 30rpx;
+  display: block;
 }
 
-.action-buttons {
+/* 管理功能菜单 */
+.management-section {
+  margin-bottom: 40rpx;
+}
+
+.menu-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.menu-item:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.menu-icon {
+  width: 60rpx;
+  height: 60rpx;
+  margin-right: 24rpx;
+}
+
+.menu-icon image {
+  width: 100%;
+  height: 100%;
+}
+
+.menu-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.menu-description {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.menu-arrow {
+  font-size: 32rpx;
+  color: #999;
+}
+
+/* 快捷操作 */
+.quick-actions-section {
+  margin-bottom: 40rpx;
+}
+
+.quick-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20rpx;
 }
 
-.action-btn {
-  background: white;
-  border-radius: 16rpx;
-  padding: 30rpx 20rpx;
+.quick-action-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
-  border: none;
-  font-size: 24rpx;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16rpx;
+  padding: 30rpx 20rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 
-.action-btn:active {
+.quick-action-item:active {
   transform: scale(0.95);
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.8);
 }
 
-.action-btn.primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
+.action-icon {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  margin-bottom: 16rpx;
 }
 
-.action-btn.warning {
-  background: linear-gradient(135deg, #FF9800, #F57C00);
-  color: white;
+.action-icon.approve {
+  background: #4CAF50;
+  color: #fff;
 }
 
-.action-btn.success {
-  background: linear-gradient(135deg, #4CAF50, #45a049);
-  color: white;
+.action-icon.export {
+  background: #FF9800;
+  color: #fff;
 }
 
-.action-btn.info {
-  background: linear-gradient(135deg, #2196F3, #1976D2);
-  color: white;
+.action-icon.notice {
+  background: #2196F3;
+  color: #fff;
 }
 
-.btn-icon {
-  font-size: 40rpx;
+.action-icon.backup {
+  background: #9C27B0;
+  color: #fff;
 }
 
-.btn-text {
+.action-text {
   font-size: 24rpx;
-  font-weight: 500;
+  color: #333;
+  text-align: center;
 }
 
 /* 系统状态 */
-.system-status {
+.system-status-section {
   margin-bottom: 40rpx;
 }
 
@@ -313,34 +190,44 @@
 }
 
 .status-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 16rpx;
   padding: 30rpx;
-  text-align: center;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+}
+
+.status-header {
   display: flex;
-  flex-direction: column;
-  gap: 12rpx;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
 }
 
-.status-label {
-  font-size: 24rpx;
-  color: #666;
-}
-
-.status-value {
+.status-title {
   font-size: 28rpx;
   font-weight: bold;
+  color: #333;
 }
 
-.status-value.success {
-  color: #4CAF50;
+.status-indicator {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
 }
 
-.status-value.warning {
-  color: #FF9800;
+.status-indicator.online {
+  background: #4CAF50;
 }
 
-.status-value.error {
-  color: #f44336;
+.status-indicator.warning {
+  background: #FF9800;
+}
+
+.status-indicator.offline {
+  background: #F44336;
+}
+
+.status-text {
+  font-size: 24rpx;
+  color: #666;
 }

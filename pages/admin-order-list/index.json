@@ -1,8 +1,5 @@
 {
   "navigationStyle": "custom",
   "backgroundColor": "#667eea",
-  "backgroundTextStyle": "light",
-  "usingComponents": {
-    "admin-tabbar": "../admin-dashboard/components/admin-tabbar"
-  }
+  "backgroundTextStyle": "light"
 }

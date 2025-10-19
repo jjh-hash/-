@@ -97,6 +97,4 @@
     </view>
   </view>
 
-  <!-- 底部导航栏 -->
-  <admin-tabbar currentTab="{{currentTab}}" bind:tabchange="onTabChange"></admin-tabbar>
 </view>

@@ -30,10 +30,11 @@
     "pages/merchant-settings/index",
     "pages/merchant-store-photos/index",
     "pages/admin-dashboard/index",
-    "pages/admin-management/index",
-    "pages/admin-profile/index",
     "pages/admin-merchant-list/index",
-    "pages/admin-statistics/index"
+    "pages/admin-statistics/index",
+    "pages/admin-management/index",
+    "pages/admin-order-list/index",
+    "pages/admin-profile/index"
   ],
   "window": {
     "navigationStyle": "custom",
@@ -42,28 +43,29 @@
     "enablePullDownRefresh": false
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#007AFF",
-    "backgroundColor": "#FFFFFF",
+    "custom": false,
+    "color": "#7A7E83",
+    "selectedColor": "#3cc51f",
     "borderStyle": "black",
+    "backgroundColor": "#ffffff",
     "list": [
       {
         "pagePath": "pages/admin-dashboard/index",
-        "text": "数据概况",
         "iconPath": "pages/小标/shouye.png",
-        "selectedIconPath": "pages/小标/shouye-copy.png"
+        "selectedIconPath": "pages/小标/shouye-copy.png",
+        "text": "数据概况"
       },
       {
         "pagePath": "pages/admin-management/index",
-        "text": "管理系统",
         "iconPath": "pages/小标/商家.png",
-        "selectedIconPath": "pages/小标/商家1.png"
+        "selectedIconPath": "pages/小标/商家1.png",
+        "text": "管理系统"
       },
       {
         "pagePath": "pages/admin-profile/index",
-        "text": "管理员信息",
         "iconPath": "pages/小标/wode.png",
-        "selectedIconPath": "pages/小标/wode-copy.png"
+        "selectedIconPath": "pages/小标/wode-copy.png",
+        "text": "管理员信息"
       }
     ]
   },

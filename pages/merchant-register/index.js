@@ -38,7 +38,7 @@ Page({
       });
       
       setTimeout(() => {
-        wx.navigateTo({
+        wx.switchTab({
           url: '/pages/admin-dashboard/index',
           success: () => {
             console.log('跳转成功');
@@ -83,7 +83,7 @@ Page({
       
       // 延迟跳转
       setTimeout(() => {
-        wx.navigateTo({
+        wx.switchTab({
           url: '/pages/admin-dashboard/index',
           success: () => {
             console.log('跳转成功');

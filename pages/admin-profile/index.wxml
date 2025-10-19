@@ -8,122 +8,95 @@
     <view class="back-btn" bindtap="onBack">◀</view>
     <text class="title">管理员信息</text>
     <view class="nav-actions">
-      <text class="refresh-btn" bindtap="onRefresh">🔄</text>
+      <text class="logout-btn" bindtap="onLogout">退出</text>
     </view>
   </view>
 
   <!-- 页面内容 -->
   <view class="page-content">
-    <!-- 管理员基本信息 -->
+    <!-- 管理员信息卡片 -->
     <view class="admin-info-section">
-      <text class="section-title">管理员信息</text>
       <view class="admin-card">
         <view class="admin-avatar">
           <image src="/pages/小标/wode.png" mode="aspectFit"></image>
         </view>
         <view class="admin-details">
-          <text class="admin-name">超级管理员</text>
-          <text class="admin-role">系统管理员</text>
-          <text class="admin-id">ID: admin_001</text>
+          <text class="admin-name">{{adminInfo.username}}</text>
+          <text class="admin-role">{{adminInfo.role === 'super_admin' ? '超级管理员' : '普通管理员'}}</text>
+          <text class="admin-login-time">最后登录：{{adminInfo.lastLoginTime}}</text>
         </view>
       </view>
     </view>
 
-    <!-- 登录信息 -->
-    <view class="login-info-section">
-      <text class="section-title">登录信息</text>
+    <!-- 系统信息 -->
+    <view class="system-info-section">
+      <text class="section-title">系统信息</text>
       <view class="info-cards">
         <view class="info-card">
-          <text class="info-label">最后登录时间</text>
-          <text class="info-value">{{loginInfo.lastLoginTime}}</text>
+          <text class="info-label">系统版本</text>
+          <text class="info-value">{{systemInfo.version}}</text>
         </view>
+        
         <view class="info-card">
-          <text class="info-label">登录IP地址</text>
-          <text class="info-value">{{loginInfo.lastLoginIP}}</text>
+          <text class="info-label">构建时间</text>
+          <text class="info-value">{{systemInfo.buildTime}}</text>
         </view>
+        
         <view class="info-card">
-          <text class="info-label">登录设备</text>
-          <text class="info-value">{{loginInfo.loginDevice}}</text>
+          <text class="info-label">运行环境</text>
+          <text class="info-value">{{systemInfo.environment}}</text>
         </view>
+        
         <view class="info-card">
-          <text class="info-label">在线时长</text>
-          <text class="info-value">{{loginInfo.onlineDuration}}</text>
+          <text class="info-label">运行时长</text>
+          <text class="info-value">{{systemInfo.uptime}}</text>
         </view>
       </view>
     </view>
 
-    <!-- 权限信息 -->
-    <view class="permission-section">
-      <text class="section-title">权限信息</text>
-      <view class="permission-list">
-        <view class="permission-item">
-          <text class="permission-icon">👥</text>
-          <text class="permission-name">用户管理</text>
-          <text class="permission-status active">已授权</text>
-        </view>
-        <view class="permission-item">
-          <text class="permission-icon">🏪</text>
-          <text class="permission-name">商家管理</text>
-          <text class="permission-status active">已授权</text>
-        </view>
-        <view class="permission-item">
-          <text class="permission-icon">📦</text>
-          <text class="permission-name">订单管理</text>
-          <text class="permission-status active">已授权</text>
-        </view>
-        <view class="permission-item">
-          <text class="permission-icon">💰</text>
-          <text class="permission-name">财务管理</text>
-          <text class="permission-status active">已授权</text>
-        </view>
-        <view class="permission-item">
-          <text class="permission-icon">⚙️</text>
-          <text class="permission-name">系统设置</text>
-          <text class="permission-status active">已授权</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 操作记录 -->
-    <view class="operation-section">
-      <text class="section-title">最近操作记录</text>
-      <view class="operation-list">
-        <view class="operation-item" wx:for="{{operationLogs}}" wx:key="index">
-          <view class="operation-icon">
-            <text class="icon">{{item.icon}}</text>
+    <!-- 最近操作 -->
+    <view class="operation-logs-section">
+      <text class="section-title">最近操作</text>
+      <view class="logs-list">
+        <view class="log-item" wx:for="{{operationLogs}}" wx:key="id">
+          <view class="log-content">
+            <text class="log-action">{{item.action}}</text>
+            <text class="log-target">{{item.target}}</text>
+            <text class="log-time">{{item.time}}</text>
           </view>
-          <view class="operation-content">
-            <text class="operation-title">{{item.title}}</text>
-            <text class="operation-desc">{{item.description}}</text>
-            <text class="operation-time">{{item.time}}</text>
+          <view class="log-result {{item.result === '成功' || item.result === '通过' || item.result === '完成' ? 'success' : 'warning'}}">
+            {{item.result}}
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 系统设置 -->
-    <view class="settings-section">
-      <text class="section-title">系统设置</text>
-      <view class="settings-list">
-        <view class="setting-item" bindtap="onSettingClick" data-setting="password">
-          <text class="setting-icon">🔒</text>
-          <text class="setting-name">修改密码</text>
-          <text class="setting-arrow">></text>
+    <!-- 功能菜单 -->
+    <view class="function-menu-section">
+      <text class="section-title">功能菜单</text>
+      <view class="menu-list">
+        <view class="menu-item" bindtap="onChangePassword">
+          <view class="menu-icon">🔒</view>
+          <text class="menu-text">修改密码</text>
+          <view class="menu-arrow">></view>
         </view>
-        <view class="setting-item" bindtap="onSettingClick" data-setting="notification">
-          <text class="setting-icon">🔔</text>
-          <text class="setting-name">通知设置</text>
-          <text class="setting-arrow">></text>
+        
+        <view class="menu-item" bindtap="onViewLogs">
+          <view class="menu-icon">📋</view>
+          <text class="menu-text">操作日志</text>
+          <view class="menu-arrow">></view>
         </view>
-        <view class="setting-item" bindtap="onSettingClick" data-setting="security">
-          <text class="setting-icon">🛡️</text>
-          <text class="setting-name">安全设置</text>
-          <text class="setting-arrow">></text>
+        
+        <view class="menu-item" bindtap="onSystemSettings">
+          <view class="menu-icon">⚙️</view>
+          <text class="menu-text">系统设置</text>
+          <view class="menu-arrow">></view>
         </view>
-        <view class="setting-item" bindtap="onSettingClick" data-setting="logout">
-          <text class="setting-icon">🚪</text>
-          <text class="setting-name">退出登录</text>
-          <text class="setting-arrow">></text>
+        
+        <view class="menu-item" bindtap="onAbout">
+          <view class="menu-icon">ℹ️</view>
+          <text class="menu-text">关于我们</text>
+          <view class="menu-arrow">></view>
         </view>
       </view>
     </view>
