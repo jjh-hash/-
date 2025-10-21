@@ -1,0 +1,281 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px">
+  </view>
+
+  <!-- 头部导航 -->
+  <view class="header">
+    <view class="back-btn" bindtap="onBackTap">
+      <text class="back-icon">←</text>
+    </view>
+    <view class="header-title">店铺信息</view>
+    <view class="more-btn" bindtap="onMoreTap">
+      <text class="more-icon">⋮</text>
+    </view>
+  </view>
+
+  <!-- 店铺信息卡片 -->
+  <view class="store-card">
+    <view class="store-info">
+      <view class="store-name">{{storeInfo.name}}</view>
+      <view class="store-desc">{{storeInfo.description}}</view>
+      <view class="announcement">
+        <text class="announcement-icon">📢</text>
+        <text class="announcement-text">公告: {{storeInfo.announcement}}</text>
+      </view>
+    </view>
+    <view class="store-logo">
+      <image class="logo-image" src="{{storeInfo.logo}}" mode="aspectFill" />
+    </view>
+  </view>
+
+  <!-- 标签页导航 -->
+  <view class="tab-nav">
+    <block wx:for="{{tabs}}" wx:key="index">
+      <view 
+        class="tab-item {{index === activeTab ? 'active' : ''}}"
+        bindtap="onTabTap"
+        data-index="{{index}}"
+      >
+        {{item}}
+      </view>
+    </block>
+  </view>
+
+  <!-- 主内容区域 -->
+  <view class="main-content">
+    <!-- 左侧分类列表 -->
+    <view class="category-sidebar">
+      <block wx:for="{{categories}}" wx:key="id">
+        <view 
+          class="category-item {{index === activeCategory ? 'active' : ''}}"
+          bindtap="onCategoryTap"
+          data-index="{{index}}"
+        >
+          <text class="category-name">{{item.name}}</text>
+          <view class="category-badge" wx:if="{{index === 0}}">1</view>
+        </view>
+      </block>
+    </view>
+
+    <!-- 右侧商品列表 -->
+    <view class="product-content">
+      <block wx:for="{{products}}" wx:key="id" wx:if="{{item.category === activeCategory}}">
+        <view class="product-item">
+          <image class="product-image" src="{{item.image}}" mode="aspectFill" />
+          <view class="product-info">
+            <view class="product-name">{{item.name}}</view>
+            <view class="product-price">¥{{item.price}}</view>
+          </view>
+          <view class="product-actions">
+            <!-- 数量选择器 -->
+            <view class="quantity-selector" wx:if="{{item.quantity > 0}}">
+              <view class="quantity-btn" bindtap="onRemoveFromCart" data-id="{{item.id}}">
+                <text class="quantity-icon">-</text>
+              </view>
+              <view class="quantity-number">{{item.quantity}}</view>
+              <view class="quantity-btn" bindtap="onAddToCart" data-id="{{item.id}}">
+                <text class="quantity-icon">+</text>
+              </view>
+            </view>
+            <!-- 规格选择 -->
+            <view class="spec-btn" wx:elif="{{item.hasSpec}}" bindtap="onSelectSpec" data-id="{{item.id}}">
+              <text class="spec-text">规格</text>
+              <view class="spec-badge">1</view>
+            </view>
+            <!-- 添加按钮 -->
+            <view class="add-btn" wx:else bindtap="onAddToCart" data-id="{{item.id}}">
+              <text class="add-icon">+</text>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 底部购物车栏 -->
+  <view class="cart-bar" wx:if="{{cartItems.length === 0}}">
+    <view class="cart-info">
+      <view class="cart-icon">🛒</view>
+      <text class="delivery-fee">配送费{{storeInfo.deliveryFee}}元</text>
+    </view>
+    <view class="min-order">¥{{storeInfo.minOrder}}起送</view>
+  </view>
+
+  <!-- 购物车结算栏 - 未达到起送金额 -->
+  <view class="checkout-bar checkout-bar-gray" wx:if="{{cartItems.length > 0 && cartTotal < storeInfo.minOrder}}">
+    <view class="cart-summary">
+      <view class="cart-icon-wrapper">
+        <view class="cart-icon">🛒</view>
+        <view class="cart-badge">{{cartItems.length}}</view>
+      </view>
+      <view class="total-info">
+        <view class="total-amount">共¥{{cartTotal}}元</view>
+        <view class="delivery-fee">配送费{{storeInfo.deliveryFee}}元</view>
+      </view>
+    </view>
+    <view class="checkout-section checkout-section-gray" bindtap="onToggleCartSummary">
+      <text class="checkout-text">¥{{storeInfo.minOrder}}起送</text>
+    </view>
+  </view>
+
+  <!-- 购物车结算栏 - 达到起送金额 -->
+  <view class="checkout-bar checkout-bar-blue" wx:if="{{cartItems.length > 0 && cartTotal >= storeInfo.minOrder}}">
+    <view class="cart-summary">
+      <view class="cart-icon-wrapper">
+        <view class="cart-icon">🛒</view>
+        <view class="cart-badge">{{cartItems.length}}</view>
+      </view>
+      <view class="total-info">
+        <view class="total-amount">共¥{{cartTotal}}元</view>
+        <view class="delivery-fee">配送费{{storeInfo.deliveryFee}}元</view>
+      </view>
+    </view>
+    <view class="checkout-section checkout-section-blue" bindtap="onCheckout">
+      <text class="checkout-text">结算</text>
+    </view>
+  </view>
+
+  <!-- 规格选择弹窗 -->
+  <view class="spec-popup-mask" wx:if="{{showSpecPopup}}" bindtap="onCloseSpecPopup">
+    <view class="spec-popup" catchtap="">
+      <!-- 弹窗头部 -->
+      <view class="popup-header">
+        <view class="selected-info">
+          <text class="selected-text">已选: {{selectedPortion}}+{{selectedSpiciness}}</text>
+        </view>
+        <view class="close-btn" bindtap="onCloseSpecPopup">
+          <text class="close-icon">×</text>
+        </view>
+      </view>
+
+      <!-- 商品信息 -->
+      <view class="product-section">
+        <image class="product-image" src="{{currentProduct.image}}" mode="aspectFill" />
+        <view class="product-details">
+          <view class="product-name">{{currentProduct.name}}</view>
+          <view class="product-price">¥{{currentProduct.price}}</view>
+        </view>
+      </view>
+
+      <!-- 数量选择 -->
+      <view class="quantity-section">
+        <view class="section-label">数量</view>
+        <view class="quantity-selector">
+          <view class="quantity-btn" bindtap="onDecreaseQuantity">
+            <text class="quantity-icon">-</text>
+          </view>
+          <view class="quantity-number">{{quantity}}</view>
+          <view class="quantity-btn" bindtap="onIncreaseQuantity">
+            <text class="quantity-icon">+</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 辣度选择 -->
+      <view class="spiciness-section">
+        <view class="section-label">辣度</view>
+        <view class="option-buttons">
+          <view 
+            class="option-btn {{selectedSpiciness === '香辣' ? 'selected' : ''}}"
+            bindtap="onSelectSpiciness"
+            data-spiciness="香辣"
+          >
+            香辣
+          </view>
+          <view 
+            class="option-btn {{selectedSpiciness === '微辣' ? 'selected' : ''}}"
+            bindtap="onSelectSpiciness"
+            data-spiciness="微辣"
+          >
+            微辣
+          </view>
+          <view 
+            class="option-btn {{selectedSpiciness === '麻辣' ? 'selected' : ''}}"
+            bindtap="onSelectSpiciness"
+            data-spiciness="麻辣"
+          >
+            麻辣
+          </view>
+          <view 
+            class="option-btn {{selectedSpiciness === '特辣' ? 'selected' : ''}}"
+            bindtap="onSelectSpiciness"
+            data-spiciness="特辣"
+          >
+            特辣
+          </view>
+        </view>
+      </view>
+
+      <!-- 分量选择 -->
+      <view class="portion-section">
+        <view class="section-label">分量</view>
+        <view class="option-buttons">
+          <view 
+            class="option-btn {{selectedPortion === '大份' ? 'selected' : ''}}"
+            bindtap="onSelectPortion"
+            data-portion="大份"
+          >
+            大份
+          </view>
+          <view 
+            class="option-btn {{selectedPortion === '中份' ? 'selected' : ''}}"
+            bindtap="onSelectPortion"
+            data-portion="中份"
+          >
+            中份
+          </view>
+          <view 
+            class="option-btn {{selectedPortion === '小份' ? 'selected' : ''}}"
+            bindtap="onSelectPortion"
+            data-portion="小份"
+          >
+            小份
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部指示条 -->
+      <view class="popup-indicator"></view>
+    </view>
+  </view>
+
+  <!-- 购物车清单弹窗 -->
+  <view class="cart-popup-mask" wx:if="{{showCartSummary}}" bindtap="onToggleCartSummary">
+    <view class="cart-popup" catchtap="">
+      <!-- 购物车头部 -->
+      <view class="cart-header">
+        <view class="cart-title">已选商品</view>
+        <view class="clear-cart" bindtap="onClearCart">
+          <text class="trash-icon">🗑️</text>
+          <text class="clear-text">清空购物车</text>
+        </view>
+      </view>
+
+      <!-- 商品列表 -->
+      <view class="cart-items">
+        <block wx:for="{{cartItems}}" wx:key="id">
+          <view class="cart-item">
+            <image class="item-image" src="{{item.image}}" mode="aspectFill" />
+            <view class="item-details">
+              <view class="item-name">{{item.name}}</view>
+              <view class="item-spec" wx:if="{{item.selectedSpec}}">
+                {{item.selectedSpec.portion}}/{{item.selectedSpec.spiciness}}
+              </view>
+              <view class="item-price">¥{{item.price}}</view>
+            </view>
+            <view class="item-quantity">
+              <view class="quantity-btn" bindtap="onCartDecrease" data-id="{{item.id}}">
+                <text class="quantity-icon">-</text>
+              </view>
+              <view class="quantity-number">{{item.quantity}}</view>
+              <view class="quantity-btn" bindtap="onCartIncrease" data-id="{{item.id}}">
+                <text class="quantity-icon">+</text>
+              </view>
+            </view>
+          </view>
+        </block>
+      </view>
+    </view>
+  </view>
+</view>

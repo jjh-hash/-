@@ -1,0 +1,101 @@
+<view class="page">
+  <!-- 自定义导航 -->
+  <view class="nav">
+    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+    <view class="nav-bar">
+      <text class="back" bindtap="onBack">◀</text>
+      <text class="title">店铺信息</text>
+      <view class="icons">
+        <text class="dot">•</text>
+        <text class="battery">▮</text>
+      </view>
+    </view>
+    
+    <!-- 标签栏 -->
+    <view class="tabs">
+      <view class="tab {{activeTab === 0 ? 'active' : ''}}" data-index="0" bindtap="onTabTap">点餐</view>
+      <view class="tab {{activeTab === 1 ? 'active' : ''}}" data-index="1" bindtap="onTabTap">评价</view>
+      <view class="tab {{activeTab === 2 ? 'active' : ''}}" data-index="2" bindtap="onTabTap">商家</view>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 店铺评分 -->
+    <view class="rating-section">
+      <view class="rating-left">
+        <view class="overall-rating">{{storeInfo.overallRating}}</view>
+        <view class="stars">
+          <text class="star" wx:for="{{5}}" wx:key="index">★</text>
+        </view>
+        <view class="rating-text">商品质量 共{{storeInfo.totalReviews}}人点评</view>
+      </view>
+      <view class="rating-right">
+        <view class="delivery-rating">{{storeInfo.deliveryRating}}</view>
+        <view class="delivery-text">配送服务</view>
+      </view>
+    </view>
+
+    <!-- 筛选标签 -->
+    <view class="filter-section">
+      <view class="filter-row">
+        <block wx:for="{{filters}}" wx:key="id">
+          <view class="filter-tag {{item.active ? 'active' : ''}}" 
+                data-id="{{item.id}}" 
+                bindtap="onFilterTap">
+            {{item.name}}({{item.count}})
+          </view>
+        </block>
+      </view>
+      <view class="filter-row">
+        <block wx:for="{{subFilters}}" wx:key="id">
+          <view class="filter-tag {{item.active ? 'active' : ''}}" 
+                data-id="{{item.id}}" 
+                bindtap="onSubFilterTap">
+            {{item.name}}({{item.count}})
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 评价列表 -->
+    <view class="reviews-section">
+      <block wx:for="{{reviews}}" wx:key="id">
+        <view class="review-item">
+          <!-- 用户信息 -->
+          <view class="user-info">
+            <image class="user-avatar" src="{{item.userAvatar}}" mode="aspectFill" />
+            <view class="user-details">
+              <view class="user-name">{{item.userName}}</view>
+              <view class="user-rating">
+                <text class="star {{index < item.rating ? 'filled' : 'empty'}}" 
+                      wx:for="{{5}}" 
+                      wx:key="index">★</text>
+              </view>
+            </view>
+            <view class="review-date">{{item.date}}</view>
+          </view>
+
+          <!-- 评价内容 -->
+          <view class="review-content">{{item.content}}</view>
+
+          <!-- 评价图片 -->
+          <view class="review-images" wx:if="{{item.images.length > 0}}">
+            <image class="review-image" 
+                   wx:for="{{item.images}}" 
+                   wx:key="index"
+                   src="{{item}}" 
+                   mode="aspectFill"
+                   data-images="{{item.images}}"
+                   data-index="{{index}}"
+                   bindtap="onImageTap" />
+          </view>
+
+          <!-- 商家回复 -->
+          <view class="merchant-reply" wx:if="{{item.merchantReply}}">
+            {{item.merchantReply}}
+          </view>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

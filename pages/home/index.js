@@ -38,6 +38,14 @@ Page({
     }
   },
 
+  // 点击商家跳转到店铺详情页
+  onShopTap(e) {
+    const shopId = e.currentTarget.dataset.id;
+    wx.navigateTo({
+      url: `/pages/store-detail/index?storeId=${shopId}`
+    });
+  },
+
   onQuickCatTap(e) {
     const index = e.currentTarget.dataset.index;
     const cat = this.data.quickCats[index];

@@ -1,0 +1,155 @@
+.page {
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* 导航栏 */
+.nav {
+  background: #fff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-bar {
+  width: 100%;
+}
+
+.nav-bar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  position: relative;
+}
+
+.back {
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+}
+
+.title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot {
+  font-size: 12px;
+  color: #999;
+}
+
+.battery {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 标签栏 */
+.tabs {
+  display: flex;
+  height: 44px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #999;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.tab.active {
+  color: #333;
+  font-weight: 600;
+}
+
+/* 内容区域 */
+.content {
+  margin-top: 132px;
+  padding: 0 16px;
+}
+
+/* 商家信息区域 */
+.merchant-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* 信息项 */
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-icon {
+  font-size: 20px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+}
+
+.info-text {
+  font-size: 15px;
+  color: #333;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.call-btn {
+  font-size: 14px;
+  color: #1976d2;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(25, 118, 210, 0.1);
+  flex-shrink: 0;
+  margin-left: 12px;
+}

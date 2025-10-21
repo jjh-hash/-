@@ -56,7 +56,7 @@
     <!-- 店铺列表 -->
     <view class="shop-list">
       <block wx:for="{{shops}}" wx:key="id">
-        <view class="shop">
+        <view class="shop" bindtap="onShopTap" data-id="{{item.id}}">
           <image class="cover" src="{{item.img}}" mode="aspectFill" />
           <view class="meta">
             <text class="name ellipsis">{{item.name}}</text>
