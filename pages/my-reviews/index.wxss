@@ -1,0 +1,213 @@
+.page {
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* 导航栏 */
+.navbar {
+  background: #fff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-content {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.back-btn {
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+}
+
+.navbar-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.placeholder {
+  width: 18px;
+}
+
+/* 内容区域 */
+.content {
+  margin-top: 44px;
+  padding: 16px;
+}
+
+/* 加载中 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: #999;
+}
+
+/* 空状态 */
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+}
+
+.empty-icon {
+  font-size: 60px;
+  margin-bottom: 16px;
+}
+
+.empty-text {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.empty-tip {
+  font-size: 14px;
+  color: #999;
+}
+
+/* 评价列表 */
+.reviews-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 店铺头部 */
+.store-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.store-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.store-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.review-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.delete-btn {
+  padding: 4px 8px;
+}
+
+.delete-icon {
+  font-size: 18px;
+}
+
+/* 评分区域 */
+.rating-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rating-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  font-size: 14px;
+  color: #ddd;
+}
+
+.star.filled {
+  color: #1976d2;
+}
+
+.star.empty {
+  color: #ddd;
+  opacity: 0.5;
+}
+
+/* 评价内容 */
+.review-content {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+/* 评价图片 */
+.review-images {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.review-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+/* 商家回复 */
+.merchant-reply {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+  border-left: 3px solid #1976d2;
+}
+
+.merchant-reply-label {
+  font-size: 14px;
+  color: #1976d2;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.merchant-reply-content {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+

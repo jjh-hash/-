@@ -1,44 +1,124 @@
 {
   "pages": [
     "pages/home/index",
-    "pages/order/index",
+    "pages/login-example/index",
     "pages/profile/index",
-    "pages/address/index",
-    "pages/add-address/index",
-    "pages/canteen/index",
-    "pages/fruits/index",
-    "pages/reward/index",
-    "pages/gaming/index",
-    "pages/express/index",
-    "pages/drinks/index",
-    "pages/secondhand/index",
-    "pages/store/index",
-    "pages/store-detail/index",
-    "pages/checkout/index",
-    "pages/reviews/index",
-    "pages/merchant-info/index",
-    "pages/merchant/index",
-    "pages/merchant-register/index",
-    "pages/merchant-login/index",
-    "pages/merchant-orders/index",
-    "pages/merchant-workbench/index",
-    "pages/merchant-mine/index",
-    "pages/merchant-store-info/index",
-    "pages/merchant-goods/index",
-    "pages/merchant-category/index",
-    "pages/merchant-reviews/index",
-    "pages/merchant-add-product/index",
-    "pages/merchant-sales-stats/index",
-    "pages/merchant-delivery-plan/index",
-    "pages/merchant-store-announcement/index",
-    "pages/merchant-settings/index",
-    "pages/merchant-store-photos/index",
+    "pages/user-info-setting/index",
     "pages/admin-dashboard/index",
-    "pages/admin-merchant-list/index",
-    "pages/admin-statistics/index",
     "pages/admin-management/index",
-    "pages/admin-order-list/index",
     "pages/admin-profile/index"
+  ],
+  "subPackages": [
+    {
+      "root": "subpackages/merchant",
+      "name": "merchant",
+      "pages": [
+        "pages/merchant/index",
+        "pages/merchant-register/index",
+        "pages/merchant-login/index",
+        "pages/merchant-info/index",
+        "pages/merchant-workbench/index",
+        "pages/merchant-mine/index",
+        "pages/merchant-orders/index",
+        "pages/merchant-store-info/index",
+        "pages/merchant-goods/index",
+        "pages/merchant-category/index",
+        "pages/merchant-reviews/index",
+        "pages/merchant-add-product/index",
+        "pages/merchant-sales-stats/index",
+        "pages/merchant-store-announcement/index",
+        "pages/merchant-settings/index",
+        "pages/merchant-store-photos/index",
+        "pages/merchant-change-password/index",
+        "pages/merchant-refund-detail/index"
+      ]
+    },
+    {
+      "root": "subpackages/admin",
+      "name": "admin",
+      "pages": [
+        "pages/admin-merchant-list/index",
+        "pages/admin-merchant-detail/index",
+        "pages/admin-statistics/index",
+        "pages/admin-order-list/index",
+        "pages/admin-order-detail/index",
+        "pages/admin-refund-detail/index",
+        "pages/admin-settings/index",
+        "pages/admin-user-list/index",
+        "pages/admin-user-detail/index",
+        "pages/admin-banner-edit/index",
+        "pages/admin-batch-audit/index",
+        "pages/admin-announcement/index",
+        "pages/admin-log-list/index",
+        "pages/admin-change-password/index",
+        "pages/admin-finance/index"
+      ]
+    },
+    {
+      "root": "subpackages/order",
+      "name": "order",
+      "pages": [
+        "pages/order/index",
+        "pages/order-detail/index",
+        "pages/receive-order/index",
+        "pages/refund-apply/index"
+      ]
+    },
+    {
+      "root": "subpackages/rider",
+      "name": "rider",
+      "pages": [
+        "pages/rider/index",
+        "pages/rider-register/index",
+        "pages/rider-login/index",
+        "pages/rider-home/index"
+      ]
+    },
+    {
+      "root": "subpackages/category",
+      "name": "category",
+      "pages": [
+        "pages/canteen/index",
+        "pages/fruits/index",
+        "pages/reward/index",
+        "pages/gaming/index",
+        "pages/express/index",
+        "pages/drinks/index"
+      ]
+    },
+    {
+      "root": "subpackages/secondhand",
+      "name": "secondhand",
+      "pages": [
+        "pages/secondhand/index",
+        "pages/secondhand-publish/index",
+        "pages/secondhand-detail/index"
+      ]
+    },
+    {
+      "root": "subpackages/store",
+      "name": "store",
+      "pages": [
+        "pages/store/index",
+        "pages/store-detail/index",
+        "pages/checkout/index",
+        "pages/reviews/index",
+        "pages/submit-review/index",
+        "pages/my-reviews/index",
+        "pages/product-spec/index"
+      ]
+    },
+    {
+      "root": "subpackages/common",
+      "name": "common",
+      "pages": [
+        "pages/address/index",
+        "pages/add-address/index",
+        "pages/about/index",
+        "pages/message/index",
+        "pages/chat/index"
+      ]
+    }
   ],
   "window": {
     "navigationStyle": "custom",
@@ -74,5 +154,6 @@
     ]
   },
   "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
 }

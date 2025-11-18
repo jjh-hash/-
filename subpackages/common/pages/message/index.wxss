@@ -1,0 +1,248 @@
+/* pages/message/index.wxss */
+.page {
+  height: 100vh;
+  background-color: #f5f6f8;
+  display: flex;
+  flex-direction: column;
+}
+
+.status-bar {
+  width: 100%;
+}
+
+.nav-bar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  background: linear-gradient(180deg, #0a86ff, #2aa7ff);
+  color: #fff;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 80px;
+}
+
+/* 消息列表 */
+.message-list {
+  padding: 12px;
+}
+
+.message-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.message-item.unread {
+  border-left: 4px solid #1a73e8;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.type-icon {
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+.type-text {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.message-content {
+  margin-bottom: 12px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.user-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-right: 8px;
+}
+
+.user-label {
+  font-size: 12px;
+  color: #6b7280;
+  padding: 2px 8px;
+  background: #f3f4f6;
+  border-radius: 8px;
+}
+
+.related-info {
+  margin-top: 8px;
+}
+
+.related-title {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.contact-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.phone-label {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-right: 4px;
+}
+
+.phone-number {
+  font-size: 14px;
+  color: #374151;
+}
+
+.contact-btn {
+  padding: 6px 16px;
+  background: #1a73e8;
+  color: #fff;
+  border-radius: 16px;
+  font-size: 14px;
+}
+
+.contact-text {
+  color: #fff;
+}
+
+.unread-dot {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+}
+
+/* 空状态 */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.empty-text {
+  font-size: 16px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 20px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.loading-text {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.safe-area-bottom {
+  height: env(safe-area-inset-bottom);
+}
+
+/* 底部栏 */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 env(safe-area-inset-bottom);
+  border-top: 1px solid #eef0f3;
+  z-index: 100;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #99a1ad;
+}
+
+.tab.active {
+  color: #1a73e8;
+}
+
+.t-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.t-text {
+  font-size: 12px;
+  margin-top: 2px;
+}
+

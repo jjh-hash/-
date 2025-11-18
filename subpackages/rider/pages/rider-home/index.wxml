@@ -1,0 +1,63 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+
+  <view class="header">
+    <view class="status-info" bindtap="onToggleOnline">
+      <view class="status-pill {{online ? 'online' : 'offline'}}">
+        <text class="dot"></text>
+        <text>{{online ? '上线中' : '下线中'}}</text>
+      </view>
+      <view class="area-select">
+        <text>{{currentArea}}</text>
+        <text class="arrow">▼</text>
+      </view>
+    </view>
+    <view class="header-icons">
+      <view class="icon-btn" bindtap="onHelperTap">
+        <image class="helper-avatar" src="https://img.yzcdn.cn/vant/logo.png" mode="aspectFit" />
+        <view class="badge">!</view>
+      </view>
+      <view class="icon-btn" bindtap="onNoticeTap">🔔</view>
+      <view class="icon-btn" bindtap="onMoreTap">···</view>
+    </view>
+  </view>
+
+  <view class="tabs">
+    <block wx:for="{{tabs}}" wx:key="index">
+      <view 
+        class="tab {{activeTab === index ? 'active' : ''}}" 
+        bindtap="onTabChange" 
+        data-index="{{index}}"
+      >
+        {{item}}
+      </view>
+    </block>
+  </view>
+
+  <view class="notice" wx:if="{{noticeVisible}}">
+    <text class="horn">📢</text>
+    <text class="notice-text">{{notice}}</text>
+    <text class="close" bindtap="onNoticeClose">×</text>
+  </view>
+
+  <view class="empty-card">
+    <image class="empty-img" src="https://cdn.jsdelivr.net/gh/ICEMAN9111/cdn-assets@main/rider-empty.png" mode="aspectFit" />
+    <text class="empty-title">您暂未开启定位权限</text>
+    <text class="empty-desc">开启“始终允许”权限，即可正常查看订单和接单</text>
+    <button class="primary-btn" bindtap="onEnableLocation">开启定位权限</button>
+  </view>
+
+  <view class="bottom-bar">
+    <view class="bottom-item" bindtap="onSettingTap">
+      <view class="bottom-icon gear"></view>
+      <text class="bottom-text">跑单设置</text>
+    </view>
+    <view class="bottom-item" bindtap="onCenterTap">
+      <view class="bottom-icon center"></view>
+      <text class="bottom-text">跑单中心</text>
+    </view>
+    <button class="refresh-btn" bindtap="onRefresh">刷新订单</button>
+  </view>
+</view>
+
+

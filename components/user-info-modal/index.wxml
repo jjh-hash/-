@@ -1,0 +1,44 @@
+<!-- components/user-info-modal/index.wxml -->
+<view class="modal-mask {{show ? 'show' : ''}}" bindtap="closeModal">
+  <view class="modal-content" catchtap="preventClose">
+    <!-- 标题栏 -->
+    <view class="modal-header">
+      <text class="modal-title">获取您的昵称、头像</text>
+      <text class="modal-close" bindtap="closeModal">✕</text>
+    </view>
+
+    <!-- 头像设置 -->
+    <view class="avatar-section">
+      <text class="section-label">头像</text>
+      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image class="avatar-img" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
+        <view class="avatar-placeholder" wx:else>
+          <text class="avatar-placeholder-text">点击选择</text>
+        </view>
+      </button>
+      <view class="avatar-action" bindtap="chooseAvatar">
+        <text class="section-arrow">></text>
+      </view>
+    </view>
+
+    <!-- 昵称设置 -->
+    <view class="nickname-section">
+      <text class="section-label">昵称</text>
+      <input 
+        class="nickname-input" 
+        type="nickname"
+        placeholder="请输入昵称" 
+        value="{{tempNickname}}"
+        bindinput="onNicknameInput"
+        bindblur="onNicknameBlur"
+        maxlength="20"
+      />
+    </view>
+
+    <!-- 确认按钮 -->
+    <view class="modal-footer">
+      <button class="confirm-btn" bindtap="confirmSave">确定</button>
+    </view>
+  </view>
+</view>
+

@@ -11,19 +11,31 @@
   </view>
 
   <!-- 用户信息区域 -->
-  <view class="profile-section">
+  <view class="profile-section" bindtap="editUserInfo">
     <view class="avatar">
-      <image class="avatar-img" src="{{userInfo.avatar}}" mode="aspectFill" />
+      <image class="avatar-img" src="{{userInfo.avatar}}" mode="aspectFill" wx:if="{{userInfo.avatar}}" />
+      <view class="avatar-placeholder" wx:else>
+        <text class="avatar-placeholder-text">{{userInfo.nickname ? userInfo.nickname.substring(0, 1) : '用'}}</text>
+      </view>
     </view>
-    <text class="nickname">{{userInfo.nickname}}</text>
+    <text class="nickname">{{userInfo.nickname || '微信用户'}}</text>
   </view>
+
+  <!-- 用户信息设置弹窗 -->
+  <user-info-modal 
+    id="userInfoModal"
+    show="{{showUserInfoModal}}"
+    userInfo="{{userInfo}}"
+    bind:close="onCloseUserInfoModal"
+    bind:update="onUpdateUserInfo"
+  />
 
   <!-- 功能菜单 -->
   <view class="menu-section">
     <view class="menu-list">
-      <view class="menu-item" bindtap="onMenuTap" data-type="orders">
-        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/订单.png" mode="aspectFit" /></view>
-        <text class="menu-text">我的订单</text>
+      <view class="menu-item" bindtap="onMenuTap" data-type="user-info">
+        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/姓名.png" mode="aspectFit" /></view>
+        <text class="menu-text">我的信息</text>
         <text class="menu-arrow">></text>
       </view>
       
@@ -48,12 +60,18 @@
       <view class="menu-item" bindtap="onMenuTap" data-type="service">
         <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/联系客服.png" mode="aspectFit" /></view>
         <text class="menu-text">联系客服</text>
-        <text class="menu-phone">400-959-8521</text>
+        <text class="menu-phone">+v 15890121731</text>
       </view>
 
       <view class="menu-item" bindtap="onMenuTap" data-type="switch-merchant">
         <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/商家.png" mode="aspectFit" /></view>
         <text class="menu-text">切换到商家端</text>
+        <text class="menu-arrow">></text>
+      </view>
+
+      <view class="menu-item" bindtap="onMenuTap" data-type="switch-rider">
+        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/接单.png" mode="aspectFit" /></view>
+        <text class="menu-text">切换到骑手端</text>
         <text class="menu-arrow">></text>
       </view>
     </view>
@@ -69,6 +87,16 @@
       <image class="t-icon" src="/pages/小标/dingdan.png" mode="aspectFit" />
       <text class="t-text">订单</text>
     </view>
+    <!-- 接单功能正在开发中，已注释 -->
+    <!-- <view class="tab" bindtap="onTabTap" data-tab="receive">
+      <image class="t-icon" src="/pages/小标/接单.png" mode="aspectFit" />
+      <text class="t-text">接单</text>
+    </view> -->
+    <!-- 消息功能正在开发中，已注释 -->
+    <!-- <view class="tab" bindtap="onTabTap" data-tab="message">
+      <image class="t-icon" src="/pages/小标/消息.png" mode="aspectFit" />
+      <text class="t-text">消息</text>
+    </view> -->
     <view class="tab active">
       <image class="t-icon" src="/pages/小标/wode-copy.png" mode="aspectFit" />
       <text class="t-text">我的</text>

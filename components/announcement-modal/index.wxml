@@ -1,0 +1,21 @@
+<!--components/announcement-modal/index.wxml-->
+<view wx:if="{{showModal}}" class="announcement-modal-overlay" bindtap="onClose">
+  <view class="announcement-modal-content" catchtap="stopPropagation">
+    <view class="announcement-modal-header">
+      <text class="announcement-modal-title">📢 系统公告</text>
+      <text class="announcement-modal-close" bindtap="onClose">✕</text>
+    </view>
+    
+    <view class="announcement-modal-body">
+      <text class="announcement-title">{{announcement.title}}</text>
+      <text class="announcement-content">{{announcement.content}}</text>
+    </view>
+    
+    <view class="announcement-modal-footer">
+      <view class="announcement-btn" bindtap="onConfirm">
+        <text class="announcement-btn-text">我知道了</text>
+      </view>
+    </view>
+  </view>
+</view>
+

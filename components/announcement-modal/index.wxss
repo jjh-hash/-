@@ -1,0 +1,15 @@
+.announcement-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s}
+.announcement-modal-content{width:85%;max-width:400px;background:#fff;border-radius:16px;overflow:hidden;animation:slideUp 0.3s}
+.announcement-modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 20px 16px;border-bottom:1px solid #f0f0f0}
+.announcement-modal-title{font-size:18px;font-weight:600;color:#333}
+.announcement-modal-close{font-size:24px;color:#999;cursor:pointer}
+.announcement-modal-body{padding:20px;max-height:300px;overflow-y:auto}
+.announcement-title{display:block;font-size:16px;font-weight:600;color:#333;margin-bottom:12px}
+.announcement-content{display:block;font-size:14px;color:#666;line-height:1.6}
+.announcement-modal-footer{padding:12px 20px 20px;border-top:1px solid #f0f0f0}
+.announcement-btn{background:#1677ff;border-radius:8px;padding:12px;text-align:center}
+.announcement-btn-text{color:#fff;font-size:15px;font-weight:500}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(50px);opacity:0}to{transform:translateY(0);opacity:1}}
+

@@ -2,12 +2,31 @@
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
-    currentFilter: 'all', // 当前筛选条件
+    currentCategory: 'all', // 当前分类：all, restaurant, gaming, reward, express
+    currentFilter: 'all', // 当前状态筛选：all, unpaid, paid, completed, cancelled
     orderList: [],
     loading: false,
     page: 1,
     pageSize: 20,
-    hasMore: true
+    hasMore: true,
+    // 分类列表
+    categories: [
+      { id: 'all', name: '全部', icon: '🛍️' },
+      { id: 'restaurant', name: '餐饮', icon: '🍽️' },
+      { id: 'gaming', name: '游戏陪玩', icon: '🎮' },
+      { id: 'reward', name: '悬赏', icon: '💰' },
+      { id: 'express', name: '代拿快递', icon: '📦' }
+    ],
+    // 状态筛选列表
+    filters: [
+      { id: 'all', name: '全部' },
+      { id: 'unpaid', name: '待支付' },
+      { id: 'paid', name: '已支付' },
+      { id: 'completed', name: '已完成' },
+      { id: 'cancelled', name: '已取消' },
+      { id: 'refunding', name: '退款中' },
+      { id: 'refunded', name: '已退款' }
+    ]
   },
 
   onLoad() {
@@ -31,7 +50,7 @@ Page({
         showCancel: false,
         success: () => {
           wx.reLaunch({
-            url: '/pages/merchant-register/index'
+            url: '/subpackages/merchant/pages/merchant-register/index'
           });
         }
       });
@@ -48,22 +67,54 @@ Page({
     try {
       // 调用云函数获取订单列表
       const res = await wx.cloud.callFunction({
-        name: 'admin',
+        name: 'orderManage',
         data: {
-          action: 'getOrderList',
-          filter: this.data.currentFilter,
-          page: this.data.page,
-          pageSize: this.data.pageSize
+          action: 'getAdminOrderList',
+          data: {
+            category: this.data.currentCategory, // 订单类型分类
+            filter: this.data.currentFilter, // 状态筛选
+            page: this.data.page,
+            pageSize: this.data.pageSize
+          }
         }
       });
       
+      console.log('【订单管理】云函数返回:', res.result);
+      
       if (res.result && res.result.code === 0) {
-        const { list, hasMore } = res.result.data;
+        let { list, hasMore } = res.result.data;
+        
+        // 如果设置了分类，在前端再过滤一次（确保准确）
+        if (this.data.currentCategory !== 'all') {
+          list = list.filter(order => {
+            if (this.data.currentCategory === 'restaurant') {
+              // 餐饮：普通订单（有店铺的订单）
+              return order.orderType === 'normal' || (!order.orderType && order.storeId);
+            } else {
+              // 其他分类：匹配订单类型
+              return order.orderType === this.data.currentCategory;
+            }
+          });
+        }
+        
+        // 确保数据格式正确
+        const formattedList = list.map(order => ({
+          ...order,
+          // 确保金额是字符串格式
+          amountGoods: String(order.amountGoods || '0.00'),
+          amountDelivery: String(order.amountDelivery || '0.00'),
+          amountPayable: String(order.amountPayable || '0.00'),
+          // 确保商品列表存在
+          items: order.items || []
+        }));
+        
         this.setData({
-          orderList: this.data.page === 1 ? list : [...this.data.orderList, ...list],
+          orderList: this.data.page === 1 ? formattedList : [...this.data.orderList, ...formattedList],
           hasMore: hasMore,
           loading: false
         });
+        
+        console.log('【订单管理】订单列表加载成功，共', formattedList.length, '条');
       } else {
         // 使用模拟数据
         this.setData({
@@ -154,6 +205,17 @@ Page({
     ];
   },
 
+  // 分类改变
+  onCategoryChange(e) {
+    const category = e.currentTarget.dataset.category;
+    this.setData({
+      currentCategory: category,
+      page: 1,
+      orderList: []
+    });
+    this.loadOrderList();
+  },
+
   // 筛选条件改变
   onFilterChange(e) {
     const filter = e.currentTarget.dataset.filter;
@@ -187,10 +249,11 @@ Page({
   // 订单详情
   onOrderDetail(e) {
     const order = e.currentTarget.dataset.order;
-    wx.showModal({
-      title: '订单详情',
-      content: `订单号：${order.orderNo}\n状态：${order.statusText}\n金额：¥${order.amountPayable}`,
-      showCancel: false
+    if (!order || !order.id) return;
+    
+    // 跳转到订单详情页面
+    wx.navigateTo({
+      url: `/pages/admin-order-detail/index?orderId=${order.id}`
     });
   },
 
@@ -198,6 +261,17 @@ Page({
   onOrderAction(e) {
     const action = e.currentTarget.dataset.action;
     const order = e.currentTarget.dataset.order;
+    
+    if (!order || !order.id) {
+      wx.showToast({
+        title: '订单信息异常',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 阻止事件冒泡
+    e.stopPropagation();
     
     if (action === 'cancel') {
       wx.showModal({
@@ -228,14 +302,22 @@ Page({
       wx.showLoading({ title: '处理中...' });
       
       const res = await wx.cloud.callFunction({
-        name: 'admin',
+        name: 'orderManage',
         data: {
           action: 'cancelOrder',
-          orderId: orderId
+          data: {
+            orderId: orderId
+          }
         }
       });
       
-      if (res.result && res.result.code === 0) {
+      console.log('【取消订单】返回:', res.result);
+      
+      if (res.result && res.result.code === 200 || res.result.code === 0) {
+        // 记录操作日志
+        const order = this.data.orderList.find(o => o.id === orderId);
+        await this.recordAdminLog('订单处理', order?.orderNo || `订单#${orderId}`, 'order', 'cancelled');
+        
         wx.showToast({
           title: '订单已取消',
           icon: 'success'
@@ -264,14 +346,22 @@ Page({
       wx.showLoading({ title: '处理中...' });
       
       const res = await wx.cloud.callFunction({
-        name: 'admin',
+        name: 'orderManage',
         data: {
           action: 'completeOrder',
-          orderId: orderId
+          data: {
+            orderId: orderId
+          }
         }
       });
       
-      if (res.result && res.result.code === 0) {
+      console.log('【完成订单】返回:', res.result);
+      
+      if (res.result && res.result.code === 200 || res.result.code === 0) {
+        // 记录操作日志
+        const order = this.data.orderList.find(o => o.id === orderId);
+        await this.recordAdminLog('订单处理', order?.orderNo || `订单#${orderId}`, 'order', 'completed');
+        
         wx.showToast({
           title: '订单已完成',
           icon: 'success'
@@ -291,6 +381,27 @@ Page({
       });
     } finally {
       wx.hideLoading();
+    }
+  },
+
+  // 记录管理员操作日志
+  async recordAdminLog(action, target, targetType, result) {
+    try {
+      await wx.cloud.callFunction({
+        name: 'adminLogManage',
+        data: {
+          action: 'record',
+          data: {
+            adminId: 'admin_123',
+            action: action,
+            target: target,
+            targetType: targetType,
+            result: result
+          }
+        }
+      });
+    } catch (error) {
+      console.error('记录操作日志失败:', error);
     }
   },
 

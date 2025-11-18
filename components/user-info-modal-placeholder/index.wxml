@@ -1,0 +1,5 @@
+<!--components/user-info-modal-placeholder/index.wxml-->
+<view class="placeholder-container">
+  <!-- 占位组件，在真正组件加载前显示 -->
+</view>
+

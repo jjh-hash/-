@@ -1,0 +1,78 @@
+<view class="page">
+  <!-- 导航栏 -->
+  <view class="navbar">
+    <view class="navbar-content">
+      <text class="back-btn" bindtap="onBack">◀</text>
+      <text class="navbar-title">我的评价</text>
+      <view class="placeholder"></view>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 加载中 -->
+    <view class="loading-container" wx:if="{{loading}}">
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-container" wx:elif="{{isEmpty}}">
+      <text class="empty-icon">📝</text>
+      <text class="empty-text">还没有评价记录</text>
+      <text class="empty-tip">快去评价你购买的商品吧~</text>
+    </view>
+
+    <!-- 评价列表 -->
+    <view class="reviews-container" wx:else>
+      <block wx:for="{{reviews}}" wx:key="id">
+        <view class="review-card">
+          <!-- 店铺信息 -->
+          <view class="store-header">
+            <view class="store-info">
+              <text class="store-name">{{item.storeName}}</text>
+              <text class="review-date">{{item.date}}</text>
+            </view>
+            <view class="delete-btn" data-id="{{item.id}}" bindtap="onDeleteReview">
+              <text class="delete-icon">🗑️</text>
+            </view>
+          </view>
+
+          <!-- 评分 -->
+          <view class="rating-section">
+            <view class="rating-label">评分：</view>
+            <view class="stars">
+              <text class="star {{star ? 'filled' : 'empty'}}" 
+                    wx:for="{{item.stars}}" 
+                    wx:for-item="star" 
+                    wx:key="index">★</text>
+            </view>
+          </view>
+
+          <!-- 评价内容 -->
+          <view class="review-content" wx:if="{{item.content}}">
+            {{item.content}}
+          </view>
+
+          <!-- 评价图片 -->
+          <view class="review-images" wx:if="{{item.images && item.images.length > 0}}">
+            <image class="review-image" 
+                   wx:for="{{item.images}}" 
+                   wx:for-item="img"
+                   wx:key="index"
+                   src="{{img}}" 
+                   mode="aspectFill"
+                   data-images="{{item.images}}"
+                   data-index="{{index}}"
+                   bindtap="onPreviewImage" />
+          </view>
+
+          <!-- 商家回复 -->
+          <view class="merchant-reply" wx:if="{{item.hasMerchantReply && item.merchantReply}}">
+            <view class="merchant-reply-label">商家回复：</view>
+            <view class="merchant-reply-content">{{item.merchantReply}}</view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+</view>
+

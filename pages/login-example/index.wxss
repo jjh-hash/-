@@ -1,0 +1,178 @@
+/* 登录功能示例页面样式 */
+.container {
+  padding: 40rpx;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 60rpx;
+}
+
+.title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.subtitle {
+  display: block;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.status-section {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  margin-bottom: 40rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.status-label {
+  font-size: 28rpx;
+  color: #666;
+  margin-right: 20rpx;
+}
+
+.status-value {
+  font-size: 28rpx;
+  font-weight: bold;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+}
+
+.status-value.logged-in {
+  color: #52c41a;
+  background-color: #f6ffed;
+}
+
+.status-value.not-logged-in {
+  color: #ff4d4f;
+  background-color: #fff2f0;
+}
+
+.user-info {
+  margin-top: 30rpx;
+  padding-top: 30rpx;
+  border-top: 2rpx solid #f0f0f0;
+}
+
+.info-label {
+  display: block;
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+}
+
+.info-content {
+  background-color: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+.info-item {
+  display: block;
+  font-size: 24rpx;
+  color: #333;
+  margin-bottom: 12rpx;
+  word-break: break-all;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.action-section {
+  margin-bottom: 40rpx;
+}
+
+.action-btn {
+  width: 100%;
+  height: 88rpx;
+  border-radius: 44rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #1890ff, #40a9ff);
+  color: #fff;
+}
+
+.action-btn.primary:active {
+  background: linear-gradient(135deg, #096dd9, #1890ff);
+  transform: scale(0.98);
+}
+
+.action-btn.danger {
+  background: linear-gradient(135deg, #ff4d4f, #ff7875);
+  color: #fff;
+}
+
+.action-btn.danger:active {
+  background: linear-gradient(135deg, #d9363e, #ff4d4f);
+  transform: scale(0.98);
+}
+
+.action-btn.secondary {
+  background-color: #fff;
+  color: #1890ff;
+  border: 2rpx solid #1890ff;
+}
+
+.action-btn.secondary:active {
+  background-color: #f0f8ff;
+  transform: scale(0.98);
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  transform: none;
+}
+
+.help-section {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.help-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.help-content {
+  padding-left: 20rpx;
+}
+
+.help-item {
+  display: block;
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+  line-height: 1.6;
+}
+
+.help-item:last-child {
+  margin-bottom: 0;
+}

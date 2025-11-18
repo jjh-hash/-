@@ -1,6 +1,11 @@
 {
   "navigationBarTitleText": "外卖",
   "navigationStyle": "custom",
-  "usingComponents": {}
+  "usingComponents": {
+    "announcement-modal": "/components/announcement-modal/index"
+  },
+  "componentPlaceholder": {
+    "announcement-modal": "view"
+  }
 }
 

@@ -1,0 +1,97 @@
+<!--pages/login-modal-demo/index.wxml-->
+<view class="container">
+  <view class="header">
+    <text class="title">登录弹窗功能演示</text>
+  </view>
+
+  <!-- 登录状态显示 -->
+  <view class="status-section">
+    <view class="status-item">
+      <text class="label">登录状态：</text>
+      <text class="value {{isLoggedIn ? 'success' : 'error'}}">
+        {{isLoggedIn ? '已登录' : '未登录'}}
+      </text>
+    </view>
+    
+    <view wx:if="{{userInfo}}" class="user-info">
+      <view class="info-item">
+        <text class="label">用户ID：</text>
+        <text class="value">{{userInfo._id}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">昵称：</text>
+        <text class="value">{{userInfo.nickname}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">角色：</text>
+        <text class="value">{{userInfo.role}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 功能按钮 -->
+  <view class="button-section">
+    <button class="demo-btn primary" bindtap="showLoginModal">
+      手动显示登录弹窗
+    </button>
+
+    <button class="demo-btn secondary" bindtap="checkLoginExample">
+      检查登录示例
+    </button>
+
+    <button class="demo-btn warning" bindtap="forceLoginExample">
+      强制登录示例
+    </button>
+
+    <button class="demo-btn info" bindtap="silentLoginExample">
+      静默登录示例
+    </button>
+
+    <button wx:if="{{isLoggedIn}}" class="demo-btn danger" bindtap="logout">
+      退出登录
+    </button>
+  </view>
+
+  <!-- 设置按钮 -->
+  <view class="settings-section">
+    <view class="section-title">设置选项</view>
+    
+    <button class="demo-btn outline" bindtap="clearModalRecord">
+      清除弹窗记录
+    </button>
+
+    <button class="demo-btn outline" bindtap="setModalInterval">
+      设置弹窗间隔
+    </button>
+  </view>
+
+  <!-- 使用说明 -->
+  <view class="tips-section">
+    <view class="tips-title">功能说明：</view>
+    <view class="tips-content">
+      <text>1. 首次进入小程序会自动显示登录弹窗</text>
+      <text>2. 24小时内不会重复显示弹窗</text>
+      <text>3. 可以手动触发登录弹窗</text>
+      <text>4. 支持强制登录和静默登录</text>
+      <text>5. 可以自定义弹窗显示间隔</text>
+    </view>
+  </view>
+
+  <!-- 代码示例 -->
+  <view class="code-section">
+    <view class="code-title">代码示例：</view>
+    <view class="code-content">
+      <text>// 引入工具类</text>
+      <text>const LoginModal = require('../../utils/loginModal');</text>
+      <text></text>
+      <text>// 手动显示弹窗</text>
+      <text>LoginModal.show();</text>
+      <text></text>
+      <text>// 检查登录</text>
+      <text>LoginModal.checkLogin(callback, successCallback);</text>
+      <text></text>
+      <text>// 强制登录</text>
+      <text>LoginModal.forceLogin(message, successCallback);</text>
+    </view>
+  </view>
+</view>

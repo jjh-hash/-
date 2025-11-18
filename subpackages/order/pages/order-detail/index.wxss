@@ -1,0 +1,539 @@
+.page {
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* 导航栏 */
+.nav {
+  background: #fff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-bar {
+  width: 100%;
+  background: #fff;
+  /* 设置状态栏背景为白色，与导航栏一致，减少红色指示器的视觉冲击 */
+}
+
+.nav-bar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  position: relative;
+}
+
+.back {
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+}
+
+.title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot, .battery {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 内容区域 */
+.content {
+  margin-top: 60px;
+  padding: 0 16px 20px 16px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* 服务保障信息 */
+.guarantee-section {
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.guarantee-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.guarantee-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.arrow {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 操作按钮 */
+.action-buttons-section {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-wrap: nowrap;
+}
+
+.action-btn {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  line-height: 36px;
+  border-radius: 18px;
+  font-size: 12px;
+  background: #f0f0f0;
+  color: #333;
+  border: none;
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+  flex-shrink: 1;
+  position: relative;
+  z-index: 10;
+}
+
+.action-btn.refund-btn {
+  background: #ff4d4f;
+  color: #fff;
+  font-weight: 500;
+}
+
+.action-btn.primary {
+  background: #ff6b6b;
+  color: #fff;
+  flex: 1.3;
+  flex-shrink: 0;
+}
+
+.action-btn::after {
+  border: none;
+}
+
+/* 服务保障条 */
+.service-bar {
+  background: #f0f7ff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.service-text {
+  font-size: 14px;
+  color: #52c41a;
+}
+
+.service-detail {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 订单商品信息 */
+.order-items-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.store-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.items-list {
+  margin-bottom: 12px;
+  max-height: 300px;
+}
+
+.item-card {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.item-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-name {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+}
+
+.item-spec {
+  font-size: 12px;
+  color: #999;
+}
+
+.item-quantity {
+  font-size: 12px;
+  color: #999;
+}
+
+.item-price {
+  font-size: 14px;
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.total-paid {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.total-paid .label {
+  font-size: 14px;
+  color: #666;
+}
+
+.total-paid .amount {
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+}
+
+/* 配送地址 */
+.address-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.address-content {
+  margin-bottom: 8px;
+}
+
+.address-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.contact-info {
+  font-size: 14px;
+  color: #666;
+}
+
+.view-more {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.address-details {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.address-details .detail-line {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.address-details .detail-line:last-child {
+  margin-bottom: 0;
+}
+
+.address-details .detail-label {
+  font-size: 14px;
+  color: #666;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.address-details .detail-value {
+  font-size: 14px;
+  color: #333;
+  flex: 1;
+  word-break: break-all;
+}
+
+/* 更多推荐 */
+.recommendations-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.recommendations-section .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heart-icon {
+  color: #ff6b6b;
+  font-size: 16px;
+}
+
+/* 退款状态 */
+.refund-status-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-left: 4px solid #1890ff;
+}
+
+.refund-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.refund-status-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.refund-status-text {
+  font-size: 16px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.refund-status-text.refund-pending {
+  color: #faad14;
+  background: #fffbe6;
+}
+
+.refund-status-text.refund-success {
+  color: #52c41a;
+  background: #f6ffed;
+}
+
+.refund-status-text.refund-rejected {
+  color: #ff4d4f;
+  background: #fff1f0;
+}
+
+.refund-status-content {
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.refund-info-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.refund-info-item:last-child {
+  margin-bottom: 0;
+}
+
+.refund-info-label {
+  font-size: 14px;
+  color: #666;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.refund-info-value {
+  font-size: 14px;
+  color: #333;
+  flex: 1;
+  word-break: break-all;
+}
+
+.refund-amount-value {
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+.refund-remark-value {
+  color: #ff4d4f;
+  line-height: 1.6;
+}
+
+/* 备注信息 */
+.remark-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.remark-label {
+  font-size: 14px;
+  color: #666;
+  min-width: 40px;
+}
+
+.remark-text {
+  font-size: 14px;
+  color: #333;
+  flex: 1;
+}
+
+/* 配送信息 */
+.delivery-info-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-size: 14px;
+  color: #666;
+  min-width: 80px;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #333;
+  flex: 1;
+}
+
+/* 订单详细信息 */
+.order-details-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.details-header {
+  display: flex;
+  flex-direction: column;
+}
+
+.details-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-size: 14px;
+  color: #666;
+  min-width: 80px;
+}
+
+.detail-value-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #333;
+  word-break: break-all;
+}
+
+.copy-btn {
+  font-size: 12px;
+  color: #1677ff;
+  padding: 2px 8px;
+  border: 1px solid #1677ff;
+  border-radius: 4px;
+  background: #fff;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.toggle-btn {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  text-align: center;
+}
+
+.toggle-icon {
+  font-size: 12px;
+  color: #999;
+}
+

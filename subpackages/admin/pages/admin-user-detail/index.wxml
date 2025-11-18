@@ -1,0 +1,103 @@
+<!--pages/admin-user-detail/index.wxml-->
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">◀</view>
+    <text class="title">用户详情</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 内容 -->
+  <scroll-view wx:else scroll-y class="content">
+    <!-- 用户基本信息 -->
+    <view class="section">
+      <view class="section-title">基本信息</view>
+      <view class="user-header">
+        <view class="user-avatar" bindtap="onPreviewAvatar">
+          <image wx:if="{{user.avatar}}" src="{{user.avatar}}" mode="aspectFill" />
+          <text wx:else class="avatar-placeholder">{{user.nickname.charAt(0)}}</text>
+        </view>
+        <view class="user-info">
+          <text class="user-name">{{user.nickname}}</text>
+          <text class="user-status status-{{user.status}}">
+            <text wx:if="{{user.status === 'active'}}">正常</text>
+            <text wx:elif="{{user.status === 'banned'}}">已封禁</text>
+          </text>
+        </view>
+      </view>
+      
+      <view class="info-item">
+        <text class="label">用户ID：</text>
+        <text class="value">{{user._id}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">手机号：</text>
+        <text class="value">{{user.phone}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">校区：</text>
+        <text class="value">{{user.campus}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">学院：</text>
+        <text class="value">{{user.college || '未设置'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">专业：</text>
+        <text class="value">{{user.major || '未设置'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">角色：</text>
+        <text class="value">{{user.role === 'user' ? '普通用户' : user.role}}</text>
+      </view>
+    </view>
+
+    <!-- 账户信息 -->
+    <view class="section">
+      <view class="section-title">账户信息</view>
+      <view class="info-item">
+        <text class="label">注册时间：</text>
+        <text class="value">{{user.createdAt || '未知'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">最后登录：</text>
+        <text class="value">{{user.lastLoginAt || '从未登录'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">更新时间：</text>
+        <text class="value">{{user.updatedAt || '未知'}}</text>
+      </view>
+    </view>
+
+    <!-- 订单统计 -->
+    <view class="section">
+      <view class="section-title">订单统计</view>
+      <view class="info-item">
+        <text class="label">订单总数：</text>
+        <text class="value">{{orderCount}} 单</text>
+      </view>
+    </view>
+
+    <!-- 封禁信息 -->
+    <view wx:if="{{user.status === 'banned'}}" class="section ban-section">
+      <view class="section-title">封禁信息</view>
+      <view class="info-item">
+        <text class="label">封禁原因：</text>
+        <text class="value ban-reason">{{user.banReason || '未填写原因'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">封禁时间：</text>
+        <text class="value">{{user.bannedAt || '未知'}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>
+
+

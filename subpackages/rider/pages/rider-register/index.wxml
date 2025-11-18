@@ -1,0 +1,44 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  <view class="nav">
+    <view class="back-btn" bindtap="onBackTap">◀</view>
+    <text class="title">注册成为骑手</text>
+  </view>
+
+  <view class="content">
+    <view class="field">
+      <text class="label">姓名</text>
+      <input class="input" placeholder="请输入真实姓名" bindinput="onNameInput" value="{{name}}" />
+    </view>
+    <view class="field">
+      <text class="label">手机号</text>
+      <input class="input" type="number" maxlength="11" placeholder="请输入常用手机号" bindinput="onPhoneInput" value="{{phone}}" />
+    </view>
+    <view class="field">
+      <text class="label">身份证号</text>
+      <input class="input" placeholder="用于实名认证" bindinput="onIdInput" value="{{idNumber}}" />
+    </view>
+    <view class="field">
+      <text class="label">配送工具</text>
+      <input class="input" placeholder="如 电动车/自行车/步行" bindinput="onVehicleInput" value="{{vehicle}}" />
+    </view>
+    <view class="field">
+      <text class="label">服务区域</text>
+      <input class="input" placeholder="请输入主要配送区域" bindinput="onAreaInput" value="{{serviceArea}}" />
+    </view>
+    <view class="field">
+      <text class="label">邀请码（选填）</text>
+      <input class="input" placeholder="若有运营邀请码可填写" bindinput="onInviteInput" value="{{inviteCode}}" />
+    </view>
+
+    <view class="tip">
+      <view class="tip-item">• 骑手需实名认证并提交配送工具信息</view>
+      <view class="tip-item">• 审核通过后可进入接单页面接收任务</view>
+      <view class="tip-item">• 如有疑问请联系平台运营人员</view>
+    </view>
+
+    <view class="btn primary" bindtap="onSubmit">提交申请</view>
+  </view>
+</view>
+
+

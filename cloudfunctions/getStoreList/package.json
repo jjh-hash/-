@@ -1,0 +1,10 @@
+{
+  "name": "getStoreList",
+  "version": "1.0.0",
+  "description": "客户端获取商家列表",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+

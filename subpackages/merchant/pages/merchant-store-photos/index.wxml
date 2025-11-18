@@ -1,0 +1,138 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-left" bindtap="goBack">
+      <text class="back-icon">‹</text>
+    </view>
+    <view class="nav-title">店铺照片</view>
+    <view class="nav-right" bindtap="onAddPhoto">
+      <text class="add-icon">+</text>
+    </view>
+  </view>
+
+  <!-- 内容区域 -->
+  <view class="content">
+    <!-- 照片分类标签 -->
+    <view class="category-tabs">
+      <view class="tab-item {{activeCategory === 'all' ? 'active' : ''}}" 
+            bindtap="onCategoryChange" data-category="all">
+        全部
+      </view>
+      <view class="tab-item {{activeCategory === 'environment' ? 'active' : ''}}" 
+            bindtap="onCategoryChange" data-category="environment">
+        环境照片
+      </view>
+      <view class="tab-item {{activeCategory === 'food' ? 'active' : ''}}" 
+            bindtap="onCategoryChange" data-category="food">
+        菜品照片
+      </view>
+      <view class="tab-item {{activeCategory === 'license' ? 'active' : ''}}" 
+            bindtap="onCategoryChange" data-category="license">
+        证件照片
+      </view>
+    </view>
+
+    <!-- 照片网格 -->
+    <view class="photo-grid">
+      <block wx:for="{{filteredPhotos}}" wx:key="id">
+        <view class="photo-item" bindtap="onPhotoTap" data-id="{{item.id}}">
+          <image class="photo-image" src="{{item.url}}" mode="aspectFill" />
+          <view class="photo-overlay">
+            <view class="photo-actions">
+              <view class="action-btn edit" bindtap="onEditPhoto" data-id="{{item.id}}" catchtap="true">
+                <text class="action-icon">✏️</text>
+              </view>
+              <view class="action-btn delete" bindtap="onDeletePhoto" data-id="{{item.id}}" catchtap="true">
+                <text class="action-icon">🗑️</text>
+              </view>
+            </view>
+          </view>
+          <view class="photo-info">
+            <text class="photo-name">{{item.name}}</text>
+            <text class="photo-category">{{item.categoryText}}</text>
+          </view>
+        </view>
+      </block>
+      
+      <!-- 添加照片按钮 -->
+      <view class="photo-item add-photo" bindtap="onAddPhoto">
+        <view class="add-content">
+          <text class="add-icon">+</text>
+          <text class="add-text">添加照片</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{filteredPhotos.length === 0}}">
+      <image class="empty-icon" src="/images/empty-photos.png" mode="aspectFit" />
+      <text class="empty-text">暂无{{activeCategoryText}}照片</text>
+      <text class="empty-desc">点击右上角"+"添加照片</text>
+    </view>
+  </view>
+
+  <!-- 照片预览模态框 -->
+  <view class="photo-modal {{showModal ? 'show' : ''}}" bindtap="onCloseModal">
+    <view class="modal-content" catchtap="true">
+      <image class="preview-image" src="{{previewPhoto.url}}" mode="aspectFit" />
+      <view class="preview-info">
+        <text class="preview-name">{{previewPhoto.name}}</text>
+        <text class="preview-category">{{previewPhoto.categoryText}}</text>
+        <text class="preview-time">{{previewPhoto.createTime}}</text>
+      </view>
+      <view class="preview-actions">
+        <view class="action-btn" bindtap="onEditPhoto" data-id="{{previewPhoto.id}}">
+          <text class="action-text">编辑</text>
+        </view>
+        <view class="action-btn delete" bindtap="onDeletePhoto" data-id="{{previewPhoto.id}}">
+          <text class="action-text">删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 添加照片模态框 -->
+  <view class="add-modal {{showAddModal ? 'show' : ''}}" bindtap="onCloseAddModal">
+    <view class="add-modal-content" catchtap="true">
+      <view class="add-header">
+        <text class="add-title">添加照片</text>
+        <text class="close-btn" bindtap="onCloseAddModal">×</text>
+      </view>
+      
+      <view class="add-form">
+        <view class="form-item">
+          <text class="form-label">照片名称</text>
+          <input class="form-input" placeholder="请输入照片名称" value="{{newPhoto.name}}" bindinput="onNameInput" />
+        </view>
+        
+        <view class="form-item">
+          <text class="form-label">照片分类</text>
+          <picker bindchange="onCategoryPickerChange" value="{{categoryIndex}}" range="{{categoryOptions}}">
+            <view class="picker-text">{{categoryOptions[categoryIndex]}}</view>
+          </picker>
+        </view>
+        
+        <view class="form-item">
+          <text class="form-label">选择照片</text>
+          <view class="photo-upload" bindtap="onChooseImage">
+            <image wx:if="{{newPhoto.tempUrl}}" class="upload-preview" src="{{newPhoto.tempUrl}}" mode="aspectFill" />
+            <view wx:else class="upload-placeholder">
+              <text class="upload-icon">📷</text>
+              <text class="upload-text">点击选择照片</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      
+      <view class="add-actions">
+        <view class="btn cancel" bindtap="onCloseAddModal">取消</view>
+        <view class="btn confirm" bindtap="onConfirmAdd">确定</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="safe-area-bottom"></view>
+</view>

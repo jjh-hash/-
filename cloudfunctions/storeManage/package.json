@@ -1,0 +1,10 @@
+{
+  "name": "storeManage",
+  "version": "1.0.0",
+  "description": "店铺管理云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+

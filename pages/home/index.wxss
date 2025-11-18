@@ -9,10 +9,12 @@
 .content{ height: calc(100vh - 88px); }
 
 /* 搜索 */
-.search{ margin:12px 16px; height:36px; border-radius:18px; background:#fff; display:flex; align-items:center; padding:0 12px; }
-.icon{ margin-right:6px; color:#9aa0a6; }
+.search{ margin:12px 16px; height:36px; border-radius:18px; background:#fff; display:flex; align-items:center; padding:0 12px; position:relative; }
+.icon{ margin-right:6px; color:#9aa0a6; font-size:16px; }
 .input{ flex:1; font-size:14px; }
 .ph{ color:#b0b5bd; }
+.clear-btn{ width:20px; height:20px; display:flex; align-items:center; justify-content:center; margin-left:8px; }
+.clear-icon{ font-size:20px; color:#999; line-height:1; }
 
 /* 快捷分类 */
 .quick{ margin:8px 12px; background:#fff; border-radius:12px; padding:14px 6px; display:flex; flex-wrap:wrap; justify-content:space-between; }
@@ -21,35 +23,46 @@
 .q-emoji{ font-size:28px; }
 .q-text{ margin-top:6px; font-size:12px; color:#333; }
 
-/* 公告 */
-.notice{ margin:10px 12px; background:#fff; border-radius:12px; padding:10px 12px; display:flex; align-items:center; }
-.label{ color:#4e9bff; margin-right:10px; }
-.msg{ color:#6b7280; font-size:12px; }
-
 /* 轮播图 */
-.banner-swiper{ margin:10px 12px; border-radius:12px; height:120px; }
-.banner-item{ height:100%; border-radius:12px; padding:16px; display:flex; align-items:center; justify-content:space-between; }
-.b-title{ font-size:18px; font-weight:700; color:#1e3a8a; }
-.b-sub{ color:#2563eb; background:#dbeafe; padding:4px 12px; border-radius:999px; font-size:14px; }
+.banner-swiper{ margin:10px 12px; border-radius:12px; height:200px; }
+.banner-item{ height:100%; border-radius:12px; overflow:hidden; }
+.banner-image{ width:100%; height:100%; }
 
 /* 筛选 */
 .filters{ margin:10px 12px; display:flex; gap:18px; color:#60708a; }
 .f-item.active{ color:#1a73e8; font-weight:600; }
 
 /* 店铺列表 */
-.shop-list{ margin:0 12px 80px; background:#fff; border-radius:12px; padding:8px 0; }
+.shop-list{ margin:0 12px 0; background:#fff; border-radius:12px; padding:8px 0; }
 .shop{ display:flex; padding:12px; border-bottom:1px solid #f1f3f5; }
 .shop:last-child{ border-bottom:none; }
 .cover{ width:88px; height:66px; border-radius:8px; background:#eee; }
 .meta{ flex:1; margin:0 10px; }
 .name{ font-size:16px; font-weight:600; color:#1f2937; }
-.rate-line{ margin-top:4px; color:#2563eb; font-size:12px; }
+.rate-line{ margin-top:4px; color:#2563eb; font-size:12px; display:flex; align-items:center; }
+.rate-line .rating-group{ display:flex; align-items:center; gap:4px; }
+.rate-line .score{ font-size:12px; font-weight:600; color:#2563eb; }
+.rate-line .stars{ display:flex; align-items:center; gap:1px; }
+.rate-line .star{ font-size:12px; line-height:1; color:#e0e0e0; }
+.rate-line .star.full{ color:#ffc107 !important; }
+.rate-line .star.half{ color:#ffc107 !important; opacity:0.6; }
+.rate-line .star.empty{ color:#e0e0e0 !important; }
 .rate-line .month{ margin-left:8px; color:#6b7280; }
 .fee-line{ margin-top:6px; color:#6b7280; font-size:12px; }
 .extra{ width:72px; text-align:right; color:#6b7280; font-size:12px; display:flex; flex-direction:column; justify-content:center; }
 
+/* 安全区域底部间距 */
+.safe-area-bottom{ height: calc(60px + env(safe-area-inset-bottom)); }
+
+/* 空状态 */
+.empty-state{ padding:60px 20px; text-align:center; }
+.empty-icon{ font-size:48px; display:block; margin-bottom:16px; }
+.empty-text{ font-size:16px; color:#666; display:block; margin-bottom:8px; }
+.empty-tip{ font-size:14px; color:#999; display:block; margin-bottom:24px; }
+.empty-btn{ display:inline-block; padding:8px 24px; background:#1a73e8; color:#fff; border-radius:20px; font-size:14px; }
+
 /* 底部栏 */
-.tabbar{ position:fixed; left:0; right:0; bottom:0; background:#fff; display:flex; justify-content:space-around; padding:8px 0 env(safe-area-inset-bottom); border-top:1px solid #eef0f3; }
+.tabbar{ position:fixed; left:0; right:0; bottom:0; background:#fff; display:flex; justify-content:space-around; padding:8px 0 env(safe-area-inset-bottom); border-top:1px solid #eef0f3; z-index:100; }
 .tab{ display:flex; flex-direction:column; align-items:center; color:#99a1ad; }
 .tab.active{ color:#1a73e8; }
 .t-icon{ width:20px; height:20px; }

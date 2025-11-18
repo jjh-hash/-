@@ -1,0 +1,5 @@
+/* components/user-info-modal-placeholder/index.wxss */
+.placeholder-container {
+  display: none;
+}
+

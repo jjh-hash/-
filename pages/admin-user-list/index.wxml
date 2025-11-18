@@ -1,0 +1,128 @@
+<!--pages/admin-user-list/index.wxml-->
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">◀</view>
+    <text class="title">用户管理</text>
+  </view>
+
+  <view class="filter-section">
+    <view class="search-box">
+      <text class="search-icon">🔍</text>
+      <input 
+        class="search-input" 
+        placeholder="搜索昵称、手机号或邮箱" 
+        bindinput="onSearch"
+        value="{{keyword}}"
+      />
+    </view>
+  </view>
+
+  <view class="filter-section">
+    <view class="filter-box">
+      <picker 
+        bindchange="onStatusChange" 
+        value="{{statusIndex}}" 
+        range="{{statusOptions}}" 
+        range-key="label"
+      >
+        <view class="picker-text">
+          {{statusOptions[statusIndex].label}}
+        </view>
+      </picker>
+    </view>
+    
+    <view class="filter-box">
+      <picker 
+        bindchange="onCampusChange" 
+        value="{{campusIndex}}" 
+        range="{{campusOptions}}" 
+        range-key="label"
+      >
+        <view class="picker-text">
+          {{campusOptions[campusIndex].label}}
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <view class="user-list">
+    <block wx:for="{{users}}" wx:key="_id">
+      <view class="user-item">
+        <view class="user-header">
+          <view class="user-info">
+            <view class="user-avatar">
+              <image wx:if="{{item.avatar}}" src="{{item.avatar}}" mode="aspectFill"></image>
+              <text wx:else class="avatar-placeholder">{{item.nickname.charAt(0)}}</text>
+            </view>
+            <view class="user-details">
+              <text class="user-name">{{item.nickname}}</text>
+              <text class="user-phone">{{item.phone}}</text>
+            </view>
+          </view>
+          <view class="user-status status-{{item.status}}">
+            <text wx:if="{{item.status === 'active'}}">正常</text>
+            <text wx:elif="{{item.status === 'banned'}}">已封禁</text>
+          </view>
+        </view>
+        
+        <view class="user-details-row">
+          <view class="detail-item">
+            <text class="detail-label">校区：</text>
+            <text class="detail-value">{{item.campus}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">注册时间：</text>
+            <text class="detail-value">{{item.createdAt}}</text>
+          </view>
+        </view>
+
+        <view class="user-actions">
+          <view 
+            class="action-btn detail-btn" 
+            bindtap="onViewDetail" 
+            data-id="{{item._id}}"
+          >
+            查看详情
+          </view>
+          
+          <view wx:if="{{item.status === 'active'}}" class="action-buttons">
+            <view 
+              class="action-btn ban-btn" 
+              bindtap="onBanUser" 
+              data-id="{{item._id}}" 
+              data-name="{{item.nickname}}"
+            >
+              封禁
+            </view>
+          </view>
+          
+          <view wx:elif="{{item.status === 'banned'}}" class="action-buttons">
+            <view 
+              class="action-btn unban-btn" 
+              bindtap="onUnbanUser" 
+              data-id="{{item._id}}" 
+              data-name="{{item.nickname}}"
+            >
+              解封
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <view wx:elif="{{users.length === 0}}" class="empty">
+    <text class="empty-icon">👤</text>
+    <text class="empty-text">暂无用户数据</text>
+  </view>
+
+  <view wx:if="{{users.length < total && !loading}}" class="load-more">
+    <text>上拉加载更多</text>
+  </view>
+</view>

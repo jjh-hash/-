@@ -1,0 +1,162 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">◀</view>
+    <text class="title">财务统计</text>
+    <view class="refresh-btn" bindtap="onRefresh">刷新</view>
+  </view>
+
+  <!-- 日期范围选择 -->
+  <view class="date-range">
+    <picker 
+      bindchange="onDateRangeChange" 
+      value="{{dateRange === 'week' ? 0 : (dateRange === 'month' ? 1 : 2)}}" 
+      range="['近一周', '近一月', '近三月']"
+    >
+      <view class="picker-text">
+        <text wx:if="{{dateRange === 'week'}}">近一周</text>
+        <text wx:elif="{{dateRange === 'month'}}">近一月</text>
+        <text wx:elif="{{dateRange === 'quarter'}}">近三月</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 内容区域 -->
+  <view class="content">
+    <!-- 核心财务数据 -->
+    <view class="stats-grid">
+      <view class="stat-card platform">
+        <text class="stat-icon">💰</text>
+        <text class="stat-label">平台总收入</text>
+        <text class="stat-number">¥{{financeStats.platformTotalRevenue}}</text>
+        <text class="stat-desc">服务费收入</text>
+      </view>
+      <view class="stat-card merchant">
+        <text class="stat-icon">🏪</text>
+        <text class="stat-label">商家总收入</text>
+        <text class="stat-number">¥{{financeStats.merchantTotalRevenue}}</text>
+        <text class="stat-desc">商家收入</text>
+      </view>
+      <view class="stat-card user">
+        <text class="stat-icon">💳</text>
+        <text class="stat-label">用户总消费</text>
+        <text class="stat-number">¥{{financeStats.userTotalConsumption}}</text>
+        <text class="stat-desc">订单总金额</text>
+      </view>
+      <view class="stat-card net">
+        <text class="stat-icon">📊</text>
+        <text class="stat-label">平台净收入</text>
+        <text class="stat-number">¥{{financeStats.netPlatformRevenue}}</text>
+        <text class="stat-desc">扣除退款后</text>
+      </view>
+    </view>
+
+    <!-- 其他财务指标 -->
+    <view class="stats-grid">
+      <view class="stat-card">
+        <text class="stat-icon">📦</text>
+        <text class="stat-label">订单数量</text>
+        <text class="stat-number">{{financeStats.orderCount}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">↩️</text>
+        <text class="stat-label">退款金额</text>
+        <text class="stat-number">¥{{financeStats.totalRefundAmount}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">📋</text>
+        <text class="stat-label">退款数量</text>
+        <text class="stat-number">{{financeStats.totalRefundCount}}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">💵</text>
+        <text class="stat-label">平均订单金额</text>
+        <text class="stat-number">¥{{financeStats.avgOrderValue}}</text>
+      </view>
+    </view>
+
+    <!-- 平台收入趋势图 -->
+    <view class="chart-container">
+      <view class="chart-title">平台收入趋势</view>
+      <view class="chart-wrapper">
+        <view class="chart-bars">
+          <view wx:for="{{chartData.dates}}" wx:key="index" class="chart-bar-item">
+            <view class="chart-bar-wrapper">
+              <view 
+                class="chart-bar platform-bar" 
+                style="height: {{chartData.platformRevenueHeights[index] || 0}}rpx"
+              ></view>
+            </view>
+            <text class="chart-label">{{item}}</text>
+            <text class="chart-value">¥{{chartData.platformRevenues[index] || 0}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 商家收入趋势图 -->
+    <view class="chart-container">
+      <view class="chart-title">商家收入趋势</view>
+      <view class="chart-wrapper">
+        <view class="chart-bars">
+          <view wx:for="{{chartData.dates}}" wx:key="index" class="chart-bar-item">
+            <view class="chart-bar-wrapper">
+              <view 
+                class="chart-bar merchant-bar" 
+                style="height: {{chartData.merchantRevenueHeights[index] || 0}}rpx"
+              ></view>
+            </view>
+            <text class="chart-label">{{item}}</text>
+            <text class="chart-value">¥{{chartData.merchantRevenues[index] || 0}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 用户消费趋势图 -->
+    <view class="chart-container">
+      <view class="chart-title">用户消费趋势</view>
+      <view class="chart-wrapper">
+        <view class="chart-bars">
+          <view wx:for="{{chartData.dates}}" wx:key="index" class="chart-bar-item">
+            <view class="chart-bar-wrapper">
+              <view 
+                class="chart-bar user-bar" 
+                style="height: {{chartData.userConsumptionHeights[index] || 0}}rpx"
+              ></view>
+            </view>
+            <text class="chart-label">{{item}}</text>
+            <text class="chart-value">¥{{chartData.userConsumptions[index] || 0}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 商家财务排行 -->
+    <view class="ranking-container">
+      <view class="ranking-title">商家财务排行（TOP 10）</view>
+      <view class="ranking-list">
+        <view wx:for="{{merchantRanking}}" wx:key="storeId" class="ranking-item">
+          <view class="ranking-rank">{{index + 1}}</view>
+          <view class="ranking-info">
+            <text class="ranking-name">{{item.storeName}}</text>
+            <text class="ranking-desc">商家收入: ¥{{item.merchantRevenue}} | 平台服务费: ¥{{item.platformFee}}</text>
+            <text class="ranking-desc">订单数: {{item.orderCount}}</text>
+          </view>
+        </view>
+        <view wx:if="{{merchantRanking.length === 0}}" class="empty-tip">
+          <text>暂无数据</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+</view>
+

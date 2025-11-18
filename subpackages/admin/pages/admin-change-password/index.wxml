@@ -1,0 +1,94 @@
+<!--pages/admin-change-password/index.wxml-->
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">◀</view>
+    <text class="title">修改密码</text>
+    <view class="nav-placeholder"></view>
+  </view>
+
+  <!-- 页面内容 -->
+  <view class="page-content">
+    <!-- 密码输入表单 -->
+    <view class="form-section">
+      <!-- 旧密码 -->
+      <view class="form-item">
+        <text class="form-label">旧密码</text>
+        <view class="input-wrapper">
+          <input
+            class="form-input"
+            type="{{showOldPassword ? 'text' : 'password'}}"
+            placeholder="请输入旧密码"
+            value="{{oldPassword}}"
+            bindinput="onOldPasswordInput"
+            maxlength="10"
+          />
+          <view class="eye-icon" bindtap="toggleOldPassword">
+            <text wx:if="{{showOldPassword}}">👁️</text>
+            <text wx:else>👁️‍🗨️</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 新密码 -->
+      <view class="form-item">
+        <text class="form-label">新密码</text>
+        <view class="input-wrapper">
+          <input
+            class="form-input"
+            type="{{showNewPassword ? 'text' : 'password'}}"
+            placeholder="请输入新密码（最多10位）"
+            value="{{newPassword}}"
+            bindinput="onNewPasswordInput"
+            maxlength="10"
+          />
+          <view class="eye-icon" bindtap="toggleNewPassword">
+            <text wx:if="{{showNewPassword}}">👁️</text>
+            <text wx:else>👁️‍🗨️</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 确认新密码 -->
+      <view class="form-item">
+        <text class="form-label">确认新密码</text>
+        <view class="input-wrapper">
+          <input
+            class="form-input"
+            type="{{showConfirmPassword ? 'text' : 'password'}}"
+            placeholder="请再次输入新密码"
+            value="{{confirmPassword}}"
+            bindinput="onConfirmPasswordInput"
+            maxlength="10"
+          />
+          <view class="eye-icon" bindtap="toggleConfirmPassword">
+            <text wx:if="{{showConfirmPassword}}">👁️</text>
+            <text wx:else>👁️‍🗨️</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 提示信息 -->
+    <view class="tips-section">
+        <text class="tips-text">• 密码长度不能超过10位</text>
+      <text class="tips-text">• 新密码不能与旧密码相同</text>
+      <text class="tips-text">• 请确认两次输入的新密码一致</text>
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="submit-section">
+      <button
+        class="submit-btn {{loading ? 'disabled' : ''}}"
+        bindtap="onSubmit"
+        disabled="{{loading}}"
+      >
+        {{loading ? '修改中...' : '确认修改'}}
+      </button>
+    </view>
+  </view>
+</view>
+

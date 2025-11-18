@@ -1,0 +1,185 @@
+<view class="page">
+  <!-- 自定义导航 -->
+  <view class="nav">
+    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+    <view class="nav-bar">
+      <text class="back" bindtap="onBack">◀</text>
+      <view class="icons">
+        <text class="dot">•</text>
+        <text class="battery">▮</text>
+      </view>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 服务保障信息 -->
+    <view class="guarantee-section" wx:if="{{orderInfo.orderStatus === 'completed'}}">
+      <view class="guarantee-item">
+        <text class="arrow">></text>
+      </view>
+      <view class="guarantee-item">
+        <text class="arrow">></text>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-buttons-section">
+      <button class="action-btn" bindtap="onMore">更多</button>
+      <button class="action-btn refund-btn" wx:if="{{orderInfo.orderStatus === 'completed' && orderInfo.canRefund && !orderInfo.refundStatus}}" catchtap="onRefund">申请退款</button>
+      <button class="action-btn" wx:if="{{orderInfo.orderStatus === 'completed'}}" bindtap="onReview">评价</button>
+      <button class="action-btn primary" bindtap="onOrderAgain">再来一单</button>
+    </view>
+
+    <!-- 服务保障条 -->
+    <view class="service-bar">
+      <text class="service-text">服务保障中</text>
+      <text class="service-detail">放心吃理赔申请 · 号码保护 ></text>
+    </view>
+
+    <!-- 订单商品信息 -->
+    <view class="order-items-section">
+      <view class="store-name">{{orderInfo.storeName}}</view>
+      <scroll-view scroll-y class="items-list">
+        <block wx:for="{{orderInfo.items}}" wx:key="index">
+          <view class="item-card">
+            <image class="item-image" src="{{item.image || item.img || '/pages/小标/商家.png'}}" mode="aspectFill" />
+            <view class="item-info">
+              <view class="item-name">{{item.productName || item.name}}</view>
+              <view class="item-spec" wx:if="{{item.spec}}">{{item.spec}}</view>
+              <view class="item-quantity">x{{item.quantity || item.qty || 1}}</view>
+              <view class="item-price">拼单价 ¥{{item.price || '0.00'}}</view>
+            </view>
+          </view>
+        </block>
+      </scroll-view>
+      <view class="total-paid">
+        <text class="label">实付</text>
+        <text class="amount">¥{{orderInfo.total}} ></text>
+      </view>
+    </view>
+
+    <!-- 退款状态显示 -->
+    <view class="refund-status-section" wx:if="{{orderInfo.refundStatus}}">
+      <view class="refund-status-header">
+        <text class="refund-status-title">退款状态</text>
+        <text class="refund-status-text {{orderInfo.refundStatusClass}}">{{orderInfo.refundStatusText}}</text>
+      </view>
+      <view class="refund-status-content" wx:if="{{orderInfo.refundInfo}}">
+        <view class="refund-info-item" wx:if="{{orderInfo.refundInfo.refundNo}}">
+          <text class="refund-info-label">退款单号：</text>
+          <text class="refund-info-value">{{orderInfo.refundInfo.refundNo}}</text>
+        </view>
+        <view class="refund-info-item" wx:if="{{orderInfo.refundInfo.refundAmount}}">
+          <text class="refund-info-label">退款金额：</text>
+          <text class="refund-info-value refund-amount-value">¥{{orderInfo.refundInfo.refundAmount}}</text>
+        </view>
+        <view class="refund-info-item" wx:if="{{orderInfo.refundStatus === 'rejected' && orderInfo.refundInfo.remark}}">
+          <text class="refund-info-label">拒绝理由：</text>
+          <text class="refund-info-value refund-remark-value">{{orderInfo.refundInfo.remark}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 备注信息 -->
+    <view class="remark-section" wx:if="{{orderInfo.remark}}">
+      <text class="remark-label">备注</text>
+      <text class="remark-text">{{orderInfo.remark}}</text>
+    </view>
+
+    <!-- 配送信息 -->
+    <view class="delivery-info-section">
+      <view class="info-row" wx:if="{{orderInfo.expectedTime}}">
+        <text class="info-label">期望时间</text>
+        <text class="info-value">{{orderInfo.expectedTime}}</text>
+      </view>
+      <view class="info-row" wx:if="{{orderInfo.estimatedDeliveryTimeRange}}">
+        <text class="info-label">预计到达时间</text>
+        <text class="info-value">{{orderInfo.estimatedDeliveryTimeRange}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">配送方式</text>
+        <text class="info-value">{{orderInfo.deliveryType === 'pickup' ? '由顾客自取' : '由兼职提供配送服务'}}</text>
+      </view>
+      <view class="info-row" wx:if="{{orderInfo.deliveryType === 'delivery'}}">
+        <text class="info-label">配送骑手</text>
+        <text class="info-value">待分配 ></text>
+      </view>
+    </view>
+
+    <!-- 订单详细信息 -->
+    <view class="order-details-section">
+      <view class="details-items">
+        <view class="detail-item">
+          <text class="detail-label">订单号码</text>
+          <view class="detail-value-wrapper">
+            <text class="detail-value">{{orderInfo.orderNo}}</text>
+            <text class="copy-btn" catchtap="onCopyOrderNo">复制</text>
+          </view>
+        </view>
+        <view class="detail-item" wx:if="{{showOrderDetails}}">
+          <text class="detail-label">订单时间</text>
+          <text class="detail-value">{{orderInfo.orderTime}}</text>
+        </view>
+        <view class="detail-item" wx:if="{{showOrderDetails}}">
+          <text class="detail-label">支付方式</text>
+          <text class="detail-value">{{orderInfo.paymentMethod}}</text>
+        </view>
+        <view class="detail-item" wx:if="{{showOrderDetails}}">
+          <text class="detail-label">餐具</text>
+          <text class="detail-value">{{orderInfo.needCutlery ? (orderInfo.cutleryQuantity > 0 ? orderInfo.cutleryQuantity + '份' : '需要') : '不需要'}}</text>
+        </view>
+      </view>
+      <view class="toggle-btn" bindtap="onToggleOrderDetails">
+        <text class="toggle-icon">{{showOrderDetails ? '收起^' : '查看更多 v'}}</text>
+      </view>
+    </view>
+
+    <!-- 配送地址 -->
+    <view class="address-section" wx:if="{{orderInfo.address && orderInfo.deliveryType === 'delivery'}}">
+      <view class="section-title">配送地址</view>
+      <view class="address-content">
+        <!-- 联系人信息 -->
+        <view class="contact-info" wx:if="{{orderInfo.address.name || orderInfo.address.phone}}">
+          <text wx:if="{{orderInfo.address.name}}">{{orderInfo.address.name}}</text>
+          <text wx:if="{{orderInfo.address.phone}}"> {{orderInfo.address.phone}}</text>
+        </view>
+        <!-- 地址信息 -->
+        <view class="address-text" wx:if="{{!showAddressDetails}}">
+          {{orderInfo.addressText || (orderInfo.address.buildingName || '') + (orderInfo.address.houseNumber || '') + (orderInfo.address.addressDetail || orderInfo.address.address || '')}}
+        </view>
+        <!-- 详细地址信息（展开时显示） -->
+        <view class="address-details" wx:if="{{showAddressDetails}}">
+          <view class="detail-line" wx:if="{{orderInfo.address.buildingName}}">
+            <text class="detail-label">楼栋名：</text>
+            <text class="detail-value">{{orderInfo.address.buildingName}}</text>
+          </view>
+          <view class="detail-line" wx:if="{{orderInfo.address.houseNumber}}">
+            <text class="detail-label">门牌号：</text>
+            <text class="detail-value">{{orderInfo.address.houseNumber}}</text>
+          </view>
+          <view class="detail-line" wx:if="{{orderInfo.address.addressDetail || orderInfo.address.address}}">
+            <text class="detail-label">详细地址：</text>
+            <text class="detail-value">{{orderInfo.address.addressDetail || orderInfo.address.address}}</text>
+          </view>
+          <view class="detail-line" wx:if="{{orderInfo.addressText}}">
+            <text class="detail-label">完整地址：</text>
+            <text class="detail-value">{{orderInfo.addressText}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="view-more" bindtap="onToggleAddressDetails" wx:if="{{orderInfo.address}}">
+        <text>{{showAddressDetails ? '收起^' : '查看更多 ∨'}}</text>
+      </view>
+    </view>
+
+    <!-- 更多推荐 -->
+    <view class="recommendations-section">
+      <view class="section-title">
+        <text class="heart-icon">❤</text>
+        更多推荐
+      </view>
+      <!-- 这里可以添加推荐商品列表 -->
+    </view>
+  </scroll-view>
+</view>
+

@@ -1,0 +1,122 @@
+<!--pages/secondhand-publish/index.wxml-->
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBackTap">
+      <text class="back-icon">←</text>
+    </view>
+    <text class="title">发布闲置</text>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 商品图片 -->
+    <view class="section">
+      <view class="section-title">商品图片 <text class="required">*</text></view>
+      <view class="image-list">
+        <block wx:for="{{images}}" wx:key="index">
+          <view class="image-item">
+            <image class="image" src="{{item}}" mode="aspectFill" />
+            <view class="delete-btn" bindtap="onDeleteImage" data-index="{{index}}">×</view>
+          </view>
+        </block>
+        <view class="add-image-btn" bindtap="onChooseImage" wx:if="{{images.length < maxImages}}">
+          <text class="add-icon">+</text>
+          <text class="add-text">添加图片</text>
+        </view>
+      </view>
+      <view class="tip">最多上传{{maxImages}}张图片</view>
+    </view>
+
+    <!-- 商品标题 -->
+    <view class="section">
+      <view class="section-title">商品标题 <text class="required">*</text></view>
+      <input 
+        class="input" 
+        placeholder="请输入商品标题"
+        value="{{title}}"
+        bindinput="onTitleInput"
+        maxlength="50"
+      />
+    </view>
+
+    <!-- 商品描述 -->
+    <view class="section">
+      <view class="section-title">商品描述</view>
+      <textarea 
+        class="textarea" 
+        placeholder="详细描述商品的新旧程度、使用情况、是否有瑕疵等"
+        value="{{description}}"
+        bindinput="onDescriptionInput"
+        maxlength="500"
+      />
+    </view>
+
+    <!-- 价格信息 -->
+    <view class="section">
+      <view class="section-title">售价 <text class="required">*</text></view>
+      <view class="price-row">
+        <input 
+          class="input price-input" 
+          type="digit"
+          placeholder="请输入售价"
+          value="{{price}}"
+          bindinput="onPriceInput"
+        />
+        <text class="unit">元</text>
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">原价（选填）</view>
+      <view class="price-row">
+        <input 
+          class="input price-input" 
+          type="digit"
+          placeholder="请输入原价"
+          value="{{originalPrice}}"
+          bindinput="onOriginalPriceInput"
+        />
+        <text class="unit">元</text>
+      </view>
+    </view>
+
+    <!-- 分类 -->
+    <view class="section">
+      <view class="section-title">分类 <text class="required">*</text></view>
+      <picker 
+        bindchange="onCategoryChange" 
+        value="{{categoryIndex}}" 
+        range="{{categories}}"
+      >
+        <view class="picker">
+          <text class="picker-text {{category ? '' : 'placeholder'}}">
+            {{category || '请选择分类'}}
+          </text>
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 位置 -->
+    <view class="section">
+      <view class="section-title">位置</view>
+      <input 
+        class="input" 
+        placeholder="如：宿舍楼A座、图书馆附近等"
+        value="{{location}}"
+        bindinput="onLocationInput"
+      />
+    </view>
+
+    <view class="safe-area-bottom"></view>
+  </scroll-view>
+
+  <!-- 底部发布按钮 -->
+  <view class="bottom-bar">
+    <view class="publish-btn" bindtap="onPublish">发布</view>
+  </view>
+</view>
+

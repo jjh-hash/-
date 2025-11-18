@@ -1,0 +1,131 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">◀</view>
+    <text class="title">商家详情</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 内容 -->
+  <scroll-view wx:else scroll-y class="content">
+    <!-- 商家基本信息 -->
+    <view class="section">
+      <view class="section-title">商家信息</view>
+      <view class="info-item">
+        <text class="label">商家名称：</text>
+        <text class="value">{{merchant.merchantName}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">联系电话：</text>
+        <text class="value">{{merchant.contactPhone}}</text>
+      </view>
+      <view class="info-item">
+        <text class="label">审核状态：</text>
+        <text class="value status-{{merchant.status}}">
+          <text wx:if="{{merchant.status === 'pending'}}">待审核</text>
+          <text wx:elif="{{merchant.status === 'active'}}">已通过</text>
+          <text wx:elif="{{merchant.status === 'suspended'}}">已暂停</text>
+          <text wx:elif="{{merchant.status === 'rejected'}}">已拒绝</text>
+        </text>
+      </view>
+      <view class="info-item">
+        <text class="label">申请时间：</text>
+        <text class="value">{{merchant.createdAt}}</text>
+      </view>
+    </view>
+
+    <!-- 店铺信息 -->
+    <view wx:if="{{storeInfo}}" class="section">
+      <view class="section-title">店铺信息</view>
+      <view class="store-header">
+        <image 
+          class="store-logo" 
+          src="{{storeInfo.logoUrl || '/pages/小标/商家.png'}}" 
+          mode="aspectFill"
+          binderror="onLogoError"
+        />
+        <view class="store-info">
+          <text class="store-name">{{storeInfo.name}}</text>
+          <text class="store-status status-{{storeInfo.businessStatus}}">
+            <text wx:if="{{storeInfo.businessStatus === 'open'}}">营业中</text>
+            <text wx:elif="{{storeInfo.businessStatus === 'rest'}}">已休息</text>
+            <text wx:elif="{{storeInfo.businessStatus === 'closed'}}">已关闭</text>
+          </text>
+        </view>
+      </view>
+      <view wx:if="{{storeInfo.announcement}}" class="announcement">
+        <text class="announcement-text">{{storeInfo.announcement}}</text>
+      </view>
+    </view>
+
+    <!-- 店铺照片 -->
+    <view wx:if="{{storePhotos.length > 0}}" class="section">
+      <view class="section-title">店铺照片（{{storePhotos.length}}张）</view>
+      <view class="photo-grid">
+        <block wx:for="{{storePhotos}}" wx:key="_id">
+          <image 
+            class="photo-item" 
+            src="{{item.url}}" 
+            mode="aspectFill"
+            bindtap="onPreviewImage"
+            data-url="{{item.url}}"
+          />
+        </block>
+      </view>
+    </view>
+
+    <!-- 商品分类 -->
+    <view wx:if="{{categories.length > 0}}" class="section">
+      <view class="section-title">商品分类（{{categories.length}}个）</view>
+      <view class="category-list">
+        <block wx:for="{{categories}}" wx:key="_id">
+          <view class="category-item">
+            <text wx:if="{{item.icon}}" class="category-icon">{{item.icon}}</text>
+            <text class="category-name">{{item.name}}</text>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 商品列表 -->
+    <view wx:if="{{products.length > 0}}" class="section">
+      <view class="section-title">商品列表（{{products.length}}个）</view>
+      <view class="product-list">
+        <block wx:for="{{products}}" wx:key="_id">
+          <view class="product-item">
+            <image wx:if="{{item.coverUrl}}" class="product-image" src="{{item.coverUrl}}" mode="aspectFill" />
+            <view class="product-info">
+              <text class="product-name">{{item.name}}</text>
+              <text class="product-price">¥{{item.price}}</text>
+            </view>
+            <view class="product-status">
+              <text class="status-badge status-{{item.status}}">
+                <text wx:if="{{item.status === 'on'}}">上架</text>
+                <text wx:elif="{{item.status === 'off'}}">下架</text>
+              </text>
+              <text class="audit-badge audit-{{item.auditStatus}}">
+                <text wx:if="{{item.auditStatus === 'approved'}}">已审核</text>
+                <text wx:elif="{{item.auditStatus === 'pending'}}">待审核</text>
+                <text wx:elif="{{item.auditStatus === 'rejected'}}">已拒绝</text>
+              </text>
+            </view>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{!storeInfo && storePhotos.length === 0 && categories.length === 0 && products.length === 0}}" class="empty">
+      <text class="empty-icon">📝</text>
+      <text class="empty-text">暂无详细信息</text>
+    </view>
+  </scroll-view>
+</view>
+

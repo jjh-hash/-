@@ -1,0 +1,124 @@
+<!--pages/secondhand-detail/index.wxml-->
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBackTap">
+      <text class="back-icon">←</text>
+    </view>
+    <text class="title">商品详情</text>
+    <view class="share-btn" bindtap="onShareAppMessage">
+      <text class="share-icon">分享</text>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content" wx:if="{{!loading && product}}">
+    <!-- 商品图片轮播 -->
+    <view class="image-section">
+      <swiper 
+        class="image-swiper" 
+        indicator-dots="{{product.images.length > 1}}"
+        indicator-color="rgba(255,255,255,0.5)"
+        indicator-active-color="#ff6b35"
+        autoplay="{{false}}"
+        current="{{currentImageIndex}}"
+        bindchange="onImageChange"
+      >
+        <block wx:for="{{product.images}}" wx:key="index">
+          <swiper-item>
+            <image 
+              class="product-image" 
+              src="{{item}}" 
+              mode="aspectFill"
+              bindtap="onPreviewImage"
+              data-index="{{index}}"
+            />
+          </swiper-item>
+        </block>
+      </swiper>
+      <view class="image-count" wx:if="{{product.images.length > 1}}">
+        {{currentImageIndex + 1}}/{{product.images.length}}
+      </view>
+    </view>
+
+    <!-- 商品基本信息 -->
+    <view class="info-section">
+      <view class="price-row">
+        <text class="price">¥{{product.price}}</text>
+        <view class="original-price-info" wx:if="{{product.originalPrice}}">
+          <text class="original-price">原价¥{{product.originalPrice}}</text>
+          <text class="discount-badge">{{product.discount}}折</text>
+        </view>
+      </view>
+      <view class="product-title">{{product.title}}</view>
+      <view class="product-desc" wx:if="{{product.description}}">{{product.description}}</view>
+      
+      <!-- 商品标签 -->
+      <view class="tags-row" wx:if="{{product.tags && product.tags.length > 0}}">
+        <block wx:for="{{product.tags}}" wx:key="*this">
+          <view class="tag">{{item}}</view>
+        </block>
+      </view>
+      
+      <!-- 商品信息 -->
+      <view class="meta-info">
+        <view class="meta-item">
+          <text class="meta-label">分类：</text>
+          <text class="meta-value">{{product.category}}</text>
+        </view>
+        <view class="meta-item">
+          <text class="meta-label">位置：</text>
+          <text class="meta-value">{{product.location || '未填写'}}</text>
+        </view>
+        <view class="meta-item">
+          <text class="meta-label">发布时间：</text>
+          <text class="meta-value">{{product.publishTime}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 卖家信息 -->
+    <view class="seller-section">
+      <view class="section-title">卖家信息</view>
+      <view class="seller-card">
+        <image class="seller-avatar" src="{{product.seller.avatar}}" mode="aspectFill" />
+        <view class="seller-info">
+          <view class="seller-name">{{product.seller.name}}</view>
+          <view class="seller-rating">
+            <text class="star">⭐</text>
+            <text class="rating">5.0</text>
+          </view>
+        </view>
+        <view class="contact-btn" bindtap="onContactSeller">
+          <text class="contact-text">联系卖家</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 商品详情 -->
+    <view class="detail-section">
+      <view class="section-title">商品详情</view>
+      <view class="detail-content">
+        <view wx:if="{{product.description}}" class="detail-text">{{product.description}}</view>
+        <view wx:else class="detail-empty">暂无详细描述</view>
+      </view>
+    </view>
+
+    <view class="safe-area-bottom"></view>
+  </scroll-view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar" wx:if="{{!loading && product}}">
+    <view class="action-btn contact-btn-bottom" bindtap="onContactSeller">
+      <text class="action-text">联系卖家</text>
+    </view>
+  </view>
+</view>
+

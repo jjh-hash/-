@@ -3,6 +3,7 @@
   "compileType": "miniprogram",
   "appid": "wxff07fe80492cca14",
   "projectname": "校园外卖",
+  "cloudfunctionRoot": "cloudfunctions/",
   "setting": {
     "urlCheck": false,
     "es6": true,
@@ -34,5 +35,6 @@
     "include": []
   },
   "simulatorPluginLibVersion": {},
-  "editorSetting": {}
+  "editorSetting": {},
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate"
 }
