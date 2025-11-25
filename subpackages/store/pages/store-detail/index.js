@@ -120,6 +120,12 @@ Page({
     if (this.data.storeId) {
       console.log('【店铺详情】onShow 刷新店铺状态，店铺ID:', this.data.storeId);
       this.loadStoreDetail(this.data.storeId);
+      // 刷新评分信息，确保数据是最新的（特别是从评论页面返回时）
+      this.loadStoreRating(this.data.storeId);
+      // 如果当前在评价标签页，也刷新评论列表
+      if (this.data.activeTab === 1) {
+        this.loadReviewList(this.data.storeId);
+      }
     }
   },
 
@@ -151,7 +157,8 @@ Page({
           avatar = '/pages/小标/商家.png';
         }
         
-        // 更新店铺信息，保留storeId
+        // 更新店铺信息，保留storeId和评分信息
+        const currentStoreInfo = this.data.storeInfo || {};
         this.setData({
           storeId: storeId, // 保存storeId到data中
           storeInfo: {
@@ -165,7 +172,12 @@ Page({
             logoUrl: avatar, // 兼容字段
             deliveryFee: storeInfo.deliveryFee,
             minOrder: storeInfo.minOrder,
-            businessStatus: storeInfo.businessStatus || 'open' // 保存店铺状态
+            businessStatus: storeInfo.businessStatus || 'open', // 保存店铺状态
+            // 保留已有的评分信息，避免被重置为0
+            overallRating: currentStoreInfo.overallRating || 0,
+            deliveryRating: currentStoreInfo.deliveryRating || 0,
+            totalReviews: currentStoreInfo.totalReviews || 0,
+            ratingStars: currentStoreInfo.ratingStars || [false, false, false, false, false]
           },
           categories: categories,
           products: products,

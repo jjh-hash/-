@@ -1,0 +1,72 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-left" bindtap="onBack">
+      <text class="back-icon">◀</text>
+    </view>
+    <view class="nav-title">个人信息</view>
+    <view class="nav-right"></view>
+  </view>
+
+  <scroll-view scroll-y class="content" refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onPullDownRefresh">
+    <!-- 用户信息卡片 -->
+    <view class="profile-card">
+      <view class="profile-header">
+        <view class="avatar-wrapper" bindtap="onPreviewAvatar">
+          <image class="avatar-img" src="{{riderInfo.avatar}}" mode="aspectFill" wx:if="{{riderInfo.avatar}}" />
+          <view class="avatar-placeholder" wx:else>
+            <text class="avatar-placeholder-text">{{riderInfo.name ? riderInfo.name.substring(0, 1) : '用'}}</text>
+          </view>
+        </view>
+        <view class="profile-info">
+          <text class="rider-name">{{riderInfo.name || '微信用户'}}</text>
+          <text class="rider-nickname" wx:if="{{riderInfo.nickname && riderInfo.nickname !== riderInfo.name}}">{{riderInfo.nickname}}</text>
+          <view class="status-badge status-{{riderInfo.status}}">
+            <text wx:if="{{riderInfo.status === 'pending'}}">待审核</text>
+            <text wx:elif="{{riderInfo.status === 'approved'}}">已通过</text>
+            <text wx:elif="{{riderInfo.status === 'rejected'}}">已拒绝</text>
+            <text wx:else>审核中</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 基本信息 -->
+    <view class="info-section">
+      <view class="section-title">基本信息</view>
+      <view class="info-item">
+        <text class="info-label">姓名</text>
+        <text class="info-value">{{riderInfo.name || '未填写'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">手机号</text>
+        <text class="info-value">{{riderInfo.phone || '未绑定'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">性别</text>
+        <text class="info-value">{{riderInfo.gender === 'male' ? '男' : riderInfo.gender === 'female' ? '女' : '未填写'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">配送工具</text>
+        <text class="info-value">{{riderInfo.vehicle || '未填写'}}</text>
+      </view>
+    </view>
+
+    <!-- 账户信息 -->
+    <view class="info-section">
+      <view class="section-title">账户信息</view>
+      <view class="info-item">
+        <text class="info-label">注册时间</text>
+        <text class="info-value">{{accountInfo.createdAt || '未知'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">最后登录</text>
+        <text class="info-value">{{accountInfo.lastLoginAt || '从未登录'}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>
+

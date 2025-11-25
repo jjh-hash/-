@@ -1,0 +1,107 @@
+<!--pages/admin-rider-list/index.wxml-->
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="back-btn" bindtap="onBack">◀</view>
+    <text class="title">骑手设置</text>
+  </view>
+
+  <!-- 搜索和筛选 -->
+  <view class="filter-section">
+    <view class="search-box">
+      <input 
+        class="search-input" 
+        placeholder="搜索姓名、手机号" 
+        value="{{keyword}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearch"
+      />
+      <text class="search-btn" bindtap="onSearch">搜索</text>
+    </view>
+    
+    <picker 
+      mode="selector" 
+      range="{{statusOptions}}" 
+      range-key="label"
+      value="{{statusIndex}}"
+      bindchange="onStatusChange"
+    >
+      <view class="filter-item">
+        <text class="filter-label">状态：</text>
+        <text class="filter-value">{{statusOptions[statusIndex].label}}</text>
+        <text class="filter-arrow">▼</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 骑手列表 -->
+  <scroll-view wx:else scroll-y class="content">
+    <view class="rider-list">
+      <view 
+        class="rider-item" 
+        wx:for="{{riders}}" 
+        wx:key="_id"
+        bindtap="onViewRider"
+        data-rider="{{item}}"
+      >
+        <view class="rider-header">
+          <view class="rider-info">
+            <text class="rider-name">{{item.name || '未填写'}}</text>
+            <text class="rider-phone">{{item.phone || '未填写'}}</text>
+          </view>
+          <view class="rider-status status-{{item.status}}">
+            <text wx:if="{{item.status === 'pending'}}">待审核</text>
+            <text wx:elif="{{item.status === 'approved'}}">已通过</text>
+            <text wx:elif="{{item.status === 'rejected'}}">已拒绝</text>
+            <text wx:else>{{item.status}}</text>
+          </view>
+        </view>
+        
+        <view class="rider-details">
+          <view class="detail-item">
+            <text class="detail-label">性别：</text>
+            <text class="detail-value">{{item.gender === 'male' ? '男' : item.gender === 'female' ? '女' : '未填写'}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">配送工具：</text>
+            <text class="detail-value">{{item.vehicle || '未填写'}}</text>
+          </view>
+        </view>
+
+        <view class="rider-actions" wx:if="{{item.status === 'pending'}}">
+          <button 
+            class="action-btn approve-btn" 
+            bindtap="onAuditRider"
+            data-rider="{{item}}"
+            data-action="approve"
+            catchtap="true"
+          >
+            通过
+          </button>
+          <button 
+            class="action-btn reject-btn" 
+            bindtap="onAuditRider"
+            data-rider="{{item}}"
+            data-action="reject"
+            catchtap="true"
+          >
+            拒绝
+          </button>
+        </view>
+      </view>
+
+      <view wx:if="{{riders.length === 0}}" class="empty">
+        <text class="empty-text">暂无骑手数据</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>
+

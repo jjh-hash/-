@@ -198,11 +198,107 @@ async function getUserDetail(openid, data) {
   }
   
   const userIdForStats = user.data._id;
+  const userOpenid = user.data.openid;
   
   // 获取用户订单统计
   const orderStats = await db.collection('orders')
     .where({ userId: userIdForStats })
     .count();
+  
+  // 查询骑手信息
+  let riderInfo = {
+    isRider: false
+  };
+  
+  try {
+    // 尝试查询 riders 集合
+    const riderQuery = await db.collection('riders')
+      .where({ openid: userOpenid })
+      .get();
+    
+    if (riderQuery.data && riderQuery.data.length > 0) {
+      const rider = riderQuery.data[0];
+      riderInfo = {
+        isRider: true,
+        name: rider.name || '',
+        phone: rider.phone || '',
+        gender: rider.gender || '',
+        vehicle: rider.vehicle || '',
+        status: rider.status || 'pending',
+        createdAt: formatDate(rider.createdAt),
+        updatedAt: formatDate(rider.updatedAt)
+      };
+      console.log('【获取用户详情】从 riders 集合获取骑手信息:', riderInfo);
+    } else {
+      // 如果没有找到 riders 记录，尝试通过订单判断是否注册了骑手
+      console.log('【获取用户详情】未找到 riders 记录，尝试通过订单判断');
+      try {
+        const riderOrderCheck = await db.collection('orders')
+          .where({ riderOpenid: userOpenid })
+          .limit(1)
+          .get();
+        
+        if (riderOrderCheck.data && riderOrderCheck.data.length > 0) {
+          // 用户有作为骑手的订单，说明注册了骑手，但信息可能不完整
+          riderInfo = {
+            isRider: true,
+            name: '已注册（信息不完整）',
+            phone: '',
+            idNumber: '',
+            vehicle: '',
+            serviceArea: '',
+            status: 'unknown',
+            createdAt: '',
+            updatedAt: ''
+          };
+          console.log('【获取用户详情】通过订单判断：用户已注册骑手');
+        } else {
+          riderInfo = {
+            isRider: false
+          };
+          console.log('【获取用户详情】用户未注册骑手');
+        }
+      } catch (orderError) {
+        console.error('【获取用户详情】通过订单判断骑手信息失败:', orderError);
+        riderInfo = {
+          isRider: false
+        };
+      }
+    }
+  } catch (error) {
+    // 如果 riders 集合不存在，尝试通过订单判断
+    console.log('【获取用户详情】查询 riders 集合失败，尝试通过订单判断:', error.message);
+    try {
+      const riderOrderCheck = await db.collection('orders')
+        .where({ riderOpenid: userOpenid })
+        .limit(1)
+        .get();
+      
+      if (riderOrderCheck.data && riderOrderCheck.data.length > 0) {
+        riderInfo = {
+          isRider: true,
+          name: '已注册（信息不完整）',
+          phone: '',
+          gender: '',
+          vehicle: '',
+          status: 'unknown',
+          createdAt: '',
+          updatedAt: ''
+        };
+        console.log('【获取用户详情】通过订单判断：用户已注册骑手');
+      } else {
+        riderInfo = {
+          isRider: false
+        };
+        console.log('【获取用户详情】用户未注册骑手');
+      }
+    } catch (orderError) {
+      console.error('【获取用户详情】通过订单判断骑手信息失败:', orderError);
+      riderInfo = {
+        isRider: false
+      };
+    }
+  }
   
   return {
     code: 200,
@@ -225,7 +321,8 @@ async function getUserDetail(openid, data) {
         updatedAt: formatDate(user.data.updatedAt),
         lastLoginAt: formatDate(user.data.lastLoginAt)
       },
-      orderCount: orderStats.total
+      orderCount: orderStats.total,
+      riderInfo: riderInfo
     }
   };
 }

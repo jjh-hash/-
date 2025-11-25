@@ -6,6 +6,7 @@ Page({
     userId: null,
     user: null,
     orderCount: 0,
+    riderInfo: null,
     loading: true
   },
 
@@ -42,11 +43,17 @@ Page({
       console.log('【用户详情】加载结果:', res.result);
 
       if (res.result && res.result.code === 200) {
+        // 确保 riderInfo 有默认值
+        const riderInfo = res.result.data.riderInfo || { isRider: false };
+        
         this.setData({
           user: res.result.data.user,
           orderCount: res.result.data.orderCount || 0,
+          riderInfo: riderInfo,
           loading: false
         });
+        
+        console.log('【用户详情】骑手信息:', riderInfo);
       } else {
         wx.showToast({
           title: res.result.message || '加载失败',

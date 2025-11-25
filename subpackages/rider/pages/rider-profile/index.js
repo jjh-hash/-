@@ -1,32 +1,50 @@
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
+    refreshing: false, // 下拉刷新状态
+    loading: false,
     riderInfo: {
       name: '',
-      avatar: ''
+      avatar: '',
+      nickname: '',
+      phone: '',
+      gender: '',
+      vehicle: '',
+      status: 'pending'
     },
     todayStats: {
       orders: 0,
       income: '0.00'
+    },
+    totalStats: {
+      orders: 0,
+      income: '0.00'
+    },
+    accountInfo: {
+      createdAt: '',
+      lastLoginAt: ''
     }
   },
 
   onLoad() {
     this.loadRiderInfo();
     this.loadTodayStats();
+    this.loadTotalStats();
   },
 
   onShow() {
     // 页面显示时刷新数据
     this.loadRiderInfo();
-    this.loadTodayStats();
-    
-    // 添加调试日志
-    console.log('【骑手个人中心】onShow 刷新统计数据');
+    // 延迟一点加载统计数据，确保数据已更新
+    setTimeout(() => {
+      this.loadTodayStats();
+      this.loadTotalStats();
+      console.log('【骑手个人中心】onShow 刷新统计数据');
+    }, 300);
   },
 
-  // 加载骑手信息（使用客户端用户信息，与 pages/profile/index 保持一致）
-  loadRiderInfo() {
+  // 加载骑手信息（使用客户端用户信息和本地存储的骑手信息）
+  async loadRiderInfo() {
     const app = getApp();
     let userInfo = null;
     
@@ -38,28 +56,78 @@ Page({
       userInfo = wx.getStorageSync('userInfo');
     }
     
-    // 直接使用 userInfo，与客户端个人中心页面保持一致
-    if (userInfo) {
-      this.setData({
-        riderInfo: {
-          name: userInfo.nickname || '微信用户',
-          avatar: userInfo.avatar || ''
+    // 从云函数获取骑手审核状态
+    let riderStatus = 'not_registered';
+    let riderInfoFromCloud = null;
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'riderManage',
+        data: {
+          action: 'getRiderStatus',
+          data: {}
         }
       });
-    } else {
-      // 如果没有用户信息，使用默认值（与客户端保持一致）
-      this.setData({
-        riderInfo: {
-          name: '微信用户',
-          avatar: ''
-        }
-      });
+      
+      if (res.result && res.result.code === 200) {
+        riderStatus = res.result.data.status || 'not_registered';
+        riderInfoFromCloud = res.result.data.riderInfo || null;
+      }
+    } catch (error) {
+      console.error('获取骑手状态失败:', error);
     }
+    
+    // 获取本地存储的骑手信息
+    const localRiderInfo = wx.getStorageSync('riderInfo') || {};
+    
+    // 合并用户信息和骑手信息
+    const riderInfo = {
+      name: riderInfoFromCloud?.name || localRiderInfo.name || userInfo?.nickname || '微信用户',
+      nickname: userInfo?.nickname || '微信用户',
+      avatar: userInfo?.avatar || '',
+      phone: riderInfoFromCloud?.phone || localRiderInfo.phone || userInfo?.phone || '未绑定',
+      gender: riderInfoFromCloud?.gender || localRiderInfo.gender || '',
+      vehicle: riderInfoFromCloud?.vehicle || localRiderInfo.vehicle || '未填写',
+      status: riderStatus
+    };
+    
+    // 更新本地存储
+    wx.setStorageSync('riderInfo', {
+      ...localRiderInfo,
+      ...riderInfo,
+      status: riderStatus
+    });
+    
+    // 格式化日期
+    const formatDate = (date) => {
+      if (!date) return '未知';
+      if (typeof date === 'string' && date !== '未知' && date !== '从未登录') {
+        return date;
+      }
+      try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '未知';
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      } catch (e) {
+        return '未知';
+      }
+    };
+    
+    this.setData({
+      riderInfo: riderInfo,
+      accountInfo: {
+        createdAt: formatDate(localRiderInfo.createdAt),
+        lastLoginAt: userInfo?.lastLoginAt ? formatDate(userInfo.lastLoginAt) : '从未登录'
+      }
+    });
   },
 
   // 加载今日统计数据
   async loadTodayStats() {
     try {
+      console.log('【骑手个人中心】开始加载今日统计数据');
       const res = await wx.cloud.callFunction({
         name: 'orderManage',
         data: {
@@ -68,15 +136,23 @@ Page({
         }
       });
       
+      console.log('【骑手个人中心】统计数据返回:', res.result);
+      
       if (res.result && res.result.code === 200) {
+        const orders = res.result.data.orders || 0;
+        const income = res.result.data.income || '0.00';
+        
+        console.log('【骑手个人中心】设置统计数据 - 接单数:', orders, '收入:', income);
+        
         this.setData({
           todayStats: {
-            orders: res.result.data.orders || 0,
-            income: res.result.data.income || '0.00'
+            orders: orders,
+            income: income
           }
         });
       } else {
         // 如果获取失败，使用默认值
+        console.log('【骑手个人中心】获取统计数据失败，使用默认值');
         this.setData({
           todayStats: {
             orders: 0,
@@ -85,10 +161,58 @@ Page({
         });
       }
     } catch (error) {
-      console.error('加载统计数据失败:', error);
+      console.error('【骑手个人中心】加载统计数据失败:', error);
       // 如果出错，使用默认值
       this.setData({
         todayStats: {
+          orders: 0,
+          income: '0.00'
+        }
+      });
+    }
+  },
+
+  // 加载总统计数据
+  async loadTotalStats() {
+    try {
+      console.log('【骑手个人中心】开始加载总统计数据');
+      
+      // 使用云函数获取总统计数据
+      const res = await wx.cloud.callFunction({
+        name: 'orderManage',
+        data: {
+          action: 'getRiderTotalStats',
+          data: {}
+        }
+      });
+      
+      console.log('【骑手个人中心】总统计数据返回:', res.result);
+      
+      if (res.result && res.result.code === 200) {
+        const orders = res.result.data.orders || 0;
+        const income = res.result.data.income || '0.00';
+        
+        this.setData({
+          totalStats: {
+            orders: orders,
+            income: income
+          }
+        });
+      } else {
+        // 如果获取失败，使用默认值
+        console.log('【骑手个人中心】获取总统计数据失败，使用默认值');
+        this.setData({
+          totalStats: {
+            orders: 0,
+            income: '0.00'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('【骑手个人中心】加载总统计数据失败:', error);
+      // 如果出错，使用默认值
+      this.setData({
+        totalStats: {
           orders: 0,
           income: '0.00'
         }
@@ -119,38 +243,127 @@ Page({
 
   // 今日接单
   onTodayOrders() {
-    wx.showToast({
-      title: '订单列表开发中',
-      icon: 'none'
+    wx.navigateTo({
+      url: '/subpackages/rider/pages/rider-orders/index'
     });
-    // TODO: 跳转到订单列表页面
-    // wx.navigateTo({
-    //   url: '/subpackages/rider/pages/rider-orders/index'
-    // });
   },
 
   // 今日收入
   onTodayIncome() {
-    wx.showToast({
-      title: '钱包功能开发中',
-      icon: 'none'
+    wx.navigateTo({
+      url: '/subpackages/rider/pages/rider-income/index'
     });
-    // TODO: 跳转到钱包页面
-    // wx.navigateTo({
-    //   url: '/subpackages/rider/pages/rider-wallet/index'
-    // });
   },
 
   // 体验反馈
   onFeedback() {
-    wx.showToast({
-      title: '反馈功能开发中',
-      icon: 'none'
+    wx.navigateTo({
+      url: '/subpackages/rider/pages/rider-feedback/index',
+      fail: (err) => {
+        console.error('跳转到反馈页面失败:', err);
+        wx.showToast({
+          title: '跳转失败',
+          icon: 'none'
+        });
+      }
     });
-    // TODO: 跳转到反馈页面
-    // wx.navigateTo({
-    //   url: '/subpackages/rider/pages/rider-feedback/index'
-    // });
+  },
+
+  // 个人信息
+  onPersonalInfo() {
+    wx.navigateTo({
+      url: '/subpackages/rider/pages/rider-personal-info/index',
+      fail: (err) => {
+        console.error('跳转到个人信息页面失败:', err);
+        wx.showToast({
+          title: '跳转失败',
+          icon: 'none'
+        });
+      }
+    });
+  },
+
+  // 统计数据
+  onStatistics() {
+    wx.navigateTo({
+      url: '/subpackages/rider/pages/rider-statistics/index',
+      fail: (err) => {
+        console.error('跳转到统计数据页面失败:', err);
+        wx.showToast({
+          title: '跳转失败',
+          icon: 'none'
+        });
+      }
+    });
+  },
+
+  // 下拉刷新
+  onPullDownRefresh() {
+    console.log('【骑手个人中心】下拉刷新');
+    this.setData({
+      refreshing: true
+    });
+    
+    // 刷新数据
+    Promise.all([
+      this.loadRiderInfo(),
+      this.loadTodayStats(),
+      this.loadTotalStats()
+    ]).then(() => {
+      setTimeout(() => {
+        this.setData({
+          refreshing: false
+        });
+        wx.showToast({
+          title: '刷新完成',
+          icon: 'success',
+          duration: 1500
+        });
+      }, 500);
+    }).catch((error) => {
+      console.error('【骑手个人中心】刷新失败:', error);
+      this.setData({
+        refreshing: false
+      });
+      wx.showToast({
+        title: '刷新失败',
+        icon: 'none',
+        duration: 1500
+      });
+    });
+  },
+
+  // 预览头像
+  onPreviewAvatar() {
+    const avatar = this.data.riderInfo.avatar;
+    if (avatar) {
+      wx.previewImage({
+        urls: [avatar],
+        current: avatar
+      });
+    }
+  },
+
+  // 格式化身份证号（中间部分隐藏）
+  formatIdNumber(idNumber) {
+    if (!idNumber || idNumber === '未填写') {
+      return idNumber;
+    }
+    if (idNumber.length <= 8) {
+      return idNumber;
+    }
+    return idNumber.substring(0, 4) + '****' + idNumber.substring(idNumber.length - 4);
+  },
+
+  // 格式化手机号（中间部分隐藏）
+  formatPhone(phone) {
+    if (!phone || phone === '未绑定') {
+      return phone;
+    }
+    if (phone.length === 11) {
+      return phone.substring(0, 3) + '****' + phone.substring(7);
+    }
+    return phone;
   },
 
   // 退出接单端

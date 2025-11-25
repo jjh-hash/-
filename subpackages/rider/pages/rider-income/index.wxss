@@ -1,0 +1,203 @@
+.page {
+  min-height: 100vh;
+  background: #F5F6F8;
+}
+
+.status-bar {
+  width: 100%;
+  background: #2C2C2C;
+}
+
+.nav-bar {
+  background: #2C2C2C;
+  color: #fff;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.nav-left,
+.nav-right {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-icon {
+  font-size: 18px;
+  color: #fff;
+}
+
+.nav-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* 总收入卡片 */
+.income-header {
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.income-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.income-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.income-amount {
+  font-size: 36px;
+  font-weight: 600;
+  color: #FF4D4F;
+  margin-bottom: 8px;
+}
+
+.income-desc {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 内容区域 */
+.content-area {
+  height: calc(100vh - 44px - 120px - env(safe-area-inset-bottom));
+  padding: 16px;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+  color: #999;
+  font-size: 14px;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+}
+
+.empty-illustration {
+  margin-bottom: 20px;
+}
+
+.illustration-emoji {
+  font-size: 64px;
+}
+
+.empty-title {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: #999;
+}
+
+/* 收入明细区域 */
+.income-section {
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 收入明细项 */
+.income-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.income-item-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.income-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.income-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.income-order-no {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.income-items {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.income-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.income-item-right {
+  margin-left: 12px;
+}
+
+.income-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #52C41A;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 20px 0;
+  color: #999;
+  font-size: 14px;
+}
+

@@ -1,0 +1,100 @@
+<view class="page">
+  <!-- 导航栏 -->
+  <view class="navbar">
+    <view class="navbar-content">
+      <text class="back-btn" bindtap="onBackTap">◀</text>
+      <text class="navbar-title">体验反馈</text>
+      <view class="placeholder"></view>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 反馈类型 -->
+    <view class="section">
+      <view class="section-title">反馈类型</view>
+      <view class="type-container">
+        <view 
+          class="type-item {{feedbackType === item.value ? 'active' : ''}}"
+          wx:for="{{feedbackTypes}}"
+          wx:key="value"
+          data-value="{{item.value}}"
+          bindtap="onTypeTap">
+          <text class="type-icon">{{item.icon}}</text>
+          <text class="type-text">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 反馈内容 -->
+    <view class="section">
+      <view class="section-title">反馈内容 <text class="required">*</text></view>
+      <textarea 
+        class="textarea"
+        placeholder="请详细描述您遇到的问题或建议，我们会认真对待每一条反馈..."
+        value="{{content}}"
+        bindinput="onContentInput"
+        maxlength="500"
+        show-confirm-bar="{{false}}">
+      </textarea>
+      <view class="char-count">{{content.length}}/500</view>
+    </view>
+
+    <!-- 上传图片 -->
+    <view class="section">
+      <view class="section-title">上传截图（选填）</view>
+      <view class="image-container">
+        <!-- 已上传的图片 -->
+        <view 
+          class="image-item"
+          wx:for="{{images}}"
+          wx:key="index">
+          <image 
+            class="image" 
+            src="{{item}}" 
+            mode="aspectFill"
+            data-index="{{index}}"
+            bindtap="onPreviewImage" />
+          <view 
+            class="delete-btn"
+            data-index="{{index}}"
+            bindtap="onDeleteImage">
+            ×
+          </view>
+        </view>
+
+        <!-- 添加图片按钮 -->
+        <view 
+          class="add-image-btn"
+          wx:if="{{images.length < maxImages}}"
+          bindtap="onChooseImage">
+          <text class="add-icon">+</text>
+          <text class="add-text">添加照片</text>
+        </view>
+      </view>
+      <view class="image-tip">最多上传{{maxImages}}张照片</view>
+    </view>
+
+    <!-- 联系方式 -->
+    <view class="section">
+      <view class="section-title">联系方式（选填）</view>
+      <input 
+        class="contact-input"
+        type="text"
+        placeholder="请输入您的手机号或微信号，方便我们联系您"
+        value="{{contact}}"
+        bindinput="onContactInput"
+        maxlength="50" />
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="submit-section">
+      <button 
+        class="submit-btn {{isSubmitting ? 'disabled' : ''}}"
+        bindtap="onSubmitFeedback"
+        disabled="{{isSubmitting}}">
+        {{isSubmitting ? '提交中...' : '提交反馈'}}
+      </button>
+    </view>
+  </scroll-view>
+</view>
+

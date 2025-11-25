@@ -4,34 +4,97 @@ Page({
     currentArea: '待命区域',
     tabs: ['待抢单', '待取货', '待送达'],
     activeTab: 0, // 默认显示待抢单标签页
-    orderCount: 6, // 跑单数量
+    maxOrders: 6, // 同时接单量（用于显示在跑单设置徽章上）
+    refreshing: false, // 下拉刷新状态
     loading: false,
     orders: [], // 待抢单订单列表
     pickupLoading: false,
     pickupOrders: [], // 待取货订单列表
     deliverLoading: false,
-    deliverOrders: [] // 待送达订单列表
+    deliverOrders: [], // 待送达订单列表
+    riderStatus: 'not_registered', // 骑手审核状态: not_registered, pending, approved, rejected
+    canGrabOrder: false // 是否可以接单
   },
 
   onLoad() {
     // 页面加载时获取数据
-    this.loadOrderCount();
+    this.loadRiderStatus();
+    this.loadMaxOrders();
     this.loadOrdersByTab(this.data.activeTab);
   },
 
   onShow() {
     // 页面显示时刷新数据
-    this.loadOrderCount();
+    this.loadRiderStatus();
+    this.loadMaxOrders();
     this.loadOrdersByTab(this.data.activeTab);
   },
 
-  // 加载跑单数量
-  loadOrderCount() {
-    // TODO: 从后端获取实际的跑单数量
-    // 暂时使用静态数据
+  // 加载骑手审核状态
+  async loadRiderStatus() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'riderManage',
+        data: {
+          action: 'getRiderStatus',
+          data: {}
+        }
+      });
+
+      if (res.result && res.result.code === 200) {
+        const statusData = res.result.data || {};
+        const status = statusData.status || 'not_registered';
+        const canGrabOrder = statusData.canGrabOrder || false;
+        
+        this.setData({
+          riderStatus: status,
+          canGrabOrder: canGrabOrder
+        });
+
+        // 更新本地存储的骑手信息
+        if (statusData.riderInfo) {
+          const localRiderInfo = wx.getStorageSync('riderInfo') || {};
+          wx.setStorageSync('riderInfo', {
+            ...localRiderInfo,
+            ...statusData.riderInfo,
+            status: status
+          });
+        }
+      }
+    } catch (error) {
+      console.error('加载骑手状态失败:', error);
+    }
+  },
+
+  // 加载同时接单量（用于显示在跑单设置徽章上）
+  async loadMaxOrders() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'riderManage',
+        data: {
+          action: 'getRiderSettings',
+          data: {}
+        }
+      });
+
+      if (res.result && res.result.code === 200) {
+        const settings = res.result.data || {};
+        this.setData({
+          maxOrders: settings.maxOrders || 6
+        });
+      } else {
+        // 如果获取失败，使用默认值
+        this.setData({
+          maxOrders: 6
+        });
+      }
+    } catch (error) {
+      console.error('加载同时接单量失败:', error);
+      // 使用默认值
     this.setData({
-      orderCount: 6
+        maxOrders: 6
     });
+    }
   },
 
   onTabChange(e) {
@@ -71,14 +134,17 @@ Page({
         }
       } catch (error) {
         console.error('加载订单失败:', error);
+        if (!this.data.refreshing) {
         wx.showToast({
           title: error.message || '加载失败',
           icon: 'none'
         });
+        }
         this.setData({
           orders: [],
           loading: false
         });
+        throw error;
       }
     } else if (tabIndex === 1) {
       // 待取货
@@ -107,14 +173,17 @@ Page({
         }
       } catch (error) {
         console.error('加载待取货订单失败:', error);
+        if (!this.data.refreshing) {
         wx.showToast({
           title: error.message || '加载失败',
           icon: 'none'
         });
+        }
         this.setData({
           pickupOrders: [],
           pickupLoading: false
         });
+        throw error;
       }
     } else if (tabIndex === 2) {
       // 待送达
@@ -143,14 +212,17 @@ Page({
         }
       } catch (error) {
         console.error('加载待送达订单失败:', error);
+        if (!this.data.refreshing) {
         wx.showToast({
           title: error.message || '加载失败',
           icon: 'none'
         });
+        }
         this.setData({
           deliverOrders: [],
           deliverLoading: false
         });
+        throw error;
       }
     } else {
       // 其他情况
@@ -191,6 +263,35 @@ Page({
   
   // 抢单
   async onGrabOrder(e) {
+    // 检查审核状态
+    if (!this.data.canGrabOrder) {
+      let message = '';
+      if (this.data.riderStatus === 'not_registered') {
+        message = '您还未注册骑手，请先注册';
+      } else if (this.data.riderStatus === 'pending') {
+        message = '您的申请正在审核中，审核通过后才能接单';
+      } else if (this.data.riderStatus === 'rejected') {
+        message = '您的申请未通过审核，请联系管理员';
+      } else {
+        message = '您暂无接单权限';
+      }
+      
+      wx.showModal({
+        title: '无法接单',
+        content: message,
+        showCancel: false,
+        confirmText: '知道了',
+        success: (res) => {
+          if (this.data.riderStatus === 'not_registered') {
+            wx.navigateTo({
+              url: '/subpackages/rider/pages/rider-register/index'
+            });
+          }
+        }
+      });
+      return;
+    }
+
     const orderId = e.currentTarget.dataset.id;
     
     wx.showModal({
@@ -336,32 +437,39 @@ Page({
               wx.showToast({
                 title: '✅ 送达成功！订单已完成',
                 icon: 'success',
-                duration: 2500
+                duration: 2000
               });
               
               console.log('【骑手端】送达成功，订单ID:', orderId);
               
-              // 延迟刷新订单列表，让用户看到提示
-              setTimeout(() => {
-                this.loadOrdersByTab(this.data.activeTab);
+              // 延迟刷新订单列表和统计数据
+              setTimeout(async () => {
+                // 刷新订单列表
+                await this.loadOrdersByTab(this.data.activeTab);
+                
+                // 刷新同时接单量（因为完成订单后可能影响接单量）
+                this.loadMaxOrders();
                 
                 // 通知个人中心页面刷新统计数据（如果页面已打开）
                 const pages = getCurrentPages();
                 const profilePage = pages.find(page => page.route === 'subpackages/rider/pages/rider-profile/index');
                 if (profilePage && typeof profilePage.loadTodayStats === 'function') {
-                  profilePage.loadTodayStats();
+                  // 等待一小段时间确保统计数据已更新
+                  setTimeout(async () => {
+                    await profilePage.loadTodayStats();
                   console.log('【骑手端】已通知个人中心页面刷新统计数据');
+                  }, 500);
                 }
-              }, 500);
               
-              // 显示完成提示（延迟显示，让用户知道统计已更新）
+                // 显示统计更新提示
               setTimeout(() => {
                 wx.showToast({
                   title: '📊 今日接单+1，收入+2元',
                   icon: 'none',
                   duration: 2000
                 });
-              }, 2800);
+                }, 1000);
+              }, 500);
             } else {
               wx.showToast({
                 title: result.result?.message || '❌ 操作失败',
@@ -398,12 +506,23 @@ Page({
     });
   },
 
-  onSettingTap() {
-    wx.showToast({ 
-      title: '跑单设置开发中', 
-      icon: 'none' 
+  onGoRegister() {
+    wx.navigateTo({
+      url: '/subpackages/rider/pages/rider-register/index'
     });
-    // TODO: 跳转到跑单设置页面
+  },
+
+  onSettingTap() {
+    wx.navigateTo({
+      url: '/subpackages/rider/pages/rider-settings/index',
+      fail: (err) => {
+        console.error('跳转到跑单设置页面失败:', err);
+    wx.showToast({ 
+          title: '跳转失败',
+      icon: 'none' 
+        });
+      }
+    });
   },
 
   onRefresh() {
@@ -411,7 +530,7 @@ Page({
     
     // 刷新订单数据
     this.loadOrdersByTab(this.data.activeTab);
-    this.loadOrderCount();
+    this.loadMaxOrders();
     
     setTimeout(() => {
       wx.hideLoading();
@@ -421,6 +540,44 @@ Page({
         duration: 1500
       });
     }, 1000);
+  },
+
+  // 下拉刷新
+  onPullDownRefresh() {
+    console.log('【下拉刷新】开始刷新');
+    
+    // 设置刷新状态
+    this.setData({
+      refreshing: true
+    });
+    
+    // 刷新当前标签页的订单数据
+    this.loadOrdersByTab(this.data.activeTab).then(() => {
+      // 刷新同时接单量
+      return this.loadMaxOrders();
+    }).then(() => {
+      // 刷新完成，停止下拉刷新动画
+      setTimeout(() => {
+        this.setData({
+          refreshing: false
+        });
+        wx.showToast({
+          title: '刷新完成',
+          icon: 'success',
+          duration: 1500
+        });
+      }, 500);
+    }).catch((error) => {
+      console.error('【下拉刷新】刷新失败:', error);
+      this.setData({
+        refreshing: false
+      });
+      wx.showToast({
+        title: '刷新失败',
+        icon: 'none',
+        duration: 1500
+      });
+    });
   }
 });
 

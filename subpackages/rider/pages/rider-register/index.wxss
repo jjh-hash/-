@@ -7,6 +7,9 @@
 .field{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px}
 .label{display:block;color:#666;font-size:12px;margin-bottom:6px}
 .input{height:36px;background:#f7f7f7;border:1px solid #e0e0e0;border-radius:6px;padding:0 10px}
+.picker-view{display:flex;align-items:center;justify-content:space-between;height:36px;background:#f7f7f7;border:1px solid #e0e0e0;border-radius:6px;padding:0 10px}
+.picker-text{flex:1;color:#333;font-size:14px}
+.picker-arrow{color:#999;font-size:12px}
 .tip{font-size:12px;color:#999;margin:8px 0 16px;line-height:1.6}
 .tip-item{margin-bottom:4px}
 .tip-item:last-child{margin-bottom:0}

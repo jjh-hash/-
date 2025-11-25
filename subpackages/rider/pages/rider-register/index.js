@@ -3,9 +3,10 @@ Page({
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     name: '',
     phone: '',
-    idNumber: '',
+    gender: '',
+    genderIndex: 0,
+    genderOptions: ['男', '女'],
     vehicle: '',
-    serviceArea: '',
     inviteCode: ''
   },
 
@@ -17,16 +18,17 @@ Page({
     this.setData({ phone: e.detail.value });
   },
 
-  onIdInput(e) {
-    this.setData({ idNumber: e.detail.value });
+  onGenderChange(e) {
+    const index = e.detail.value;
+    const gender = index === 0 ? 'male' : 'female';
+    this.setData({
+      genderIndex: index,
+      gender: gender
+    });
   },
 
   onVehicleInput(e) {
     this.setData({ vehicle: e.detail.value });
-  },
-
-  onAreaInput(e) {
-    this.setData({ serviceArea: e.detail.value });
   },
 
   onInviteInput(e) {
@@ -44,8 +46,8 @@ Page({
     }
   },
 
-  onSubmit() {
-    const { name, phone, idNumber, vehicle, serviceArea } = this.data;
+  async onSubmit() {
+    const { name, phone, gender, vehicle, inviteCode } = this.data;
 
     if (!name.trim()) {
       wx.showToast({ title: '请输入姓名', icon: 'none' });
@@ -55,38 +57,61 @@ Page({
       wx.showToast({ title: '请输入正确手机号', icon: 'none' });
       return;
     }
-    if (!idNumber.trim()) {
-      wx.showToast({ title: '请输入身份证号', icon: 'none' });
+    if (!gender) {
+      wx.showToast({ title: '请选择性别', icon: 'none' });
       return;
     }
     if (!vehicle.trim()) {
       wx.showToast({ title: '请输入配送工具', icon: 'none' });
       return;
     }
-    if (!serviceArea.trim()) {
-      wx.showToast({ title: '请输入服务区域', icon: 'none' });
-      return;
-    }
 
     wx.showLoading({ title: '提交中...' });
 
-    setTimeout(() => {
-      wx.hideLoading();
-      wx.showToast({ title: '提交成功，待审核', icon: 'success' });
-      wx.setStorageSync('isRider', true);
-      wx.setStorageSync('riderInfo', {
-        name,
-        phone,
-        vehicle,
-        serviceArea,
-        status: 'pending'
+    try {
+      // 调用云函数注册骑手
+      const res = await wx.cloud.callFunction({
+        name: 'riderRegister',
+        data: {
+          name: name.trim(),
+          phone: phone.trim(),
+          gender: gender,
+          vehicle: vehicle.trim(),
+          inviteCode: inviteCode || ''
+        }
       });
-      setTimeout(() => {
-        wx.reLaunch({
-          url: '/subpackages/rider/pages/rider-home/index'
+
+      wx.hideLoading();
+
+      if (res.result && res.result.code === 200) {
+        wx.showToast({ title: '提交成功，待审核', icon: 'success' });
+        wx.setStorageSync('isRider', true);
+        wx.setStorageSync('riderInfo', {
+          name,
+          phone,
+          gender,
+          vehicle,
+          status: 'pending'
         });
-      }, 1600);
-    }, 1200);
+        setTimeout(() => {
+          wx.reLaunch({
+            url: '/subpackages/rider/pages/rider-home/index'
+          });
+        }, 1600);
+      } else {
+        wx.showToast({
+          title: res.result.message || '提交失败',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('注册骑手失败:', error);
+      wx.showToast({
+        title: '提交失败，请重试',
+        icon: 'none'
+      });
+    }
   }
 });
 

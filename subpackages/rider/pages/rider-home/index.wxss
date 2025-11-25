@@ -87,6 +87,70 @@
   margin-left: 2px;
 }
 
+/* 审核状态提示横幅 */
+.status-banner {
+  background: #FFF3E0;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.status-banner.status-not_registered {
+  background: #FFEBEE;
+}
+
+.status-banner.status-pending {
+  background: #FFF3E0;
+}
+
+.status-banner.status-rejected {
+  background: #FFEBEE;
+}
+
+.status-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.status-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.status-banner.status-not_registered .status-text {
+  color: #ff0000;
+}
+
+.status-banner.status-pending .status-text {
+  color: #F57C00;
+}
+
+.status-banner.status-rejected .status-text {
+  color: #ff0000;
+}
+
+.status-action-btn {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  font-size: 12px;
+  background: #1976D2;
+  color: #fff;
+  border-radius: 4px;
+  border: none;
+  line-height: 1.4;
+}
+
+.status-action-btn::after {
+  border: none;
+}
+
 .content-area {
   flex: 1;
   height: 0;
@@ -197,6 +261,12 @@
   background: #ff4d4f;
   color: #fff;
   font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  line-height: 1.2;
+  font-weight: 600;
   padding: 2px 6px;
   border-radius: 10px;
   font-weight: 600;
@@ -418,6 +488,12 @@
 
 .grab-btn::after {
   border: none;
+}
+
+.grab-btn.disabled {
+  background: #CCCCCC;
+  color: #999999;
+  opacity: 0.6;
 }
 
 /* 确认取餐按钮 */

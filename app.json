@@ -51,7 +51,8 @@
         "pages/admin-announcement/index",
         "pages/admin-log-list/index",
         "pages/admin-change-password/index",
-        "pages/admin-finance/index"
+        "pages/admin-finance/index",
+        "pages/admin-rider-list/index"
       ]
     },
     {
@@ -72,7 +73,13 @@
         "pages/rider-register/index",
         "pages/rider-login/index",
         "pages/rider-home/index",
-        "pages/rider-profile/index"
+        "pages/rider-profile/index",
+        "pages/rider-personal-info/index",
+        "pages/rider-statistics/index",
+        "pages/rider-orders/index",
+        "pages/rider-income/index",
+        "pages/rider-feedback/index",
+        "pages/rider-settings/index"
       ]
     },
     {

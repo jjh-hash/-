@@ -1,0 +1,112 @@
+// 骑手注册云函数
+const cloud = require('wx-server-sdk');
+
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV
+});
+
+const db = cloud.database();
+
+exports.main = async (event, context) => {
+  const wxContext = cloud.getWXContext();
+  const openid = wxContext.OPENID;
+  const { name, phone, gender, vehicle, inviteCode } = event;
+
+  console.log('【骑手注册】请求:', { name, phone, gender, vehicle, openid });
+
+  try {
+    // 验证必填字段
+    if (!name || !name.trim()) {
+      return {
+        code: 400,
+        message: '请输入姓名'
+      };
+    }
+    if (!phone || !/^1\d{10}$/.test(phone.trim())) {
+      return {
+        code: 400,
+        message: '请输入正确的手机号'
+      };
+    }
+    if (!gender || !['male', 'female'].includes(gender)) {
+      return {
+        code: 400,
+        message: '请选择性别'
+      };
+    }
+    if (!vehicle || !vehicle.trim()) {
+      return {
+        code: 400,
+        message: '请输入配送工具'
+      };
+    }
+
+    // 检查是否已经注册过骑手
+    let existingRider;
+    try {
+      const riderQuery = await db.collection('riders')
+        .where({ openid: openid })
+        .get();
+      
+      if (riderQuery.data && riderQuery.data.length > 0) {
+        existingRider = riderQuery.data[0];
+      }
+    } catch (error) {
+      // 如果集合不存在，继续创建
+      if (error.errCode !== -502005 && !error.message.includes('collection not exist')) {
+        throw error;
+      }
+    }
+
+    if (existingRider) {
+      // 如果已存在，更新信息
+      await db.collection('riders').doc(existingRider._id).update({
+        data: {
+          name: name.trim(),
+          phone: phone.trim(),
+          gender: gender,
+          vehicle: vehicle.trim(),
+          status: 'pending', // 重新提交时重置为待审核
+          updatedAt: db.serverDate()
+        }
+      });
+      
+      return {
+        code: 200,
+        message: '注册信息已更新，待审核',
+        data: {
+          riderId: existingRider._id
+        }
+      };
+    } else {
+      // 创建新的骑手记录
+      const riderResult = await db.collection('riders').add({
+        data: {
+          openid: openid,
+          name: name.trim(),
+          phone: phone.trim(),
+          gender: gender,
+          vehicle: vehicle.trim(),
+          status: 'pending',
+          createdAt: db.serverDate(),
+          updatedAt: db.serverDate()
+        }
+      });
+
+      return {
+        code: 200,
+        message: '注册成功，待审核',
+        data: {
+          riderId: riderResult._id
+        }
+      };
+    }
+  } catch (error) {
+    console.error('【骑手注册】失败:', error);
+    return {
+      code: 500,
+      message: '注册失败: ' + error.message
+    };
+  }
+};
+

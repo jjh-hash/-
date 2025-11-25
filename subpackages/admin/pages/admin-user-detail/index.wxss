@@ -29,6 +29,13 @@
 .ban-section{background:#fff1f0;border:1px solid #ffccc7}
 .ban-reason{color:#ff4d4f;font-weight:500}
 
+.rider-section{background:#f0f9ff;border:1px solid #bae7ff}
+.rider-status{color:#1890ff;font-weight:600}
+.rider-status-pending{color:#faad14}
+.rider-status-approved{color:#52c41a}
+.rider-status-rejected{color:#ff4d4f}
+.rider-status-unknown{color:#999}
+
 .empty{display:flex;flex-direction:column;align-items:center;padding:60px 0}
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-text{color:#999;font-size:14px}

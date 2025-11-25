@@ -1,0 +1,190 @@
+.page {
+  min-height: 100vh;
+  background: #F5F6F8;
+}
+
+.status-bar {
+  width: 100%;
+  background: #2C2C2C;
+}
+
+.nav-bar {
+  background: #2C2C2C;
+  color: #fff;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.nav-left,
+.nav-right {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-icon {
+  font-size: 18px;
+  color: #fff;
+}
+
+.nav-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* 内容区域 */
+.content {
+  height: calc(100vh - 44px - env(safe-area-inset-top));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 用户信息卡片 */
+.profile-card {
+  background: linear-gradient(135deg, #1890FF 0%, #096DD9 100%);
+  margin: 16px;
+  border-radius: 16px;
+  padding: 20px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-card::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.avatar-wrapper {
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.3);
+  margin-right: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.avatar-placeholder-text {
+  font-size: 24px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.rider-name {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.rider-nickname {
+  display: block;
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 8px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.status-pending {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.status-badge.status-approved {
+  background: rgba(82, 196, 26, 0.2);
+  color: #52c41a;
+}
+
+.status-badge.status-rejected {
+  background: rgba(255, 77, 79, 0.2);
+  color: #ff4d4f;
+}
+
+/* 信息展示区域 */
+.info-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 0 16px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 14px;
+  color: #666;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.info-value {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  text-align: right;
+  word-break: break-all;
+}
+

@@ -9,6 +9,30 @@
     </view>
   </view>
 
+  <!-- 审核状态提示 -->
+  <view class="status-banner status-{{riderStatus}}" wx:if="{{riderStatus !== 'approved'}}">
+    <view class="status-content">
+      <text class="status-icon">
+        <text wx:if="{{riderStatus === 'not_registered'}}">⚠️</text>
+        <text wx:elif="{{riderStatus === 'pending'}}">⏳</text>
+        <text wx:elif="{{riderStatus === 'rejected'}}">❌</text>
+      </text>
+      <text class="status-text">
+        <text wx:if="{{riderStatus === 'not_registered'}}">未审核 - 请先注册成为骑手</text>
+        <text wx:elif="{{riderStatus === 'pending'}}">待审核 - 您的申请正在审核中，审核通过后才能接单</text>
+        <text wx:elif="{{riderStatus === 'rejected'}}">审核未通过 - 请联系管理员</text>
+      </text>
+      <button 
+        class="status-action-btn" 
+        wx:if="{{riderStatus === 'not_registered'}}"
+        bindtap="onGoRegister"
+        size="mini"
+      >
+        注册骑手
+      </button>
+    </view>
+  </view>
+
   <view class="tabs">
     <block wx:for="{{tabs}}" wx:key="index">
       <view 
@@ -22,7 +46,14 @@
     </block>
   </view>
 
-  <scroll-view class="content-area" scroll-y="{{true}}" enable-back-to-top="{{true}}">
+  <scroll-view 
+    class="content-area" 
+    scroll-y="{{true}}" 
+    enable-back-to-top="{{true}}"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onPullDownRefresh"
+    refresher-background="#F5F6F8">
     <!-- 待抢单订单列表 -->
     <view class="order-list" wx:if="{{activeTab === 0}}">
       <!-- 加载状态 -->
@@ -91,7 +122,14 @@
             </view>
             
             <!-- 抢单按钮 -->
-            <button class="grab-btn" bindtap="onGrabOrder" data-id="{{item.id}}">抢单</button>
+            <button 
+              class="grab-btn {{canGrabOrder ? '' : 'disabled'}}" 
+              bindtap="onGrabOrder" 
+              data-id="{{item.id}}"
+              disabled="{{!canGrabOrder}}"
+            >
+              {{canGrabOrder ? '抢单' : '无法接单'}}
+            </button>
           </view>
         </block>
       </block>
@@ -251,7 +289,7 @@
     <view class="bottom-item" bindtap="onSettingTap">
       <view class="bottom-icon-wrapper">
         <image class="bottom-icon setting-icon" src="/pages/小标/设置.png" mode="aspectFit"></image>
-        <text class="order-count" wx:if="{{orderCount > 0}}">{{orderCount}}单</text>
+        <text class="order-count" wx:if="{{maxOrders > 0}}">{{maxOrders}}单</text>
       </view>
       <text class="bottom-text">跑单设置</text>
     </view>

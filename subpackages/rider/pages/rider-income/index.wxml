@@ -1,0 +1,79 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-left" bindtap="onBack">
+      <text class="back-icon">◀</text>
+    </view>
+    <view class="nav-title">今日收入</view>
+    <view class="nav-right"></view>
+  </view>
+
+  <!-- 总收入卡片 -->
+  <view class="income-header">
+    <view class="income-card">
+      <text class="income-label">今日总收入</text>
+      <text class="income-amount">¥{{totalIncome}}</text>
+      <text class="income-desc">已完成订单收入</text>
+    </view>
+  </view>
+
+  <!-- 收入明细列表 -->
+  <scroll-view 
+    class="content-area" 
+    scroll-y="{{true}}" 
+    enable-back-to-top="{{true}}"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+    bindscrolltolower="onLoadMore"
+  >
+    <!-- 加载状态 -->
+    <view class="loading-state" wx:if="{{loading && incomeList.length === 0}}">
+      <text>加载中...</text>
+    </view>
+    
+    <!-- 空状态 -->
+    <view class="empty-state" wx:elif="{{!loading && incomeList.length === 0}}">
+      <view class="empty-illustration">
+        <text class="illustration-emoji">💰</text>
+      </view>
+      <text class="empty-title">今日暂无收入</text>
+      <text class="empty-desc">完成订单后即可查看收入明细</text>
+    </view>
+    
+    <!-- 收入明细列表 -->
+    <block wx:elif="{{incomeList.length > 0}}">
+      <view class="income-section">
+        <text class="section-title">收入明细</text>
+      </view>
+      
+      <block wx:for="{{incomeList}}" wx:key="id">
+        <view class="income-item" bindtap="onOrderDetail" data-id="{{item.id}}">
+          <view class="income-item-left">
+            <view class="income-icon">💰</view>
+            <view class="income-info">
+              <text class="income-order-no" wx:if="{{item.orderNo}}">订单号: {{item.orderNo}}</text>
+              <text class="income-items">{{item.items}}</text>
+              <text class="income-time">完成时间: {{item.completedAt || '--'}}</text>
+            </view>
+          </view>
+          <view class="income-item-right">
+            <text class="income-value">+¥{{item.income}}</text>
+          </view>
+        </view>
+      </block>
+      
+      <!-- 加载更多 -->
+      <view class="load-more" wx:if="{{loading && incomeList.length > 0}}">
+        <text>加载中...</text>
+      </view>
+      <view class="load-more" wx:elif="{{!hasMore && incomeList.length > 0}}">
+        <text>没有更多了</text>
+      </view>
+    </block>
+  </scroll-view>
+</view>
+

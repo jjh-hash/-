@@ -41,6 +41,13 @@ Page({
         color: '#F44336'
       },
       {
+        id: 'rider',
+        title: '骑手设置',
+        icon: '/pages/小标/接单.png',
+        description: '审核骑手、管理骑手信息',
+        color: '#00BCD4'
+      },
+      {
         id: 'settings',
         title: '系统设置',
         icon: '/pages/小标/联系客服.png',
@@ -90,6 +97,11 @@ Page({
       case 'statistics':
         wx.navigateTo({
           url: '/subpackages/admin/pages/admin-statistics/index'
+        });
+        break;
+      case 'rider':
+        wx.navigateTo({
+          url: '/subpackages/admin/pages/admin-rider-list/index'
         });
         break;
       case 'settings':

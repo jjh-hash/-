@@ -1,0 +1,261 @@
+.page {
+  min-height: 100vh;
+  background: #F5F6F8;
+}
+
+.status-bar {
+  width: 100%;
+  background: #2C2C2C;
+}
+
+.nav-bar {
+  background: #2C2C2C;
+  color: #fff;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.nav-left,
+.nav-right {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-icon {
+  font-size: 18px;
+  color: #fff;
+}
+
+.nav-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.content-area {
+  height: calc(100vh - 44px - env(safe-area-inset-bottom));
+  padding: 16px;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+  color: #999;
+  font-size: 14px;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+}
+
+.empty-illustration {
+  margin-bottom: 20px;
+}
+
+.illustration-emoji {
+  font-size: 64px;
+}
+
+.empty-title {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: #999;
+}
+
+/* 订单卡片 */
+.order-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.order-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.order-time {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.order-no {
+  font-size: 12px;
+  color: #999;
+}
+
+.order-price {
+  font-size: 18px;
+  font-weight: 600;
+  color: #FF4D4F;
+}
+
+/* 状态标签 */
+.status-tag {
+  display: inline-block;
+  background: #E6F7FF;
+  color: #1890FF;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+/* 地址信息 */
+.address-section {
+  display: flex;
+  margin-bottom: 12px;
+}
+
+.address-label {
+  width: 40px;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.address-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.store-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.address-detail {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.delivery-address {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 餐品信息 */
+.items-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid #F0F0F0;
+  border-bottom: 1px solid #F0F0F0;
+  margin-bottom: 12px;
+}
+
+.items-text {
+  font-size: 14px;
+  color: #333;
+  flex: 1;
+}
+
+.items-arrow {
+  font-size: 12px;
+  color: #999;
+  transition: transform 0.3s;
+}
+
+.items-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+/* 餐品详情 */
+.items-detail {
+  padding: 12px;
+  background: #F9F9F9;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.food-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.food-item:last-child {
+  margin-bottom: 0;
+}
+
+.food-name {
+  color: #333;
+  flex: 1;
+}
+
+.food-spec {
+  color: #999;
+  margin: 0 8px;
+}
+
+.food-quantity {
+  color: #666;
+}
+
+/* 时间信息 */
+.time-info {
+  display: flex;
+  flex-direction: column;
+  padding-top: 12px;
+  border-top: 1px solid #F0F0F0;
+}
+
+.time-item {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.time-item:last-child {
+  margin-bottom: 0;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 20px 0;
+  color: #999;
+  font-size: 14px;
+}
+

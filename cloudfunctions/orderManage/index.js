@@ -86,6 +86,21 @@ exports.main = async (event, context) => {
       case 'getRiderTodayStats':
         result = await getRiderTodayStats(OPENID, data);
         break;
+      case 'getRiderTodayOrders':
+        result = await getRiderTodayOrders(OPENID, data);
+        break;
+      case 'getRiderTodayIncome':
+        result = await getRiderTodayIncome(OPENID, data);
+        break;
+      case 'getRiderTotalStats':
+        result = await getRiderTotalStats(OPENID, data);
+        break;
+      case 'getRiderWeekStats':
+        result = await getRiderWeekStats(OPENID, data);
+        break;
+      case 'getRiderMonthStats':
+        result = await getRiderMonthStats(OPENID, data);
+        break;
       default:
         console.warn('【订单管理】无效的操作类型:', action);
         result = {
@@ -2790,6 +2805,44 @@ async function grabOrder(openid, data) {
       };
     }
     
+    // 检查骑手审核状态
+    let riderStatus = 'not_registered';
+    try {
+      const riderQuery = await db.collection('riders')
+        .where({ openid: openid })
+        .get();
+      
+      if (riderQuery.data && riderQuery.data.length > 0) {
+        riderStatus = riderQuery.data[0].status || 'pending';
+      }
+    } catch (error) {
+      // 如果集合不存在，说明未注册
+      if (error.errCode === -502005 || error.message.includes('collection not exist')) {
+        riderStatus = 'not_registered';
+      } else {
+        console.error('【骑手接单】查询骑手状态失败:', error);
+      }
+    }
+    
+    // 只有审核通过的骑手才能接单
+    if (riderStatus !== 'approved') {
+      let message = '';
+      if (riderStatus === 'not_registered') {
+        message = '您还未注册骑手，请先注册';
+      } else if (riderStatus === 'pending') {
+        message = '您的申请正在审核中，审核通过后才能接单';
+      } else if (riderStatus === 'rejected') {
+        message = '您的申请未通过审核，请联系管理员';
+      } else {
+        message = '您暂无接单权限';
+      }
+      
+      return {
+        code: 403,
+        message: message
+      };
+    }
+    
     // 获取订单信息
     const orderResult = await db.collection('orders').doc(orderId).get();
     if (!orderResult.data) {
@@ -3309,18 +3362,30 @@ async function updateRiderTodayStats(riderOpenid) {
     console.log('【更新骑手统计】日期字符串:', dateStr, '骑手openid:', riderOpenid);
     
     // 查询今日统计数据
-    const statsResult = await db.collection('rider_stats')
+    let statsResult;
+    try {
+      statsResult = await db.collection('rider_stats')
       .where({
         riderOpenid: riderOpenid,
         date: dateStr
       })
       .get();
+    } catch (queryError) {
+      // 如果集合不存在（错误码 -502005），直接创建新记录
+      if (queryError.errCode === -502005 || queryError.message.includes('collection not exist') || queryError.message.includes('not exist')) {
+        console.log('【更新骑手统计】集合不存在，创建新记录');
+        statsResult = { data: [] }; // 设置为空数组，走创建流程
+      } else {
+        throw queryError;
+      }
+    }
     
     console.log('【更新骑手统计】查询结果:', statsResult.data);
     
     if (statsResult.data && statsResult.data.length > 0) {
       // 如果今日统计已存在，更新数据
       const stats = statsResult.data[0];
+      try {
       const updateResult = await db.collection('rider_stats').doc(stats._id).update({
         data: {
           todayOrders: db.command.inc(1), // 今日接单数+1
@@ -3329,8 +3394,29 @@ async function updateRiderTodayStats(riderOpenid) {
         }
       });
       console.log('【更新骑手统计】更新成功，订单数+1，收入+2元，更新结果:', updateResult);
+      } catch (updateError) {
+        console.error('【更新骑手统计】更新失败:', updateError);
+        // 如果更新失败，尝试重新创建记录
+        console.log('【更新骑手统计】尝试重新创建记录');
+        try {
+          const addResult = await db.collection('rider_stats').add({
+            data: {
+              riderOpenid: riderOpenid,
+              date: dateStr,
+              todayOrders: (stats.todayOrders || 0) + 1, // 今日接单数+1
+              todayIncome: ((stats.todayIncome || 0) + 2.00).toFixed(2), // 今日收入+2元
+              createdAt: db.serverDate(),
+              updatedAt: db.serverDate()
+            }
+          });
+          console.log('【更新骑手统计】重新创建记录成功，创建结果:', addResult);
+        } catch (addError) {
+          console.error('【更新骑手统计】重新创建记录失败:', addError);
+        }
+      }
     } else {
-      // 如果今日统计不存在，创建新记录
+      // 如果今日统计不存在，创建新记录（如果集合不存在，add 方法会自动创建集合）
+      try {
       const addResult = await db.collection('rider_stats').add({
         data: {
           riderOpenid: riderOpenid,
@@ -3342,6 +3428,10 @@ async function updateRiderTodayStats(riderOpenid) {
         }
       });
       console.log('【更新骑手统计】创建新记录，订单数=1，收入=2元，创建结果:', addResult);
+      } catch (addError) {
+        console.error('【更新骑手统计】创建新记录失败:', addError);
+        // 如果创建失败，记录错误但不抛出，避免影响订单完成流程
+      }
     }
   } catch (error) {
     console.error('【更新骑手统计】异常:', error);
@@ -3352,6 +3442,7 @@ async function updateRiderTodayStats(riderOpenid) {
 
 /**
  * 获取骑手今日统计数据
+ * 如果 rider_stats 中没有数据，从实际订单数据中计算
  */
 async function getRiderTodayStats(riderOpenid, data) {
   try {
@@ -3370,23 +3461,47 @@ async function getRiderTodayStats(riderOpenid, data) {
     const day = String(today.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
+    // 获取今天的日期范围（开始和结束时间）
+    today.setHours(0, 0, 0, 0);
+    const todayStart = today.getTime();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todayEnd = tomorrow.getTime();
+    
     console.log('【获取骑手统计】日期字符串:', dateStr, '骑手openid:', riderOpenid);
     
     // 查询今日统计数据
-    const statsResult = await db.collection('rider_stats')
+    let statsResult;
+    let hasStatsData = false;
+    try {
+      statsResult = await db.collection('rider_stats')
       .where({
         riderOpenid: riderOpenid,
         date: dateStr
       })
       .get();
     
-    console.log('【获取骑手统计】查询结果:', statsResult.data);
-    
     if (statsResult.data && statsResult.data.length > 0) {
+        hasStatsData = true;
+      }
+    } catch (queryError) {
+      // 如果集合不存在（错误码 -502005），从订单数据计算
+      if (queryError.errCode === -502005 || queryError.message.includes('collection not exist') || queryError.message.includes('not exist')) {
+        console.log('【获取骑手统计】集合不存在，从订单数据计算');
+        hasStatsData = false;
+      } else {
+        throw queryError;
+      }
+    }
+    
+    console.log('【获取骑手统计】查询结果:', statsResult?.data);
+    
+    // 如果统计数据存在，直接返回
+    if (hasStatsData && statsResult.data && statsResult.data.length > 0) {
       const stats = statsResult.data[0];
       const orders = stats.todayOrders || 0;
       const income = (stats.todayIncome || 0).toFixed(2);
-      console.log('【获取骑手统计】返回数据:', { orders, income });
+      console.log('【获取骑手统计】从统计数据返回:', { orders, income });
       return {
         code: 200,
         message: 'ok',
@@ -3395,9 +3510,54 @@ async function getRiderTodayStats(riderOpenid, data) {
           income: income
         }
       };
-    } else {
-      // 如果今日统计不存在，返回0
-      console.log('【获取骑手统计】今日统计不存在，返回默认值');
+    }
+    
+    // 如果统计数据不存在，从实际订单数据计算
+    console.log('【获取骑手统计】统计数据不存在，从订单数据计算');
+    
+    try {
+      // 查询今天完成的订单
+      const completedOrdersResult = await db.collection('orders')
+        .where({
+          riderOpenid: riderOpenid,
+          orderStatus: 'completed'
+        })
+        .get();
+      
+      // 过滤出今天完成的订单
+      const todayCompletedOrders = completedOrdersResult.data.filter(order => {
+        if (order.completedAt) {
+          const completedTime = new Date(order.completedAt).getTime();
+          return completedTime >= todayStart && completedTime < todayEnd;
+        }
+        return false;
+      });
+      
+      // 计算统计数据
+      const orders = todayCompletedOrders.length;
+      const income = (orders * 2.00).toFixed(2); // 每完成一单收入2元
+      
+      console.log('【获取骑手统计】从订单数据计算:', { orders, income, todayCompletedOrders: todayCompletedOrders.length });
+      
+      // 如果计算出的数据不为0，尝试更新统计数据（异步，不等待结果）
+      if (orders > 0) {
+        // 异步更新统计数据，不阻塞返回
+        updateRiderTodayStats(riderOpenid).catch(err => {
+          console.error('【获取骑手统计】更新统计数据失败:', err);
+        });
+      }
+      
+      return {
+        code: 200,
+        message: 'ok',
+        data: {
+          orders: orders,
+          income: income
+        }
+      };
+    } catch (calcError) {
+      console.error('【获取骑手统计】从订单数据计算失败:', calcError);
+      // 如果计算失败，返回0
       return {
         code: 200,
         message: 'ok',
@@ -3412,6 +3572,224 @@ async function getRiderTodayStats(riderOpenid, data) {
     return {
       code: 500,
       message: '获取统计数据失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 获取骑手总统计数据
+ */
+async function getRiderTotalStats(riderOpenid, data) {
+  try {
+    if (!riderOpenid) {
+      return {
+        code: 400,
+        message: '缺少骑手openid'
+      };
+    }
+    
+    console.log('【获取骑手总统计】骑手openid:', riderOpenid);
+    
+    // 查询骑手所有已完成的订单
+    const completedOrdersResult = await db.collection('orders')
+      .where({
+        riderOpenid: riderOpenid,
+        orderStatus: db.command.in(['completed', 'delivered'])
+      })
+      .get();
+    
+    const totalOrders = completedOrdersResult.data ? completedOrdersResult.data.length : 0;
+    
+    // 计算总收入
+    let totalIncome = 0;
+    if (completedOrdersResult.data && completedOrdersResult.data.length > 0) {
+      totalIncome = completedOrdersResult.data.reduce((sum, order) => {
+        // 骑手收入可能是 riderIncome 字段，或者从配送费计算
+        let riderIncome = order.riderIncome || 0;
+        
+        // 如果 riderIncome 是分，转换为元
+        if (riderIncome >= 100) {
+          riderIncome = riderIncome / 100;
+        }
+        
+        // 如果没有 riderIncome 字段，使用配送费作为收入（默认每单2元）
+        if (!riderIncome && order.amountDelivery) {
+          let deliveryFee = order.amountDelivery;
+          if (deliveryFee >= 100) {
+            deliveryFee = deliveryFee / 100;
+          }
+          riderIncome = deliveryFee || 2.00; // 默认每单2元
+        } else if (!riderIncome) {
+          riderIncome = 2.00; // 默认每单2元
+        }
+        
+        return sum + riderIncome;
+      }, 0);
+    }
+    
+    console.log('【获取骑手总统计】总接单数:', totalOrders, '总收入:', totalIncome.toFixed(2));
+    
+    return {
+      code: 200,
+      message: 'ok',
+      data: {
+        orders: totalOrders,
+        income: totalIncome.toFixed(2)
+      }
+    };
+  } catch (error) {
+    console.error('【获取骑手总统计】异常:', error);
+    return {
+      code: 500,
+      message: '获取总统计数据失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 获取骑手本周统计数据
+ */
+async function getRiderWeekStats(riderOpenid, data) {
+  try {
+    if (!riderOpenid) {
+      return {
+        code: 400,
+        message: '缺少骑手openid'
+      };
+    }
+    
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay()); // 本周一
+    weekStart.setHours(0, 0, 0, 0);
+    
+    // 查询本周已完成的订单
+    const completedOrdersResult = await db.collection('orders')
+      .where({
+        riderOpenid: riderOpenid,
+        orderStatus: db.command.in(['completed', 'delivered'])
+      })
+      .get();
+    
+    // 过滤出本周的订单
+    const weekOrders = completedOrdersResult.data ? completedOrdersResult.data.filter(order => {
+      if (order.completedAt) {
+        const completedTime = new Date(order.completedAt).getTime();
+        return completedTime >= weekStart.getTime();
+      }
+      return false;
+    }) : [];
+    
+    const totalOrders = weekOrders.length;
+    
+    // 计算总收入
+    let totalIncome = 0;
+    if (weekOrders.length > 0) {
+      totalIncome = weekOrders.reduce((sum, order) => {
+        let riderIncome = order.riderIncome || 0;
+        if (riderIncome >= 100) {
+          riderIncome = riderIncome / 100;
+        } else if (!riderIncome && order.amountDelivery) {
+          let deliveryFee = order.amountDelivery;
+          if (deliveryFee >= 100) {
+            deliveryFee = deliveryFee / 100;
+          }
+          riderIncome = deliveryFee || 2.00;
+        } else if (!riderIncome) {
+          riderIncome = 2.00;
+        }
+        return sum + riderIncome;
+      }, 0);
+    }
+    
+    return {
+      code: 200,
+      message: 'ok',
+      data: {
+        orders: totalOrders,
+        income: totalIncome.toFixed(2)
+      }
+    };
+  } catch (error) {
+    console.error('【获取骑手本周统计】异常:', error);
+    return {
+      code: 500,
+      message: '获取本周统计数据失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 获取骑手本月统计数据
+ */
+async function getRiderMonthStats(riderOpenid, data) {
+  try {
+    if (!riderOpenid) {
+      return {
+        code: 400,
+        message: '缺少骑手openid'
+      };
+    }
+    
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    monthStart.setHours(0, 0, 0, 0);
+    
+    // 查询本月已完成的订单
+    const completedOrdersResult = await db.collection('orders')
+      .where({
+        riderOpenid: riderOpenid,
+        orderStatus: db.command.in(['completed', 'delivered'])
+      })
+      .get();
+    
+    // 过滤出本月的订单
+    const monthOrders = completedOrdersResult.data ? completedOrdersResult.data.filter(order => {
+      if (order.completedAt) {
+        const completedTime = new Date(order.completedAt).getTime();
+        return completedTime >= monthStart.getTime();
+      }
+      return false;
+    }) : [];
+    
+    const totalOrders = monthOrders.length;
+    
+    // 计算总收入
+    let totalIncome = 0;
+    if (monthOrders.length > 0) {
+      totalIncome = monthOrders.reduce((sum, order) => {
+        let riderIncome = order.riderIncome || 0;
+        if (riderIncome >= 100) {
+          riderIncome = riderIncome / 100;
+        } else if (!riderIncome && order.amountDelivery) {
+          let deliveryFee = order.amountDelivery;
+          if (deliveryFee >= 100) {
+            deliveryFee = deliveryFee / 100;
+          }
+          riderIncome = deliveryFee || 2.00;
+        } else if (!riderIncome) {
+          riderIncome = 2.00;
+        }
+        return sum + riderIncome;
+      }, 0);
+    }
+    
+    return {
+      code: 200,
+      message: 'ok',
+      data: {
+        orders: totalOrders,
+        income: totalIncome.toFixed(2)
+      }
+    };
+  } catch (error) {
+    console.error('【获取骑手本月统计】异常:', error);
+    return {
+      code: 500,
+      message: '获取本月统计数据失败',
       error: error.message
     };
   }
@@ -3523,5 +3901,258 @@ function formatRiderOrder(order) {
     readyAt: formatDate(order.readyAt),
     completedAt: formatDate(order.completedAt)
   };
+}
+
+/**
+ * 获取骑手今日订单列表
+ * 查询骑手今天接单的所有订单（不管订单什么时候创建的）
+ */
+async function getRiderTodayOrders(riderOpenid, data) {
+  try {
+    if (!riderOpenid) {
+      return {
+        code: 400,
+        message: '缺少骑手openid'
+      };
+    }
+    
+    const { page = 1, pageSize = 20 } = data || {};
+    
+    // 获取今天的日期范围（开始和结束时间）
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStart = today.getTime();
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todayEnd = tomorrow.getTime();
+    
+    console.log('【获取骑手今日订单】日期范围:', {
+      start: new Date(todayStart),
+      end: new Date(todayEnd),
+      riderOpenid: riderOpenid
+    });
+    
+    // 查询骑手接单的所有订单（不管什么时候接单的）
+    // 由于没有 riderAcceptedAt 字段，我们查询所有骑手接单的订单
+    // 然后在代码中过滤出今天接单的订单（通过检查订单是否在今天完成，或者订单状态变化）
+    const whereCondition = {
+      riderOpenid: riderOpenid
+    };
+    
+    console.log('【获取骑手今日订单】查询条件:', JSON.stringify(whereCondition));
+    
+    // 查询所有骑手接单的订单（不限制数量，因为需要在代码中过滤）
+    const result = await db.collection('orders')
+      .where(whereCondition)
+      .orderBy('updatedAt', 'desc')
+      .get();
+    
+    console.log('【获取骑手今日订单】查询到订单数量:', result.data.length);
+    
+    // 过滤出今天接单的订单
+    // 判断逻辑：
+    // 1. 如果订单今天完成了（completedAt 在今天），说明是今天接单的
+    // 2. 如果订单今天有更新（updatedAt 在今天），且订单状态不是 completed，说明是今天接单的
+    // 3. 如果订单今天接单但还没完成，updatedAt 会在今天
+    const todayOrders = result.data.filter(order => {
+      // 如果订单今天完成了，肯定是今天接单的
+      if (order.completedAt) {
+        const completedTime = new Date(order.completedAt).getTime();
+        if (completedTime >= todayStart && completedTime < todayEnd) {
+          return true;
+        }
+      }
+      
+      // 如果订单今天有更新，且订单状态不是 completed，说明是今天接单的
+      if (order.updatedAt) {
+        const updatedTime = new Date(order.updatedAt).getTime();
+        if (updatedTime >= todayStart && updatedTime < todayEnd) {
+          // 如果订单状态不是 completed，说明是今天接单的
+          if (order.orderStatus !== 'completed') {
+            return true;
+          }
+          // 如果订单状态是 completed，但 completedAt 不在今天，说明是今天接单但今天完成的
+          if (order.orderStatus === 'completed' && order.completedAt) {
+            const completedTime = new Date(order.completedAt).getTime();
+            return completedTime >= todayStart && completedTime < todayEnd;
+          }
+        }
+      }
+      
+      return false;
+    });
+    
+    console.log('【获取骑手今日订单】过滤后订单数量:', todayOrders.length);
+    
+    // 分页处理
+    const total = todayOrders.length;
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const pagedOrders = todayOrders.slice(startIndex, endIndex);
+    
+    console.log('【获取骑手今日订单】分页后订单数量:', pagedOrders.length, '总数:', total);
+    
+    // 格式化订单数据
+    const formattedList = pagedOrders.map(order => formatRiderOrder(order));
+    
+    return {
+      code: 200,
+      message: 'ok',
+      data: {
+        list: formattedList,
+        total: total,
+        page: page,
+        pageSize: pageSize
+      }
+    };
+    
+  } catch (error) {
+    console.error('【获取骑手今日订单】异常:', error);
+    return {
+      code: 500,
+      message: '获取今日订单列表失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 获取骑手今日收入明细
+ * 查询骑手今天完成的订单（按 completedAt 判断）
+ */
+async function getRiderTodayIncome(riderOpenid, data) {
+  try {
+    if (!riderOpenid) {
+      return {
+        code: 400,
+        message: '缺少骑手openid'
+      };
+    }
+    
+    const { page = 1, pageSize = 20 } = data || {};
+    
+    // 获取今天的日期范围（开始和结束时间）
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStart = today.getTime();
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todayEnd = tomorrow.getTime();
+    
+    console.log('【获取骑手今日收入】日期范围:', {
+      start: new Date(todayStart),
+      end: new Date(todayEnd),
+      riderOpenid: riderOpenid
+    });
+    
+    // 查询骑手已完成的订单（不管什么时候创建的，只要今天完成的）
+    // 由于数据库查询限制，我们先查询所有已完成的订单，然后在代码中过滤
+    const whereCondition = {
+      riderOpenid: riderOpenid,
+      orderStatus: 'completed' // 只查询已完成的订单
+    };
+    
+    console.log('【获取骑手今日收入】查询条件:', JSON.stringify(whereCondition));
+    
+    // 查询订单（不限制数量，因为需要在代码中过滤）
+    // 注意：由于需要按 completedAt 排序，但可能有些订单没有 completedAt
+    // 我们先查询所有已完成的订单，然后在代码中过滤和排序
+    const result = await db.collection('orders')
+      .where(whereCondition)
+      .orderBy('updatedAt', 'desc')
+      .get();
+    
+    console.log('【获取骑手今日收入】查询到订单数量:', result.data.length);
+    
+    // 过滤出今日完成的订单（completedAt 在今天）
+    const todayCompletedOrders = result.data.filter(order => {
+      if (order.completedAt) {
+        const completedTime = new Date(order.completedAt).getTime();
+        return completedTime >= todayStart && completedTime < todayEnd;
+      }
+      // 如果没有 completedAt，跳过（不应该出现这种情况）
+      return false;
+    }).sort((a, b) => {
+      // 按 completedAt 降序排序
+      const timeA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+      const timeB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+      return timeB - timeA;
+    });
+    
+    console.log('【获取骑手今日收入】今日完成的订单数量:', todayCompletedOrders.length);
+    
+    // 分页处理
+    const total = todayCompletedOrders.length;
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const pagedOrders = todayCompletedOrders.slice(startIndex, endIndex);
+    
+    console.log('【获取骑手今日收入】分页后订单数量:', pagedOrders.length, '总数:', total);
+    
+    // 格式化收入明细数据
+    const incomeList = pagedOrders.map(order => {
+      // 处理配送费（从分转换为元）
+      // 注意：根据统计逻辑，每完成一单收入是2元，而不是配送费
+      // 但这里我们显示配送费，总收入应该从 rider_stats 中获取
+      let amountDelivery = order.amountDelivery || 0;
+      if (typeof amountDelivery === 'number') {
+        amountDelivery = amountDelivery >= 100 ? amountDelivery / 100 : amountDelivery;
+      }
+      
+      // 格式化时间
+      const formatDate = (date) => {
+        if (!date) return null;
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hour = String(d.getHours()).padStart(2, '0');
+        const minute = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hour}:${minute}`;
+      };
+      
+      // 处理商品信息
+      let itemsText = '';
+      if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+        const category = order.items[0].category || '商品';
+        const count = order.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        itemsText = `${category}・${count}件`;
+      }
+      
+      return {
+        id: order._id,
+        orderNo: order.orderNo,
+        income: '2.00', // 每完成一单收入2元（固定值，与统计逻辑一致）
+        items: itemsText,
+        completedAt: formatDate(order.completedAt),
+        createdAt: formatDate(order.createdAt)
+      };
+    });
+    
+    // 计算总收入（每单2元）
+    const totalIncome = total * 2.00;
+    
+    return {
+      code: 200,
+      message: 'ok',
+      data: {
+        list: incomeList,
+        total: total,
+        totalIncome: totalIncome.toFixed(2),
+        page: page,
+        pageSize: pageSize
+      }
+    };
+    
+  } catch (error) {
+    console.error('【获取骑手今日收入】异常:', error);
+    return {
+      code: 500,
+      message: '获取今日收入明细失败',
+      error: error.message
+    };
+  }
 }
 

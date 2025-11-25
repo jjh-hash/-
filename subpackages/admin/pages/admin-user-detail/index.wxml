@@ -85,6 +85,49 @@
       </view>
     </view>
 
+    <!-- 骑手信息 -->
+    <view class="section {{riderInfo && riderInfo.isRider ? 'rider-section' : ''}}">
+      <view class="section-title">骑手信息</view>
+      <view class="info-item">
+        <text class="label">是否注册骑手：</text>
+        <text class="value {{riderInfo && riderInfo.isRider ? 'rider-status' : ''}}">
+          {{riderInfo && riderInfo.isRider ? '是' : '否'}}
+        </text>
+      </view>
+      <block wx:if="{{riderInfo && riderInfo.isRider}}">
+        <view class="info-item">
+          <text class="label">真实姓名：</text>
+          <text class="value">{{riderInfo.name || '未填写'}}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">手机号：</text>
+          <text class="value">{{riderInfo.phone || '未填写'}}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">性别：</text>
+          <text class="value">{{riderInfo.gender === 'male' ? '男' : riderInfo.gender === 'female' ? '女' : '未填写'}}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">配送工具：</text>
+          <text class="value">{{riderInfo.vehicle || '未填写'}}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">审核状态：</text>
+          <text class="value rider-status-{{riderInfo.status}}">
+            <text wx:if="{{riderInfo.status === 'pending'}}">待审核</text>
+            <text wx:elif="{{riderInfo.status === 'approved'}}">已通过</text>
+            <text wx:elif="{{riderInfo.status === 'rejected'}}">已拒绝</text>
+            <text wx:elif="{{riderInfo.status === 'unknown'}}">未知</text>
+            <text wx:else>{{riderInfo.status}}</text>
+          </text>
+        </view>
+        <view class="info-item" wx:if="{{riderInfo.createdAt}}">
+          <text class="label">注册时间：</text>
+          <text class="value">{{riderInfo.createdAt || '未知'}}</text>
+        </view>
+      </block>
+    </view>
+
     <!-- 封禁信息 -->
     <view wx:if="{{user.status === 'banned'}}" class="section ban-section">
       <view class="section-title">封禁信息</view>

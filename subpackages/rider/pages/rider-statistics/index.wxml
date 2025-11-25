@@ -1,0 +1,99 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-left" bindtap="onBack">
+      <text class="back-icon">◀</text>
+    </view>
+    <view class="nav-title">统计数据</view>
+    <view class="nav-right"></view>
+  </view>
+
+  <scroll-view scroll-y class="content" refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onPullDownRefresh">
+    <!-- 总统计卡片 -->
+    <view class="stats-header">
+      <view class="stat-big-card orders-card">
+        <view class="stat-icon-wrapper">
+          <view class="stat-icon orders-icon">📊</view>
+        </view>
+        <view class="stat-content">
+          <text class="stat-label">总接单数</text>
+          <text class="stat-number">{{totalStats.orders || 0}}</text>
+          <text class="stat-unit">单</text>
+        </view>
+      </view>
+
+      <view class="stat-big-card income-card">
+        <view class="stat-icon-wrapper">
+          <view class="stat-icon income-icon">💰</view>
+        </view>
+        <view class="stat-content">
+          <text class="stat-label">总收入</text>
+          <text class="stat-number">¥{{totalStats.income || '0.00'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 时间维度统计 -->
+    <view class="time-stats-section">
+      <view class="section-title">时间统计</view>
+      
+      <!-- 今日统计 -->
+      <view class="time-stat-item">
+        <view class="time-stat-header">
+          <text class="time-label">今日</text>
+          <text class="time-date">{{todayDate}}</text>
+        </view>
+        <view class="time-stat-content">
+          <view class="time-stat-box">
+            <text class="time-stat-label">接单数</text>
+            <text class="time-stat-value">{{todayStats.orders || 0}} 单</text>
+          </view>
+          <view class="time-stat-box">
+            <text class="time-stat-label">收入</text>
+            <text class="time-stat-value">¥{{todayStats.income || '0.00'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 本周统计 -->
+      <view class="time-stat-item">
+        <view class="time-stat-header">
+          <text class="time-label">本周</text>
+          <text class="time-date">{{weekDateRange}}</text>
+        </view>
+        <view class="time-stat-content">
+          <view class="time-stat-box">
+            <text class="time-stat-label">接单数</text>
+            <text class="time-stat-value">{{weekStats.orders || 0}} 单</text>
+          </view>
+          <view class="time-stat-box">
+            <text class="time-stat-label">收入</text>
+            <text class="time-stat-value">¥{{weekStats.income || '0.00'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 本月统计 -->
+      <view class="time-stat-item">
+        <view class="time-stat-header">
+          <text class="time-label">本月</text>
+          <text class="time-date">{{monthDateRange}}</text>
+        </view>
+        <view class="time-stat-content">
+          <view class="time-stat-box">
+            <text class="time-stat-label">接单数</text>
+            <text class="time-stat-value">{{monthStats.orders || 0}} 单</text>
+          </view>
+          <view class="time-stat-box">
+            <text class="time-stat-label">收入</text>
+            <text class="time-stat-value">¥{{monthStats.income || '0.00'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>
+

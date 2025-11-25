@@ -1,0 +1,108 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-left" bindtap="onBack">
+      <text class="back-icon">◀</text>
+    </view>
+    <view class="nav-title">今日接单</view>
+    <view class="nav-right"></view>
+  </view>
+
+  <!-- 订单列表 -->
+  <scroll-view 
+    class="content-area" 
+    scroll-y="{{true}}" 
+    enable-back-to-top="{{true}}"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+    bindscrolltolower="onLoadMore"
+  >
+    <!-- 加载状态 -->
+    <view class="loading-state" wx:if="{{loading && orders.length === 0}}">
+      <text>加载中...</text>
+    </view>
+    
+    <!-- 空状态 -->
+    <view class="empty-state" wx:elif="{{!loading && orders.length === 0}}">
+      <view class="empty-illustration">
+        <text class="illustration-emoji">📋</text>
+      </view>
+      <text class="empty-title">今日暂无订单</text>
+      <text class="empty-desc">快去抢单吧！</text>
+    </view>
+    
+    <!-- 订单列表 -->
+    <block wx:elif="{{orders.length > 0}}">
+      <block wx:for="{{orders}}" wx:key="id">
+        <view class="order-card" bindtap="onOrderDetail" data-id="{{item.id}}">
+          <!-- 顶部信息 -->
+          <view class="order-header">
+            <view class="order-info">
+              <text class="order-time">{{item.createdAt || '--'}}</text>
+              <text class="order-no" wx:if="{{item.orderNo}}">订单号: {{item.orderNo}}</text>
+            </view>
+            <text class="order-price">¥{{item.price}}</text>
+          </view>
+          
+          <!-- 状态标签 -->
+          <view class="status-tag" wx:if="{{item.status}}">
+            <text>{{item.status}}</text>
+          </view>
+          
+          <!-- 取货地址 -->
+          <view class="address-section pickup">
+            <view class="address-label">取货</view>
+            <view class="address-content">
+              <text class="store-name">{{item.pickupStore}}</text>
+              <text class="address-detail">{{item.pickupAddress}}</text>
+            </view>
+          </view>
+          
+          <!-- 配送地址 -->
+          <view class="address-section delivery">
+            <view class="address-label">配送</view>
+            <view class="address-content">
+              <text class="delivery-address">{{item.deliveryAddress}}</text>
+            </view>
+          </view>
+          
+          <!-- 餐品信息 -->
+          <view class="items-info" bindtap="onToggleItems" data-index="{{index}}" catchtap="true">
+            <text class="items-text">{{item.items}}</text>
+            <text class="items-arrow {{item.showItems ? 'expanded' : ''}}">▼</text>
+          </view>
+          
+          <!-- 餐品详情（可展开） -->
+          <view class="items-detail" wx:if="{{item.showItems && item.itemsDetail && item.itemsDetail.length > 0}}">
+            <block wx:for="{{item.itemsDetail}}" wx:key="index" wx:for-item="food">
+              <view class="food-item">
+                <text class="food-name">{{food.name}}</text>
+                <text class="food-spec" wx:if="{{food.spec}}">{{food.spec}}</text>
+                <text class="food-quantity">x{{food.quantity}}</text>
+              </view>
+            </block>
+          </view>
+          
+          <!-- 时间信息 -->
+          <view class="time-info" wx:if="{{item.readyAt || item.completedAt}}">
+            <text class="time-item" wx:if="{{item.readyAt}}">出餐时间: {{item.readyAt}}</text>
+            <text class="time-item" wx:if="{{item.completedAt}}">完成时间: {{item.completedAt}}</text>
+          </view>
+        </view>
+      </block>
+      
+      <!-- 加载更多 -->
+      <view class="load-more" wx:if="{{loading && orders.length > 0}}">
+        <text>加载中...</text>
+      </view>
+      <view class="load-more" wx:elif="{{!hasMore && orders.length > 0}}">
+        <text>没有更多了</text>
+      </view>
+    </block>
+  </scroll-view>
+</view>
+
