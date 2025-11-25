@@ -80,6 +80,10 @@ exports.main = async (event, context) => {
       };
     } else {
       // 创建新的骑手记录
+      // 注意：如果集合不存在，add 方法会自动创建集合
+      // 如果仍然失败，请检查：
+      // 1. 云函数是否已正确部署（右键 cloudfunctions/riderRegister -> 上传并部署：云端安装依赖）
+      // 2. 数据库权限是否允许创建集合
       const riderResult = await db.collection('riders').add({
         data: {
           openid: openid,
@@ -92,6 +96,8 @@ exports.main = async (event, context) => {
           updatedAt: db.serverDate()
         }
       });
+
+      console.log('【骑手注册】创建成功，骑手ID:', riderResult._id);
 
       return {
         code: 200,

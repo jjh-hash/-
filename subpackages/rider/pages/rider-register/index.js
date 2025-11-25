@@ -3,7 +3,7 @@ Page({
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     name: '',
     phone: '',
-    gender: '',
+    gender: 'male', // 默认值对应 genderIndex: 0（男）
     genderIndex: 0,
     genderOptions: ['男', '女'],
     vehicle: '',
@@ -19,7 +19,7 @@ Page({
   },
 
   onGenderChange(e) {
-    const index = e.detail.value;
+    const index = Number(e.detail.value); // 确保转换为数字
     const gender = index === 0 ? 'male' : 'female';
     this.setData({
       genderIndex: index,
