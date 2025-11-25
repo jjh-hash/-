@@ -16,7 +16,14 @@
     <!-- 店铺信息 -->
     <view class="store-info">
       <view class="store-name">{{storeInfo.name}}</view>
-      <view class="store-announcement">{{storeInfo.announcement}}</view>
+      <view class="store-announcement-wrapper" wx:if="{{storeInfo.announcement}}">
+        <view class="store-announcement {{announcementExpanded ? 'expanded' : 'collapsed'}}">
+          {{storeInfo.announcement}}
+        </view>
+        <view class="announcement-toggle" bindtap="onToggleAnnouncement" wx:if="{{announcementNeedExpand}}">
+          <text class="toggle-text">{{announcementExpanded ? '收起' : '查看详细'}}</text>
+        </view>
+      </view>
     </view>
 
     <!-- 收货地址 -->

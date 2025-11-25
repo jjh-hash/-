@@ -70,6 +70,8 @@
 
 .store-info {
   flex: 1;
+  min-width: 0;
+  margin-right: 12px;
 }
 
 .store-name {
@@ -90,15 +92,49 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  overflow: hidden;
+  width: 100%;
 }
 
 .announcement-icon {
   font-size: 12px;
+  flex-shrink: 0;
 }
 
-.announcement-text {
+.announcement-wrapper {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  height: 16px;
+  line-height: 16px;
+  max-width: 200px;
+}
+
+.announcement-scroll {
+  white-space: nowrap;
   font-size: 12px;
   color: #999;
+  display: inline-block;
+  height: 16px;
+  line-height: 16px;
+}
+
+.announcement-scroll.scrolling {
+  animation: scroll-text linear infinite;
+}
+
+.announcement-scroll .announcement-text {
+  display: inline-block;
+  margin-right: 50px;
+}
+
+@keyframes scroll-text {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .store-logo {

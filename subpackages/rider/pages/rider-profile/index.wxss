@@ -1,0 +1,214 @@
+.page {
+  min-height: 100vh;
+  background: #F5F6F8;
+}
+
+.status-bar {
+  width: 100%;
+  background: #2C2C2C;
+}
+
+.nav-bar {
+  background: #2C2C2C;
+  color: #fff;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.nav-left,
+.nav-right {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-icon {
+  font-size: 18px;
+  color: #fff;
+}
+
+.nav-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.setting-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* 用户信息卡片 */
+.profile-card {
+  background: linear-gradient(135deg, #1890FF 0%, #096DD9 100%);
+  margin: 16px;
+  border-radius: 16px;
+  padding: 20px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-card::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.avatar-wrapper {
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.3);
+  margin-right: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.avatar-placeholder-text {
+  font-size: 24px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.rider-name {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* 数据统计卡片 */
+.stats-cards {
+  padding: 0 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card:last-child {
+  margin-bottom: 0;
+}
+
+.stat-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-right: 16px;
+}
+
+.order-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.income-icon {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.feedback-icon {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-card-number {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.stat-card-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.stat-card-desc {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.stat-card-arrow {
+  font-size: 16px;
+  color: #ccc;
+  margin-left: 8px;
+}
+
+/* 退出接单端按钮 */
+.logout-section {
+  padding: 0 16px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.logout-btn {
+  width: 100%;
+  height: 48px;
+  line-height: 48px;
+  background: #fff;
+  color: #ff4d4f;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  border: 1px solid #ff4d4f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-btn::after {
+  border: none;
+}
+

@@ -62,6 +62,30 @@ exports.main = async (event, context) => {
       case 'getReceiveOrders':
         result = await getReceiveOrders(OPENID, data);
         break;
+      case 'getAvailableOrders':
+        result = await getAvailableOrders(OPENID, data);
+        break;
+      case 'grabOrder':
+        result = await grabOrder(OPENID, data);
+        break;
+      case 'getPickupOrders':
+        result = await getPickupOrders(OPENID, data);
+        break;
+      case 'confirmMerchantReady':
+        result = await confirmMerchantReady(OPENID, data);
+        break;
+      case 'confirmPickup':
+        result = await confirmPickup(OPENID, data);
+        break;
+      case 'getDeliverOrders':
+        result = await getDeliverOrders(OPENID, data);
+        break;
+      case 'confirmDelivery':
+        result = await confirmDelivery(OPENID, data);
+        break;
+      case 'getRiderTodayStats':
+        result = await getRiderTodayStats(OPENID, data);
+        break;
       default:
         console.warn('【订单管理】无效的操作类型:', action);
         result = {
@@ -162,6 +186,7 @@ async function createOrder(openid, data) {
     }
     
     // 检查自动接单设置：如果开启自动接单，订单状态直接设为confirmed
+    // 如果未开启自动接单，订单状态为pending，需要商家确认后才能变为confirmed，骑手端才能看到
     const autoAccept = store.data.autoAccept === true;
     const initialOrderStatus = autoAccept ? 'confirmed' : 'pending';
     
@@ -490,7 +515,8 @@ async function getOrderList(openid, data) {
         readyAt: order.readyAt ? formatDate(order.readyAt) : null,
         estimatedDeliveryTime: estimatedDeliveryTime, // 预计送达时间
         estimatedDeliveryMinutes: estimatedDeliveryMinutes, // 预计配送时间配置值（分钟）
-        createdAt: formatDate(order.createdAt)
+        createdAt: formatDate(order.createdAt),
+        riderOpenid: order.riderOpenid || null // 骑手openid，用于判断是否已接单
       };
     });
     
@@ -716,6 +742,15 @@ async function updateOrderStatus(openid, data) {
     
     const order = orderResult.data;
     
+    // 限制：商家不能直接将订单状态更新为 completed（已完成）
+    // 只有骑手通过 confirmDelivery 接口才能将订单状态更新为 completed
+    if (status === 'completed') {
+      return {
+        code: 403,
+        message: '商家不能直接完成订单，订单完成需要骑手确认送达'
+      };
+    }
+    
     // 更新订单状态
     const updateData = {
       orderStatus: status,
@@ -731,16 +766,6 @@ async function updateOrderStatus(openid, data) {
     await db.collection('orders').doc(orderId).update({
       data: updateData
     });
-    
-    // 如果订单完成（completed），记录完成时间并更新销售统计
-    if (status === 'completed' && !order.completedAt) {
-      await db.collection('orders').doc(orderId).update({
-        data: {
-          completedAt: db.serverDate()
-        }
-      });
-      await updateSalesStatistics(order);
-    }
     
     console.log('【更新订单状态】更新成功');
     
@@ -2631,5 +2656,872 @@ async function getReceiveOrders(openid, data) {
       error: error.message
     };
   }
+}
+
+/**
+ * 获取可抢订单列表（待抢单）
+ * 查询状态为 ready 或 confirmed 且未分配骑手的订单
+ */
+async function getAvailableOrders(openid, data) {
+  try {
+    const { page = 1, pageSize = 20 } = data || {};
+    
+    console.log('【获取可抢订单列表】参数:', { page, pageSize });
+    
+    // 查询条件：状态为 ready 或 confirmed，且未分配骑手（riderOpenid 不存在或为空）
+    // 只查询普通外卖订单（排除 gaming、reward、express）
+    // 注意：普通外卖订单可能没有 orderType 字段，所以使用 or 条件来处理
+    // 同时处理 orderType 不存在、null 或者不在排除列表中的情况
+    const whereCondition = db.command.or([
+      {
+        orderStatus: db.command.in(['ready', 'confirmed']),
+        riderOpenid: db.command.exists(false),
+        orderType: db.command.exists(false) // orderType 不存在（普通外卖订单）
+      },
+      {
+        orderStatus: db.command.in(['ready', 'confirmed']),
+        riderOpenid: db.command.exists(false),
+        orderType: null // orderType 为 null（普通外卖订单）
+      },
+      {
+        orderStatus: db.command.in(['ready', 'confirmed']),
+        riderOpenid: db.command.exists(false),
+        orderType: db.command.nin(['gaming', 'reward', 'express']) // orderType 存在但不等于这些值
+      }
+    ]);
+    
+    console.log('【获取可抢订单列表】查询条件:', JSON.stringify(whereCondition));
+    
+    // 查询订单
+    const result = await db.collection('orders')
+      .where(whereCondition)
+      .orderBy('createdAt', 'desc')
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .get();
+    
+    console.log('【获取可抢订单列表】查询到订单数量:', result.data.length);
+    
+    // 获取总数
+    const countResult = await db.collection('orders')
+      .where(whereCondition)
+      .count();
+    
+    console.log('【获取可抢订单列表】订单总数:', countResult.total);
+    
+    // 过滤已删除店铺的订单
+    const validOrders = [];
+    const storeIds = [...new Set(result.data.map(order => order.storeId).filter(id => id))];
+    
+    // 批量查询店铺信息
+    const storeMap = new Map();
+    if (storeIds.length > 0) {
+      try {
+        const storePromises = storeIds.map(storeId => 
+          db.collection('stores').doc(storeId).get().catch(() => null)
+        );
+        const storeResults = await Promise.all(storePromises);
+        
+        storeResults.forEach((storeResult, index) => {
+          if (storeResult && storeResult.data) {
+            storeMap.set(storeIds[index], storeResult.data);
+          }
+        });
+      } catch (err) {
+        console.warn('【获取可抢订单列表】批量查询店铺信息失败:', err);
+      }
+    }
+    
+    // 只保留店铺存在的订单
+    for (const order of result.data) {
+      if (!order.storeId) {
+        // 没有店铺ID的订单跳过（理论上不应该出现）
+        continue;
+      }
+      
+      if (storeMap.has(order.storeId)) {
+        // 店铺存在，添加到有效订单列表
+        validOrders.push(order);
+      } else {
+        // 店铺不存在，跳过此订单
+        console.log(`【获取可抢订单列表】订单 ${order._id} 的店铺 ${order.storeId} 不存在，已过滤`);
+      }
+    }
+    
+    // 格式化订单数据
+    const formattedList = validOrders.map(order => formatRiderOrder(order));
+    
+    console.log('【获取可抢订单列表】查询结果:', result.data.length, '条，有效订单:', formattedList.length, '条');
+    
+    return {
+      code: 200,
+      message: 'ok',
+      data: {
+        list: formattedList,
+        total: formattedList.length, // 返回实际有效订单数
+        page: page,
+        pageSize: pageSize
+      }
+    };
+    
+  } catch (error) {
+    console.error('【获取可抢订单列表】异常:', error);
+    return {
+      code: 500,
+      message: '获取可抢订单列表失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 骑手接单
+ */
+async function grabOrder(openid, data) {
+  try {
+    const { orderId } = data;
+    
+    console.log('【骑手接单】参数:', { orderId, riderOpenid: openid });
+    
+    if (!orderId) {
+      return {
+        code: 400,
+        message: '缺少订单ID'
+      };
+    }
+    
+    // 获取订单信息
+    const orderResult = await db.collection('orders').doc(orderId).get();
+    if (!orderResult.data) {
+      return {
+        code: 404,
+        message: '订单不存在'
+      };
+    }
+    
+    const order = orderResult.data;
+    
+    // 检查订单状态
+    if (order.orderStatus !== 'ready' && order.orderStatus !== 'confirmed') {
+      return {
+        code: 400,
+        message: '订单状态不允许接单'
+      };
+    }
+    
+    // 检查是否已被其他骑手接单
+    if (order.riderOpenid && order.riderOpenid !== openid) {
+      return {
+        code: 400,
+        message: '订单已被其他骑手接单'
+      };
+    }
+    
+    // 更新订单：分配骑手
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        riderOpenid: openid,
+        updatedAt: db.serverDate()
+      }
+    });
+    
+    console.log('【骑手接单】接单成功');
+    
+    return {
+      code: 200,
+      message: '接单成功'
+    };
+    
+  } catch (error) {
+    console.error('【骑手接单】异常:', error);
+    return {
+      code: 500,
+      message: '接单失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 获取待取货订单列表
+ * 查询当前骑手已接单但未取餐的订单
+ */
+async function getPickupOrders(openid, data) {
+  try {
+    const { page = 1, pageSize = 20 } = data || {};
+    
+    console.log('【获取待取货订单列表】参数:', { page, pageSize, riderOpenid: openid });
+    
+    // 查询条件：当前骑手已接单，状态为 confirmed 或 ready，且未取餐（状态不是 delivering）
+    // 注意：普通外卖订单可能没有 orderType 字段，所以使用 or 条件来处理
+    const whereCondition = db.command.or([
+      {
+        riderOpenid: openid,
+        orderStatus: db.command.in(['confirmed', 'ready']),
+        orderType: db.command.exists(false) // orderType 不存在（普通外卖订单）
+      },
+      {
+        riderOpenid: openid,
+        orderStatus: db.command.in(['confirmed', 'ready']),
+        orderType: db.command.nin(['gaming', 'reward', 'express']) // orderType 存在但不等于这些值
+      }
+    ]);
+    
+    // 查询订单
+    const result = await db.collection('orders')
+      .where(whereCondition)
+      .orderBy('createdAt', 'desc')
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .get();
+    
+    // 获取总数
+    const countResult = await db.collection('orders')
+      .where(whereCondition)
+      .count();
+    
+    // 过滤已删除店铺的订单
+    const validOrders = [];
+    const storeIds = [...new Set(result.data.map(order => order.storeId).filter(id => id))];
+    
+    // 批量查询店铺信息
+    const storeMap = new Map();
+    if (storeIds.length > 0) {
+      try {
+        const storePromises = storeIds.map(storeId => 
+          db.collection('stores').doc(storeId).get().catch(() => null)
+        );
+        const storeResults = await Promise.all(storePromises);
+        
+        storeResults.forEach((storeResult, index) => {
+          if (storeResult && storeResult.data) {
+            storeMap.set(storeIds[index], storeResult.data);
+          }
+        });
+      } catch (err) {
+        console.warn('【获取待取货订单列表】批量查询店铺信息失败:', err);
+      }
+    }
+    
+    // 只保留店铺存在的订单
+    for (const order of result.data) {
+      if (!order.storeId) {
+        // 没有店铺ID的订单跳过（理论上不应该出现）
+        continue;
+      }
+      
+      if (storeMap.has(order.storeId)) {
+        // 店铺存在，添加到有效订单列表
+        validOrders.push(order);
+      } else {
+        // 店铺不存在，跳过此订单
+        console.log(`【获取待取货订单列表】订单 ${order._id} 的店铺 ${order.storeId} 不存在，已过滤`);
+      }
+    }
+    
+    // 格式化订单数据
+    const formattedList = validOrders.map(order => formatRiderOrder(order));
+    
+    console.log('【获取待取货订单列表】查询结果:', result.data.length, '条，有效订单:', formattedList.length, '条');
+    
+    return {
+      code: 200,
+      message: 'ok',
+      data: {
+        list: formattedList,
+        total: formattedList.length, // 返回实际有效订单数
+        page: page,
+        pageSize: pageSize
+      }
+    };
+    
+  } catch (error) {
+    console.error('【获取待取货订单列表】异常:', error);
+    return {
+      code: 500,
+      message: '获取待取货订单列表失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 骑手确认商家出餐（带2分钟同步校验）
+ */
+async function confirmMerchantReady(openid, data) {
+  try {
+    const { orderId } = data;
+    
+    console.log('【骑手确认商家出餐】参数:', { orderId, riderOpenid: openid });
+    
+    if (!orderId) {
+      return {
+        code: 400,
+        message: '缺少订单ID'
+      };
+    }
+    
+    // 获取订单信息
+    const orderResult = await db.collection('orders').doc(orderId).get();
+    if (!orderResult.data) {
+      return {
+        code: 404,
+        message: '订单不存在'
+      };
+    }
+    
+    const order = orderResult.data;
+    
+    // 检查是否为当前骑手的订单
+    if (order.riderOpenid !== openid) {
+      return {
+        code: 403,
+        message: '无权操作此订单'
+      };
+    }
+    
+    // 检查订单状态
+    if (order.orderStatus !== 'confirmed' && order.orderStatus !== 'ready') {
+      return {
+        code: 400,
+        message: '订单状态不允许此操作'
+      };
+    }
+    
+    // 2分钟同步校验逻辑
+    const now = new Date();
+    const readyAt = order.readyAt ? new Date(order.readyAt) : null;
+    
+    if (readyAt) {
+      const timeDiff = Math.abs(now - readyAt) / 1000 / 60; // 分钟差
+      if (timeDiff > 2) {
+        return {
+          code: 400,
+          message: '商家出餐时间已超过2分钟，请重新确认'
+        };
+      }
+    }
+    
+    // 更新订单：记录骑手确认商家出餐时间
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        riderConfirmedReadyAt: db.serverDate(),
+        updatedAt: db.serverDate()
+      }
+    });
+    
+    // 如果订单状态是 confirmed，更新为 ready
+    if (order.orderStatus === 'confirmed') {
+      await db.collection('orders').doc(orderId).update({
+        data: {
+          orderStatus: 'ready',
+          readyAt: readyAt || db.serverDate(),
+          updatedAt: db.serverDate()
+        }
+      });
+    }
+    
+    console.log('【骑手确认商家出餐】确认成功');
+    
+    return {
+      code: 200,
+      message: '确认成功'
+    };
+    
+  } catch (error) {
+    console.error('【骑手确认商家出餐】异常:', error);
+    return {
+      code: 500,
+      message: '确认失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 确认取餐
+ */
+async function confirmPickup(openid, data) {
+  try {
+    const { orderId } = data;
+    
+    console.log('【确认取餐】参数:', { orderId, riderOpenid: openid });
+    
+    if (!orderId) {
+      return {
+        code: 400,
+        message: '缺少订单ID'
+      };
+    }
+    
+    // 获取订单信息
+    const orderResult = await db.collection('orders').doc(orderId).get();
+    if (!orderResult.data) {
+      return {
+        code: 404,
+        message: '订单不存在'
+      };
+    }
+    
+    const order = orderResult.data;
+    
+    // 检查是否为当前骑手的订单
+    if (order.riderOpenid !== openid) {
+      return {
+        code: 403,
+        message: '无权操作此订单'
+      };
+    }
+    
+    // 检查订单状态
+    if (order.orderStatus !== 'ready' && order.orderStatus !== 'confirmed') {
+      return {
+        code: 400,
+        message: '订单状态不允许取餐'
+      };
+    }
+    
+    // 更新订单状态为 delivering（配送中）
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        orderStatus: 'delivering',
+        riderArrivedAt: db.serverDate(), // 记录到达商家时间（如果还没有）
+        updatedAt: db.serverDate()
+      }
+    });
+    
+    console.log('【确认取餐】取餐成功');
+    
+    return {
+      code: 200,
+      message: '取餐成功'
+    };
+    
+  } catch (error) {
+    console.error('【确认取餐】异常:', error);
+    return {
+      code: 500,
+      message: '取餐失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 获取待送达订单列表
+ * 查询当前骑手正在配送的订单
+ */
+async function getDeliverOrders(openid, data) {
+  try {
+    const { page = 1, pageSize = 20 } = data || {};
+    
+    console.log('【获取待送达订单列表】参数:', { page, pageSize, riderOpenid: openid });
+    
+    // 查询条件：当前骑手已接单，状态为 delivering
+    // 注意：普通外卖订单可能没有 orderType 字段，所以使用 or 条件来处理
+    const whereCondition = db.command.or([
+      {
+        riderOpenid: openid,
+        orderStatus: 'delivering',
+        orderType: db.command.exists(false) // orderType 不存在（普通外卖订单）
+      },
+      {
+        riderOpenid: openid,
+        orderStatus: 'delivering',
+        orderType: db.command.nin(['gaming', 'reward', 'express']) // orderType 存在但不等于这些值
+      }
+    ]);
+    
+    // 查询订单
+    const result = await db.collection('orders')
+      .where(whereCondition)
+      .orderBy('createdAt', 'desc')
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .get();
+    
+    // 获取总数
+    const countResult = await db.collection('orders')
+      .where(whereCondition)
+      .count();
+    
+    // 过滤已删除店铺的订单
+    const validOrders = [];
+    const storeIds = [...new Set(result.data.map(order => order.storeId).filter(id => id))];
+    
+    // 批量查询店铺信息
+    const storeMap = new Map();
+    if (storeIds.length > 0) {
+      try {
+        const storePromises = storeIds.map(storeId => 
+          db.collection('stores').doc(storeId).get().catch(() => null)
+        );
+        const storeResults = await Promise.all(storePromises);
+        
+        storeResults.forEach((storeResult, index) => {
+          if (storeResult && storeResult.data) {
+            storeMap.set(storeIds[index], storeResult.data);
+          }
+        });
+      } catch (err) {
+        console.warn('【获取待送达订单列表】批量查询店铺信息失败:', err);
+      }
+    }
+    
+    // 只保留店铺存在的订单
+    for (const order of result.data) {
+      if (!order.storeId) {
+        // 没有店铺ID的订单跳过（理论上不应该出现）
+        continue;
+      }
+      
+      if (storeMap.has(order.storeId)) {
+        // 店铺存在，添加到有效订单列表
+        validOrders.push(order);
+      } else {
+        // 店铺不存在，跳过此订单
+        console.log(`【获取待送达订单列表】订单 ${order._id} 的店铺 ${order.storeId} 不存在，已过滤`);
+      }
+    }
+    
+    // 格式化订单数据
+    const formattedList = validOrders.map(order => formatRiderOrder(order));
+    
+    console.log('【获取待送达订单列表】查询结果:', result.data.length, '条，有效订单:', formattedList.length, '条');
+    
+    return {
+      code: 200,
+      message: 'ok',
+      data: {
+        list: formattedList,
+        total: formattedList.length, // 返回实际有效订单数
+        page: page,
+        pageSize: pageSize
+      }
+    };
+    
+  } catch (error) {
+    console.error('【获取待送达订单列表】异常:', error);
+    return {
+      code: 500,
+      message: '获取待送达订单列表失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 确认送达
+ */
+async function confirmDelivery(openid, data) {
+  try {
+    const { orderId } = data;
+    
+    console.log('【确认送达】参数:', { orderId, riderOpenid: openid });
+    
+    if (!orderId) {
+      return {
+        code: 400,
+        message: '缺少订单ID'
+      };
+    }
+    
+    // 获取订单信息
+    const orderResult = await db.collection('orders').doc(orderId).get();
+    if (!orderResult.data) {
+      return {
+        code: 404,
+        message: '订单不存在'
+      };
+    }
+    
+    const order = orderResult.data;
+    
+    // 检查是否为当前骑手的订单
+    if (order.riderOpenid !== openid) {
+      return {
+        code: 403,
+        message: '无权操作此订单'
+      };
+    }
+    
+    // 检查订单状态
+    if (order.orderStatus !== 'delivering') {
+      return {
+        code: 400,
+        message: '订单状态不允许送达'
+      };
+    }
+    
+    // 更新订单状态为 completed（已完成）
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        orderStatus: 'completed',
+        completedAt: db.serverDate(),
+        updatedAt: db.serverDate()
+      }
+    });
+    
+    // 更新销售统计
+    await updateSalesStatistics(order);
+    
+    // 更新骑手的今日订单数和今日收入统计
+    await updateRiderTodayStats(openid);
+    
+    console.log('【确认送达】送达成功');
+    
+    return {
+      code: 200,
+      message: '送达成功'
+    };
+    
+  } catch (error) {
+    console.error('【确认送达】异常:', error);
+    return {
+      code: 500,
+      message: '送达失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 更新骑手今日统计数据
+ * 每完成一个订单，今日接单数+1，今日收入+2元
+ */
+async function updateRiderTodayStats(riderOpenid) {
+  try {
+    if (!riderOpenid) {
+      console.warn('【更新骑手统计】缺少骑手openid');
+      return;
+    }
+    
+    console.log('【更新骑手统计】开始更新，骑手openid:', riderOpenid);
+    
+    // 获取今天的日期（格式：YYYY-MM-DD）
+    // 使用服务器时间，确保日期格式一致
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    console.log('【更新骑手统计】日期字符串:', dateStr, '骑手openid:', riderOpenid);
+    
+    // 查询今日统计数据
+    const statsResult = await db.collection('rider_stats')
+      .where({
+        riderOpenid: riderOpenid,
+        date: dateStr
+      })
+      .get();
+    
+    console.log('【更新骑手统计】查询结果:', statsResult.data);
+    
+    if (statsResult.data && statsResult.data.length > 0) {
+      // 如果今日统计已存在，更新数据
+      const stats = statsResult.data[0];
+      const updateResult = await db.collection('rider_stats').doc(stats._id).update({
+        data: {
+          todayOrders: db.command.inc(1), // 今日接单数+1
+          todayIncome: db.command.inc(2.00), // 今日收入+2元
+          updatedAt: db.serverDate()
+        }
+      });
+      console.log('【更新骑手统计】更新成功，订单数+1，收入+2元，更新结果:', updateResult);
+    } else {
+      // 如果今日统计不存在，创建新记录
+      const addResult = await db.collection('rider_stats').add({
+        data: {
+          riderOpenid: riderOpenid,
+          date: dateStr,
+          todayOrders: 1, // 今日接单数
+          todayIncome: 2.00, // 今日收入（元）
+          createdAt: db.serverDate(),
+          updatedAt: db.serverDate()
+        }
+      });
+      console.log('【更新骑手统计】创建新记录，订单数=1，收入=2元，创建结果:', addResult);
+    }
+  } catch (error) {
+    console.error('【更新骑手统计】异常:', error);
+    console.error('【更新骑手统计】错误堆栈:', error.stack);
+    // 不抛出错误，避免影响订单完成流程
+  }
+}
+
+/**
+ * 获取骑手今日统计数据
+ */
+async function getRiderTodayStats(riderOpenid, data) {
+  try {
+    if (!riderOpenid) {
+      return {
+        code: 400,
+        message: '缺少骑手openid'
+      };
+    }
+    
+    // 获取今天的日期（格式：YYYY-MM-DD）
+    // 使用服务器时间，确保日期格式与更新统计时一致
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    console.log('【获取骑手统计】日期字符串:', dateStr, '骑手openid:', riderOpenid);
+    
+    // 查询今日统计数据
+    const statsResult = await db.collection('rider_stats')
+      .where({
+        riderOpenid: riderOpenid,
+        date: dateStr
+      })
+      .get();
+    
+    console.log('【获取骑手统计】查询结果:', statsResult.data);
+    
+    if (statsResult.data && statsResult.data.length > 0) {
+      const stats = statsResult.data[0];
+      const orders = stats.todayOrders || 0;
+      const income = (stats.todayIncome || 0).toFixed(2);
+      console.log('【获取骑手统计】返回数据:', { orders, income });
+      return {
+        code: 200,
+        message: 'ok',
+        data: {
+          orders: orders,
+          income: income
+        }
+      };
+    } else {
+      // 如果今日统计不存在，返回0
+      console.log('【获取骑手统计】今日统计不存在，返回默认值');
+      return {
+        code: 200,
+        message: 'ok',
+        data: {
+          orders: 0,
+          income: '0.00'
+        }
+      };
+    }
+  } catch (error) {
+    console.error('【获取骑手统计】异常:', error);
+    return {
+      code: 500,
+      message: '获取统计数据失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 格式化骑手订单数据
+ */
+function formatRiderOrder(order) {
+  // 处理金额（从分转换为元）
+  let amountDelivery = order.amountDelivery || 0;
+  if (typeof amountDelivery === 'number') {
+    amountDelivery = amountDelivery >= 100 ? amountDelivery / 100 : amountDelivery;
+  }
+  
+  let amountTotal = order.amountTotal || order.amountPayable || 0;
+  if (typeof amountTotal === 'number') {
+    amountTotal = amountTotal >= 100 ? amountTotal / 100 : amountTotal;
+  }
+  
+  // 格式化时间
+  const formatDate = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hour = String(d.getHours()).padStart(2, '0');
+    const minute = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hour}:${minute}`;
+  };
+  
+  // 获取状态文本（根据订单状态和骑手接单情况）
+  const getStatusText = (status, riderOpenid) => {
+    // 如果订单状态是confirmed或ready，且有骑手接单，显示"骑手已接单"
+    if ((status === 'confirmed' || status === 'ready') && riderOpenid) {
+      return '骑手已接单';
+    }
+    
+    // 根据订单状态显示对应文本
+    const statusMap = {
+      'pending': '待确认',
+      'confirmed': '商家已确认',
+      'preparing': '制作中',
+      'ready': '商家已出餐',
+      'delivering': '骑手已取餐，正在派送',
+      'completed': '已送达',
+      'cancelled': '已取消'
+    };
+    return statusMap[status] || '未知状态';
+  };
+  
+  // 处理商品信息
+  let items = [];
+  let itemsText = '';
+  if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+    items = order.items.map(item => ({
+      name: item.productName || item.name || '商品',
+      spec: item.spec || '',
+      quantity: item.quantity || 1
+    }));
+    
+    // 生成餐品文本
+    const category = order.items[0].category || '商品';
+    const count = order.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    itemsText = `${category}・${count}件`;
+  }
+  
+  // 处理地址信息
+  let pickupStore = order.storeName || '商家店铺';
+  let pickupAddress = '';
+  let deliveryAddress = '';
+  
+  // 获取店铺地址（如果有店铺ID，可以查询店铺表获取详细地址）
+  // 这里简化处理，使用订单中已有的信息
+  if (order.storeId && order.storeAddress) {
+    pickupAddress = order.storeAddress;
+  } else {
+    pickupAddress = '商家地址';
+  }
+  
+  if (order.address) {
+    deliveryAddress = `${order.address.buildingName || ''}${order.address.houseNumber || ''}${order.address.addressDetail || order.address.address || ''}`;
+  }
+  
+  // 计算预计送达时间（简化处理，实际应该根据距离计算）
+  const deliveryTime = '30分钟内送达';
+  
+  // 计算距离（简化处理，实际应该根据地理位置计算）
+  const pickupDistance = '2.5 km';
+  const deliveryDistance = '1.8 km';
+  
+  return {
+    id: order._id,
+    orderNo: order.orderNo,
+    deliveryTime: deliveryTime,
+    price: amountTotal.toFixed(2),
+    pickupDistance: pickupDistance,
+    pickupStore: pickupStore,
+    pickupAddress: pickupAddress,
+    deliveryDistance: deliveryDistance,
+    deliveryAddress: deliveryAddress,
+    status: getStatusText(order.orderStatus, order.riderOpenid),
+    orderStatus: order.orderStatus,
+    items: itemsText,
+    itemsDetail: items,
+    showItems: false,
+    createdAt: formatDate(order.createdAt),
+    readyAt: formatDate(order.readyAt),
+    completedAt: formatDate(order.completedAt)
+  };
 }
 

@@ -1,38 +1,465 @@
-.page{min-height:100vh;background:#f5f5f5}
-.status-bar{width:100%}
-.header{background:#111;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
-.status-info{display:flex;align-items:center;gap:12px}
-.status-pill{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:16px;font-size:12px}
-.status-pill .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
-.status-pill.online{background:rgba(0,255,106,0.15);color:#00ff6a}
-.status-pill.online .dot{background:#00ff6a}
-.status-pill.offline{background:rgba(255,255,255,0.1);color:#ffb3b3}
-.status-pill.offline .dot{background:#ff6b6b}
-.area-select{display:flex;align-items:center;font-size:12px;color:#fff;opacity:.8}
-.area-select .arrow{margin-left:4px;font-size:10px}
-.header-icons{display:flex;gap:10px;align-items:center}
-.icon-btn{width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;position:relative}
-.helper-avatar{width:100%;height:100%;border-radius:16px}
-.badge{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:8px;background:#ff4d4f;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center}
+.page {
+  min-height: 100vh;
+  background: #F5F6F8;
+  display: flex;
+  flex-direction: column;
+}
 
-.tabs{display:flex;background:#fff}
-.tab{flex:1;text-align:center;padding:12px 0;font-size:14px;color:#666}
-.tab.active{color:#fe6723;font-weight:600;border-bottom:2px solid #fe6723}
+.status-bar {
+  width: 100%;
+  background: #2C2C2C;
+}
 
-.notice{display:flex;align-items:center;gap:6px;background:#fff7e6;color:#ad6800;padding:8px 12px;font-size:12px}
-.notice .close{margin-left:auto;font-size:14px}
+.header {
+  background: #2C2C2C;
+  color: #fff;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-.empty-card{margin:16px;background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.05);padding:24px;text-align:center;color:#333}
-.empty-img{width:160px;height:120px;margin:0 auto 16px;opacity:.9}
-.empty-title{display:block;font-size:16px;font-weight:600;margin-bottom:6px}
-.empty-desc{display:block;font-size:12px;color:#888;margin-bottom:16px}
-.primary-btn{background:#ff7a1a;color:#fff;border-radius:24px;height:42px;line-height:42px}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+}
 
-.bottom-bar{margin:16px;padding:12px;background:#fff;border-radius:12px;display:flex;align-items:center;gap:12px}
-.bottom-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#666;font-size:12px}
-.bottom-icon{width:32px;height:32px;border-radius:16px;background:#f5f5f5;margin-bottom:4px}
-.bottom-icon.gear{background-image:linear-gradient(135deg,#f093fb,#f5576c)}
-.bottom-icon.center{background-image:linear-gradient(135deg,#5ee7df,#b490ca)}
-.refresh-btn{flex:1;height:40px;border-radius:8px;background:#ff7a1a;color:#fff}
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tabs {
+  display: flex;
+  background: #2C2C2C;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 14px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.tab.active {
+  color: #fff;
+  font-weight: 600;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+}
+
+.tab-arrow {
+  font-size: 10px;
+  opacity: 0.8;
+  margin-left: 2px;
+}
+
+.content-area {
+  flex: 1;
+  height: 0;
+  padding: 16px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 40px 20px;
+}
+
+.empty-illustration {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.illustration-emoji {
+  font-size: 120px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.illustration-rider {
+  font-size: 80px;
+  line-height: 1;
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  opacity: 0.6;
+}
+
+.empty-title {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  color: #999;
+  margin-bottom: 12px;
+}
+
+.empty-desc {
+  display: block;
+  font-size: 13px;
+  color: #999;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.bottom-item {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 12px;
+  min-width: 60px;
+}
+
+.bottom-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.bottom-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+}
+
+.setting-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+}
+
+.order-count {
+  position: absolute;
+  top: -2px;
+  right: -8px;
+  background: #ff4d4f;
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bottom-text {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.refresh-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 8px;
+  background: #1890FF;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  margin-left: auto;
+}
+
+.refresh-btn::after {
+  border: none;
+}
+
+/* 订单列表 */
+.order-list {
+  width: 100%;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+/* 订单卡片 */
+.order-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* 订单头部 */
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.delivery-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.order-price {
+  font-size: 18px;
+  font-weight: 600;
+  color: #FF7A1A;
+}
+
+/* 地址区域 */
+.address-section {
+  margin-bottom: 12px;
+}
+
+.address-section.pickup {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.address-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.distance {
+  font-size: 13px;
+  color: #666;
+  margin-right: 8px;
+  min-width: 50px;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.store-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.store-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  word-break: break-all;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.address-detail {
+  font-size: 13px;
+  color: #999;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.delivery-address {
+  font-size: 14px;
+  color: #333;
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+/* 状态标签 */
+.status-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.status-tag text {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 餐品信息 */
+.items-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  margin-bottom: 12px;
+}
+
+.items-text {
+  font-size: 13px;
+  color: #666;
+}
+
+.items-arrow {
+  font-size: 12px;
+  color: #999;
+  transition: transform 0.3s;
+}
+
+.items-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+/* 餐品详情 */
+.items-detail {
+  padding: 8px 0;
+  margin-bottom: 12px;
+  border-top: 1px solid #f5f5f5;
+}
+
+.food-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.food-name {
+  color: #333;
+  flex: 1;
+}
+
+.food-spec {
+  color: #999;
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+.food-quantity {
+  color: #666;
+  margin-left: auto;
+}
+
+/* 抢单按钮 */
+.grab-btn {
+  width: 100%;
+  height: 44px;
+  background: #FF7A1A;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.grab-btn::after {
+  border: none;
+}
+
+/* 确认取餐按钮 */
+.pickup-btn {
+  width: 100%;
+  height: 44px;
+  background: #1890FF;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.pickup-btn::after {
+  border: none;
+}
+
+/* 确认送达按钮 */
+.deliver-btn {
+  width: 100%;
+  height: 44px;
+  background: #52C41A;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.deliver-btn::after {
+  border: none;
+}
 
 

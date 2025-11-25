@@ -669,8 +669,8 @@ Page({
       'pending': '待确认',
       'confirmed': '制作中',
       'preparing': '制作中',
-      'ready': '待配送',
-      'delivering': '配送中',
+      'ready': '商家已出餐',
+      'delivering': '骑手正在配送中',
       'completed': '已完成',
       'cancelled': '已取消'
     };
@@ -857,7 +857,7 @@ Page({
     }
   },
 
-  // 已出餐（confirmed -> completed）
+  // 已出餐（confirmed/preparing -> ready）
   async onCompleteOrder(e) {
     // 优先从dataset获取，如果没有则从detail中获取（详情弹窗场景）
     let orderId = e.currentTarget.dataset.id;
@@ -895,7 +895,7 @@ Page({
           action: 'updateOrderStatus',
           data: {
             orderId: orderId,
-            status: 'completed'
+            status: 'ready' // 商家出餐，订单状态更新为ready（商家已出餐）
           }
         }
       });

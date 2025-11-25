@@ -32,6 +32,8 @@ Page({
       totalReviews: 0,
       ratingStars: [false, false, false, false, false]
     },
+    announcementScroll: false, // 是否启用滚动
+    announcementDuration: 10, // 滚动动画持续时间（秒）
     // 评价相关
     reviews: [],
     reviewsLoading: false,
@@ -176,6 +178,9 @@ Page({
           
           // 数据加载完成后，根据第一个分类筛选商品
           this.filterProductsByCategory();
+          
+          // 检查公告是否需要滚动
+          this.checkAnnouncementScroll();
         });
       } else if (res.result && res.result.code === 403) {
         // 店铺休息中
@@ -1391,6 +1396,47 @@ Page({
     }
   },
   
+  // 检查公告是否需要滚动
+  checkAnnouncementScroll() {
+    if (!this.data.storeInfo.announcement) {
+      this.setData({
+        announcementScroll: false
+      });
+      return;
+    }
+    
+    // 使用定时器等待DOM渲染完成
+    setTimeout(() => {
+      const query = wx.createSelectorQuery();
+      query.select('.announcement-wrapper').boundingClientRect((rect) => {
+        if (!rect) return;
+        
+        query.select('.announcement-scroll').boundingClientRect((textRect) => {
+          if (!textRect) return;
+          
+          // 如果文字宽度超过容器宽度，启用滚动
+          const needScroll = textRect.width > rect.width;
+          
+          if (needScroll) {
+            // 计算滚动持续时间：根据文字宽度动态调整
+            // 滚动速度约为每秒50px，需要滚动文字宽度的一半（因为有两个重复的文字）
+            const textWidth = textRect.width;
+            const duration = Math.max(5, Math.ceil(textWidth / 50));
+            
+            this.setData({
+              announcementScroll: true,
+              announcementDuration: duration
+            });
+          } else {
+            this.setData({
+              announcementScroll: false
+            });
+          }
+        }).exec();
+      }).exec();
+    }, 200);
+  },
+
   // 点击编写评论按钮
   onSubmitReviewTap() {
     // 检查是否登录

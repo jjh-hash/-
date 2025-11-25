@@ -21,7 +21,7 @@
     "localPlugins": false,
     "disableUseStrict": false,
     "useCompilerPlugins": false,
-    "condition": false,
+    "condition": true,
     "swc": false,
     "disableSWC": true,
     "babelSetting": {
@@ -34,7 +34,10 @@
     "ignore": [],
     "include": []
   },
-  "simulatorPluginLibVersion": {},
+  "simulatorPluginLibVersion": {
+    "wxext14566970e7e9f62": "2.27.3"
+  },
   "editorSetting": {},
-  "cloudfunctionTemplateRoot": "cloudfunctionTemplate"
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate",
+  "projectArchitecture": "multiPlatform"
 }

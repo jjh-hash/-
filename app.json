@@ -71,7 +71,8 @@
         "pages/rider/index",
         "pages/rider-register/index",
         "pages/rider-login/index",
-        "pages/rider-home/index"
+        "pages/rider-home/index",
+        "pages/rider-profile/index"
       ]
     },
     {

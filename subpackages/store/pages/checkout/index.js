@@ -17,7 +17,9 @@ Page({
     addressSelected: false, // 是否已选择地址（用于防止onShow时覆盖用户选择的地址）
     needCutlery: true, // 是否需要餐具，默认需要
     cutleryQuantity: 1, // 餐具数量，默认1份
-    estimatedDeliveryTimeRange: '30~45分钟' // 预计到达时间范围，默认值
+    estimatedDeliveryTimeRange: '30~45分钟', // 预计到达时间范围，默认值
+    announcementExpanded: false, // 公告是否展开
+    announcementNeedExpand: false // 是否需要展开按钮（文字超过一定长度时）
   },
 
   onLoad(options) {
@@ -39,6 +41,9 @@ Page({
           storeInfo: cartData.storeInfo || {},
           deliveryFee: deliveryFee,
           deliveryType: cartData.deliveryType || 'delivery' // 保存配送方式
+        }, () => {
+          // 检查公告是否需要展开按钮
+          this.checkAnnouncementLength();
         });
         
         // 计算总金额（商品金额 + 配送费）
@@ -369,6 +374,23 @@ Page({
         url: '/subpackages/common/pages/address/index?from=checkout'
       });
     }
+  },
+
+  // 检查公告长度，判断是否需要展开按钮
+  checkAnnouncementLength() {
+    const announcement = this.data.storeInfo.announcement || '';
+    // 如果公告超过50个字符，显示展开按钮
+    const needExpand = announcement.length > 50;
+    this.setData({
+      announcementNeedExpand: needExpand
+    });
+  },
+
+  // 切换公告展开/收起
+  onToggleAnnouncement() {
+    this.setData({
+      announcementExpanded: !this.data.announcementExpanded
+    });
   },
 
   // 页面显示时刷新地址（从地址页面返回时）

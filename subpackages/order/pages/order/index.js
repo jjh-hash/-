@@ -541,7 +541,7 @@ Page({
             storeName: storeName,
             orderType: order.orderType || 'normal', // 订单类型
             date: this.formatDate(order.createdAt),
-            status: this.getStatusText(order.orderStatus),
+            status: this.getStatusText(order.orderStatus, order.riderOpenid),
             statusClass: this.getStatusClass(order.orderStatus),
             orderStatus: order.orderStatus,
             img: order.items && order.items[0] ? order.items[0].image : (order.images && order.images[0] ? order.images[0] : ''),
@@ -737,14 +737,29 @@ Page({
     return `${year}.${month}.${day}`;
   },
 
-  // 获取状态文本
-  getStatusText(status) {
+  // 获取状态文本（根据订单状态和骑手接单情况）
+  getStatusText(status, riderOpenid) {
+    // 如果订单状态是confirmed，且有骑手接单，显示"骑手已接单"
+    if (status === 'confirmed' && riderOpenid) {
+      return '骑手已接单';
+    }
+    
+    // 如果订单状态是ready（商家已出餐）
+    if (status === 'ready') {
+      // 如果有骑手接单，显示"骑手已接单"
+      if (riderOpenid) {
+        return '骑手已接单';
+      }
+      // 如果没有骑手接单，显示"商家已出餐"
+      return '商家已出餐';
+    }
+    
+    // 根据订单状态显示对应文本
     const statusMap = {
       'pending': '待确认',
-      'confirmed': '已确认',
+      'confirmed': '商家已确认',
       'preparing': '制作中',
-      'ready': '待配送',
-      'delivering': '配送中',
+      'delivering': '骑手正在配送',
       'completed': '已完成',
       'cancelled': '已取消'
     };

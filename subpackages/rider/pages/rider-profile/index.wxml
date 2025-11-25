@@ -1,0 +1,66 @@
+<view class="page">
+  <!-- 状态栏 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <view class="nav-left" bindtap="onBack">
+      <text class="back-icon">◀</text>
+    </view>
+    <view class="nav-title">个人中心</view>
+    <view class="nav-right" bindtap="onSetting">
+      <image class="setting-icon" src="/pages/小标/设置.png" mode="aspectFit"></image>
+    </view>
+  </view>
+
+  <!-- 用户信息卡片 -->
+  <view class="profile-card">
+    <view class="profile-header">
+      <view class="avatar-wrapper">
+        <image class="avatar-img" src="{{riderInfo.avatar}}" mode="aspectFill" wx:if="{{riderInfo.avatar}}" />
+        <view class="avatar-placeholder" wx:else>
+          <text class="avatar-placeholder-text">{{riderInfo.name ? riderInfo.name.substring(0, 1) : '用'}}</text>
+        </view>
+      </view>
+      <view class="profile-info">
+        <text class="rider-name">{{riderInfo.name || '微信用户'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 数据统计卡片 -->
+  <view class="stats-cards">
+    <view class="stat-card" bindtap="onTodayOrders">
+      <view class="stat-card-icon order-icon">📋</view>
+      <view class="stat-card-content">
+        <text class="stat-card-number">{{todayStats.orders || 0}}</text>
+        <text class="stat-card-label">今日接单</text>
+      </view>
+      <text class="stat-card-arrow">></text>
+    </view>
+
+    <view class="stat-card" bindtap="onTodayIncome">
+      <view class="stat-card-icon income-icon">💰</view>
+      <view class="stat-card-content">
+        <text class="stat-card-number">¥{{todayStats.income || '0.00'}}</text>
+        <text class="stat-card-label">今日收入</text>
+      </view>
+      <text class="stat-card-arrow">></text>
+    </view>
+
+    <view class="stat-card" bindtap="onFeedback">
+      <view class="stat-card-icon feedback-icon">💬</view>
+      <view class="stat-card-content">
+        <text class="stat-card-label">体验反馈</text>
+        <text class="stat-card-desc">帮助我们改进</text>
+      </view>
+      <text class="stat-card-arrow">></text>
+    </view>
+  </view>
+
+  <!-- 退出接单端按钮 -->
+  <view class="logout-section">
+    <button class="logout-btn" bindtap="onLogout">退出接单端</button>
+  </view>
+</view>
+

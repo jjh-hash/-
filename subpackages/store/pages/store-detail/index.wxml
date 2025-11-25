@@ -18,10 +18,14 @@
   <view class="store-card">
     <view class="store-info">
       <view class="store-name">{{storeInfo.name}}</view>
-      <view class="store-desc">{{storeInfo.description}}</view>
-      <view class="announcement">
+      <view class="announcement" wx:if="{{storeInfo.announcement}}">
         <text class="announcement-icon">📢</text>
-        <text class="announcement-text">公告: {{storeInfo.announcement}}</text>
+        <view class="announcement-wrapper">
+          <view class="announcement-scroll {{announcementScroll ? 'scrolling' : ''}}" style="animation-duration: {{announcementDuration}}s;">
+            <text class="announcement-text">公告: {{storeInfo.announcement}}</text>
+            <text class="announcement-text" wx:if="{{announcementScroll}}">公告: {{storeInfo.announcement}}</text>
+          </view>
+        </view>
       </view>
     </view>
     <view class="store-logo">
