@@ -362,22 +362,59 @@ async function auditRider(data) {
     
     console.log('【审核骑手】骑手ID:', riderId, '状态:', status);
     
+    // 先查询骑手信息
+    let riderDoc;
+    try {
+      const riderResult = await db.collection('riders').doc(riderId).get();
+      if (!riderResult.data) {
+        return {
+          code: 404,
+          message: '骑手记录不存在'
+        };
+      }
+      riderDoc = riderResult.data;
+    } catch (queryError) {
+      if (queryError.errCode === -502005 || queryError.message.includes('collection not exist') || queryError.message.includes('not exist')) {
+        return {
+          code: 404,
+          message: '骑手记录不存在'
+        };
+      }
+      throw queryError;
+    }
+    
+    // 准备更新数据
+    const updateData = {
+      status: status,
+      updatedAt: db.serverDate()
+    };
+    
+    // 如果审核通过，记录审核通过时间
+    if (status === 'approved') {
+      updateData.approvedAt = db.serverDate();
+      console.log('【审核骑手】审核通过，记录审核时间');
+    }
+    
+    // 如果审核拒绝，记录审核拒绝时间（允许重新提交）
+    if (status === 'rejected') {
+      updateData.rejectedAt = db.serverDate();
+      console.log('【审核骑手】审核拒绝，记录拒绝时间（可重新提交）');
+    }
+    
     // 更新骑手状态
     try {
       await db.collection('riders').doc(riderId).update({
-        data: {
-          status: status,
-          updatedAt: db.serverDate()
-        }
+        data: updateData
       });
       
-      console.log('【审核骑手】更新成功');
+      console.log('【审核骑手】更新成功，状态:', status);
       
       return {
         code: 200,
-        message: '审核成功',
+        message: status === 'approved' ? '审核通过，骑手可以接单' : '审核拒绝，骑手可以重新提交申请',
         data: {
-          success: true
+          success: true,
+          status: status
         }
       };
     } catch (updateError) {

@@ -60,22 +60,41 @@ exports.main = async (event, context) => {
 
     if (existingRider) {
       // 如果已存在，更新信息
+      // 如果之前被拒绝，允许重新提交（状态重置为 pending）
+      // 如果之前已通过，不允许重新注册（保持 approved 状态）
+      const currentStatus = existingRider.status || 'pending';
+      let newStatus = 'pending';
+      let message = '注册信息已更新，待审核';
+      
+      if (currentStatus === 'approved') {
+        // 如果已经审核通过，不允许重新注册，保持通过状态
+        newStatus = 'approved';
+        message = '您已经通过审核，无需重新注册';
+      } else {
+        // 如果之前是 pending 或 rejected，允许重新提交
+        newStatus = 'pending';
+        if (currentStatus === 'rejected') {
+          message = '注册信息已更新，待重新审核';
+        }
+      }
+      
       await db.collection('riders').doc(existingRider._id).update({
         data: {
           name: name.trim(),
           phone: phone.trim(),
           gender: gender,
           vehicle: vehicle.trim(),
-          status: 'pending', // 重新提交时重置为待审核
+          status: newStatus, // 重新提交时重置为待审核（如果之前不是已通过）
           updatedAt: db.serverDate()
         }
       });
       
       return {
         code: 200,
-        message: '注册信息已更新，待审核',
+        message: message,
         data: {
-          riderId: existingRider._id
+          riderId: existingRider._id,
+          status: newStatus
         }
       };
     } else {

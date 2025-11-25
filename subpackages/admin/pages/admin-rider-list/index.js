@@ -157,12 +157,20 @@ Page({
             wx.hideLoading();
 
             if (auditRes.result && auditRes.result.code === 200) {
+              const successMessage = action === 'approve' 
+                ? '审核通过，骑手可以接单' 
+                : '审核拒绝，骑手可以重新提交申请';
+              
               wx.showToast({
-                title: `${actionText}成功`,
-                icon: 'success'
+                title: successMessage,
+                icon: 'success',
+                duration: 2000
               });
-              // 刷新列表
-              this.loadRiderList();
+              
+              // 延迟刷新列表，让用户看到提示
+              setTimeout(() => {
+                this.loadRiderList();
+              }, 500);
             } else {
               wx.showToast({
                 title: auditRes.result.message || `${actionText}失败`,
