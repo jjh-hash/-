@@ -275,16 +275,56 @@ async function getRiderList(data) {
       const endIndex = startIndex + pageSize;
       riders = riders.slice(startIndex, endIndex);
       
-      // 格式化日期
+      // 格式化日期为中国时间（UTC+8）
       const formatDate = (date) => {
         if (!date) return '';
         try {
-          const d = new Date(date);
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          const hour = String(d.getHours()).padStart(2, '0');
-          const minute = String(d.getMinutes()).padStart(2, '0');
+          let d;
+          
+          // 处理云数据库的Date对象（有getTime方法）
+          if (date && typeof date === 'object' && date.getTime && typeof date.getTime === 'function') {
+            d = new Date(date.getTime());
+          } else if (date && typeof date === 'object' && date.getFullYear) {
+            d = date;
+          } else if (typeof date === 'string') {
+            // 处理字符串格式的日期
+            let dateStr = date;
+            // 兼容ISO格式和空格格式
+            if (dateStr.includes(' ') && !dateStr.includes('T')) {
+              const hasTimezone = dateStr.endsWith('Z') || 
+                                 /[+-]\d{2}:?\d{2}$/.test(dateStr) ||
+                                 dateStr.match(/[+-]\d{4}$/);
+              if (!hasTimezone) {
+                dateStr = dateStr.replace(' ', 'T') + 'Z';
+              } else {
+                dateStr = dateStr.replace(' ', 'T');
+              }
+            }
+            d = new Date(dateStr);
+          } else if (typeof date === 'object' && date.type === 'date') {
+            if (date.date) {
+              d = new Date(date.date);
+            } else {
+              d = new Date(date);
+            }
+          } else {
+            d = new Date(date);
+          }
+          
+          if (isNaN(d.getTime())) {
+            return '';
+          }
+          
+          // 云函数运行在UTC时区，需要手动转换为中国时区（UTC+8）
+          const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
+          const chinaTime = new Date(d.getTime() + chinaTimeOffset);
+          
+          // 使用UTC方法获取时间组件（因为我们已经手动加上了时区偏移）
+          const year = chinaTime.getUTCFullYear();
+          const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(chinaTime.getUTCDate()).padStart(2, '0');
+          const hour = String(chinaTime.getUTCHours()).padStart(2, '0');
+          const minute = String(chinaTime.getUTCMinutes()).padStart(2, '0');
           return `${year}-${month}-${day} ${hour}:${minute}`;
         } catch (e) {
           return '';
@@ -292,17 +332,30 @@ async function getRiderList(data) {
       };
       
       // 格式化骑手数据
-      const formattedRiders = (riders || []).map(rider => ({
-        _id: rider._id,
-        openid: rider.openid || '',
-        name: rider.name || '',
-        phone: rider.phone || '',
-        gender: rider.gender || '',
-        vehicle: rider.vehicle || '',
-        status: rider.status || 'pending',
-        createdAt: formatDate(rider.createdAt),
-        updatedAt: formatDate(rider.updatedAt)
-      }));
+      const formattedRiders = (riders || []).map(rider => {
+        const formatted = {
+          _id: rider._id,
+          openid: rider.openid || '',
+          name: rider.name || '',
+          phone: rider.phone || '',
+          gender: rider.gender || '', // 确保性别值正确传递
+          vehicle: rider.vehicle || '',
+          status: rider.status || 'pending',
+          createdAt: formatDate(rider.createdAt),
+          updatedAt: formatDate(rider.updatedAt)
+        };
+        
+        // 记录性别值用于调试
+        if (rider.name) {
+          console.log('【获取骑手列表】骑手性别:', { 
+            name: rider.name, 
+            gender: rider.gender, 
+            formattedGender: formatted.gender 
+          });
+        }
+        
+        return formatted;
+      });
       
       return {
         code: 200,

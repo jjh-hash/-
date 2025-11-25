@@ -279,6 +279,19 @@ Page({
   formatDateTime(date) {
     if (!date) return '';
     
+    // 如果已经是格式化好的字符串（格式：YYYY-MM-DD HH:mm 或 YYYY-MM-DD HH:mm:ss），且没有时区信息
+    // 说明云函数已经转换为中国时间了，直接返回
+    if (typeof date === 'string') {
+      const formattedPattern = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/;
+      if (formattedPattern.test(date) && !date.includes('T') && !date.includes('Z') && !/[+-]\d{2}:?\d{2}$/.test(date)) {
+        // 已经是格式化好的中国时间，直接返回（如果没有秒，添加秒）
+        if (!date.includes(':', 13)) {
+          return date + ':00';
+        }
+        return date;
+      }
+    }
+    
     let d;
     let dateStr = date;
     
@@ -294,6 +307,7 @@ Page({
                            /[+-]\d{2}:?\d{2}$/.test(dateStr) ||
                            dateStr.match(/[+-]\d{4}$/);
         if (!hasTimezone) {
+          // 如果没有时区信息，假设是UTC时间（云数据库通常返回UTC时间），添加Z后缀
           dateStr = dateStr.replace(' ', 'T') + 'Z';
         } else {
           dateStr = dateStr.replace(' ', 'T');

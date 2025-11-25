@@ -289,7 +289,6 @@
     <view class="bottom-item" bindtap="onSettingTap">
       <view class="bottom-icon-wrapper">
         <image class="bottom-icon setting-icon" src="/pages/小标/设置.png" mode="aspectFit"></image>
-        <text class="order-count" wx:if="{{maxOrders > 0}}">{{maxOrders}}单</text>
       </view>
       <text class="bottom-text">跑单设置</text>
     </view>

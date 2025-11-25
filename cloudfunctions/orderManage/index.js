@@ -872,12 +872,14 @@ async function updateSalesStatistics(order) {
       return;
     }
     
-    // 获取今天的日期（YYYY-MM-DD格式）
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    // 获取今天的日期（YYYY-MM-DD格式）- 使用中国时区（UTC+8）
+    const now = new Date();
+    const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
+    const chinaTime = new Date(now.getTime() + chinaTimeOffset);
+    const dateStr = `${chinaTime.getUTCFullYear()}-${String(chinaTime.getUTCMonth() + 1).padStart(2, '0')}-${String(chinaTime.getUTCDate()).padStart(2, '0')}`;
     
     // 获取当前月份（YYYY-MM格式），用于月售统计
-    const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const monthStr = `${chinaTime.getUTCFullYear()}-${String(chinaTime.getUTCMonth() + 1).padStart(2, '0')}`;
     
     // 1. 更新日销售统计（如果sales_statistics集合存在）
     try {
@@ -3352,11 +3354,13 @@ async function updateRiderTodayStats(riderOpenid) {
     console.log('【更新骑手统计】开始更新，骑手openid:', riderOpenid);
     
     // 获取今天的日期（格式：YYYY-MM-DD）
-    // 使用服务器时间，确保日期格式一致
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
+    // 云函数运行在UTC时区，需要转换为中国时区（UTC+8）
+    const now = new Date();
+    const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
+    const chinaTime = new Date(now.getTime() + chinaTimeOffset);
+    const year = chinaTime.getUTCFullYear();
+    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
     console.log('【更新骑手统计】日期字符串:', dateStr, '骑手openid:', riderOpenid);
@@ -3454,19 +3458,23 @@ async function getRiderTodayStats(riderOpenid, data) {
     }
     
     // 获取今天的日期（格式：YYYY-MM-DD）
-    // 使用服务器时间，确保日期格式与更新统计时一致
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
+    // 云函数运行在UTC时区，需要转换为中国时区（UTC+8）
+    const now = new Date();
+    const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
+    const chinaTime = new Date(now.getTime() + chinaTimeOffset);
+    const year = chinaTime.getUTCFullYear();
+    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
-    // 获取今天的日期范围（开始和结束时间）
-    today.setHours(0, 0, 0, 0);
-    const todayStart = today.getTime();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const todayEnd = tomorrow.getTime();
+    // 获取今天的日期范围（开始和结束时间）- 使用中国时区
+    const todayStartChina = new Date(chinaTime);
+    todayStartChina.setUTCHours(0, 0, 0, 0);
+    const todayStart = todayStartChina.getTime();
+    
+    const tomorrowChina = new Date(todayStartChina);
+    tomorrowChina.setUTCDate(tomorrowChina.getUTCDate() + 1);
+    const todayEnd = tomorrowChina.getTime();
     
     console.log('【获取骑手统计】日期字符串:', dateStr, '骑手openid:', riderOpenid);
     
@@ -3660,10 +3668,16 @@ async function getRiderWeekStats(riderOpenid, data) {
       };
     }
     
+    // 使用中国时区（UTC+8）计算本周开始时间
     const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay()); // 本周一
-    weekStart.setHours(0, 0, 0, 0);
+    const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
+    const chinaTime = new Date(now.getTime() + chinaTimeOffset);
+    const weekStart = new Date(chinaTime);
+    // 计算本周一（中国时区）
+    const dayOfWeek = chinaTime.getUTCDay(); // 0=周日, 1=周一, ..., 6=周六
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 距离周一的天数
+    weekStart.setUTCDate(chinaTime.getUTCDate() - daysToMonday);
+    weekStart.setUTCHours(0, 0, 0, 0);
     
     // 查询本周已完成的订单
     const completedOrdersResult = await db.collection('orders')
@@ -3734,9 +3748,12 @@ async function getRiderMonthStats(riderOpenid, data) {
       };
     }
     
+    // 使用中国时区（UTC+8）计算本月开始时间
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    monthStart.setHours(0, 0, 0, 0);
+    const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
+    const chinaTime = new Date(now.getTime() + chinaTimeOffset);
+    const monthStart = new Date(chinaTime.getUTCFullYear(), chinaTime.getUTCMonth(), 1);
+    monthStart.setUTCHours(0, 0, 0, 0);
     
     // 查询本月已完成的订单
     const completedOrdersResult = await db.collection('orders')
@@ -3810,15 +3827,50 @@ function formatRiderOrder(order) {
     amountTotal = amountTotal >= 100 ? amountTotal / 100 : amountTotal;
   }
   
-  // 格式化时间
+  // 格式化时间为中国时间（UTC+8）
   const formatDate = (date) => {
     if (!date) return null;
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hour = String(d.getHours()).padStart(2, '0');
-    const minute = String(d.getMinutes()).padStart(2, '0');
+    
+    let d;
+    if (date && typeof date === 'object' && date.getTime && typeof date.getTime === 'function') {
+      d = new Date(date.getTime());
+    } else if (date && typeof date === 'object' && date.getFullYear) {
+      d = date;
+    } else if (typeof date === 'string') {
+      let dateStr = date;
+      if (dateStr.includes(' ') && !dateStr.includes('T')) {
+        const hasTimezone = dateStr.endsWith('Z') || 
+                           /[+-]\d{2}:?\d{2}$/.test(dateStr) ||
+                           dateStr.match(/[+-]\d{4}$/);
+        if (!hasTimezone) {
+          dateStr = dateStr.replace(' ', 'T') + 'Z';
+        } else {
+          dateStr = dateStr.replace(' ', 'T');
+        }
+      }
+      d = new Date(dateStr);
+    } else if (typeof date === 'object' && date.type === 'date') {
+      if (date.date) {
+        d = new Date(date.date);
+      } else {
+        d = new Date(date);
+      }
+    } else {
+      d = new Date(date);
+    }
+    
+    if (isNaN(d.getTime())) {
+      return null;
+    }
+    
+    // 转换为中国时区（UTC+8）
+    const chinaTimeOffset = 8 * 60 * 60 * 1000;
+    const chinaTime = new Date(d.getTime() + chinaTimeOffset);
+    const year = chinaTime.getUTCFullYear();
+    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
+    const hour = String(chinaTime.getUTCHours()).padStart(2, '0');
+    const minute = String(chinaTime.getUTCMinutes()).padStart(2, '0');
     return `${year}-${month}-${day} ${hour}:${minute}`;
   };
   
@@ -3918,14 +3970,17 @@ async function getRiderTodayOrders(riderOpenid, data) {
     
     const { page = 1, pageSize = 20 } = data || {};
     
-    // 获取今天的日期范围（开始和结束时间）
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStart = today.getTime();
+    // 获取今天的日期范围（开始和结束时间）- 使用中国时区（UTC+8）
+    const now = new Date();
+    const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
+    const chinaTime = new Date(now.getTime() + chinaTimeOffset);
+    const todayStartChina = new Date(chinaTime);
+    todayStartChina.setUTCHours(0, 0, 0, 0);
+    const todayStart = todayStartChina.getTime();
     
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const todayEnd = tomorrow.getTime();
+    const tomorrowChina = new Date(todayStartChina);
+    tomorrowChina.setUTCDate(tomorrowChina.getUTCDate() + 1);
+    const todayEnd = tomorrowChina.getTime();
     
     console.log('【获取骑手今日订单】日期范围:', {
       start: new Date(todayStart),
@@ -4032,14 +4087,17 @@ async function getRiderTodayIncome(riderOpenid, data) {
     
     const { page = 1, pageSize = 20 } = data || {};
     
-    // 获取今天的日期范围（开始和结束时间）
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStart = today.getTime();
+    // 获取今天的日期范围（开始和结束时间）- 使用中国时区（UTC+8）
+    const now = new Date();
+    const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
+    const chinaTime = new Date(now.getTime() + chinaTimeOffset);
+    const todayStartChina = new Date(chinaTime);
+    todayStartChina.setUTCHours(0, 0, 0, 0);
+    const todayStart = todayStartChina.getTime();
     
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const todayEnd = tomorrow.getTime();
+    const tomorrowChina = new Date(todayStartChina);
+    tomorrowChina.setUTCDate(tomorrowChina.getUTCDate() + 1);
+    const todayEnd = tomorrowChina.getTime();
     
     console.log('【获取骑手今日收入】日期范围:', {
       start: new Date(todayStart),
@@ -4101,15 +4159,50 @@ async function getRiderTodayIncome(riderOpenid, data) {
         amountDelivery = amountDelivery >= 100 ? amountDelivery / 100 : amountDelivery;
       }
       
-      // 格式化时间
+      // 格式化时间为中国时间（UTC+8）
       const formatDate = (date) => {
         if (!date) return null;
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const hour = String(d.getHours()).padStart(2, '0');
-        const minute = String(d.getMinutes()).padStart(2, '0');
+        
+        let d;
+        if (date && typeof date === 'object' && date.getTime && typeof date.getTime === 'function') {
+          d = new Date(date.getTime());
+        } else if (date && typeof date === 'object' && date.getFullYear) {
+          d = date;
+        } else if (typeof date === 'string') {
+          let dateStr = date;
+          if (dateStr.includes(' ') && !dateStr.includes('T')) {
+            const hasTimezone = dateStr.endsWith('Z') || 
+                               /[+-]\d{2}:?\d{2}$/.test(dateStr) ||
+                               dateStr.match(/[+-]\d{4}$/);
+            if (!hasTimezone) {
+              dateStr = dateStr.replace(' ', 'T') + 'Z';
+            } else {
+              dateStr = dateStr.replace(' ', 'T');
+            }
+          }
+          d = new Date(dateStr);
+        } else if (typeof date === 'object' && date.type === 'date') {
+          if (date.date) {
+            d = new Date(date.date);
+          } else {
+            d = new Date(date);
+          }
+        } else {
+          d = new Date(date);
+        }
+        
+        if (isNaN(d.getTime())) {
+          return null;
+        }
+        
+        // 转换为中国时区（UTC+8）
+        const chinaTimeOffset = 8 * 60 * 60 * 1000;
+        const chinaTime = new Date(d.getTime() + chinaTimeOffset);
+        const year = chinaTime.getUTCFullYear();
+        const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(chinaTime.getUTCDate()).padStart(2, '0');
+        const hour = String(chinaTime.getUTCHours()).padStart(2, '0');
+        const minute = String(chinaTime.getUTCMinutes()).padStart(2, '0');
         return `${year}-${month}-${day} ${hour}:${minute}`;
       };
       

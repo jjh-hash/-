@@ -128,10 +128,36 @@ Page({
     });
   },
 
+  // 阻止事件冒泡
+  stopPropagation() {
+    // 空函数，仅用于阻止事件冒泡
+  },
+
   // 审核骑手
   async onAuditRider(e) {
+    // 阻止事件冒泡
+    e.stopPropagation && e.stopPropagation();
+    
     const rider = e.currentTarget.dataset.rider;
     const action = e.currentTarget.dataset.action; // approve 或 reject
+    
+    console.log('【审核骑手】点击审核按钮:', { rider: rider?.name, action });
+    
+    if (!rider || !rider._id) {
+      wx.showToast({
+        title: '骑手信息错误',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    if (!action || !['approve', 'reject'].includes(action)) {
+      wx.showToast({
+        title: '操作类型错误',
+        icon: 'none'
+      });
+      return;
+    }
     
     const actionText = action === 'approve' ? '通过' : '拒绝';
     

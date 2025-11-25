@@ -6,7 +6,7 @@
 /**
  * 格式化日期为中国时间（UTC+8）
  * @param {Date|String|Object} date - 日期对象、字符串或云数据库日期对象
- * @param {String} format - 格式类型：'datetime' | 'date' | 'time'
+ * @param {String} format - 格式类型：'datetime' | 'date' | 'time' | 'full'
  * @returns {String} 格式化后的日期时间字符串
  */
 function formatDateChina(date, format = 'datetime') {
@@ -57,7 +57,7 @@ function formatDateChina(date, format = 'datetime') {
     return '';
   }
   
-  // 云函数返回的日期通常是UTC时间，需要转换为中国时间（UTC+8）
+  // 云数据库返回的日期通常是UTC时间，需要转换为中国时间（UTC+8）
   // 获取UTC时间戳，然后加上8小时
   const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
   const chinaTime = new Date(d.getTime() + chinaTimeOffset);
@@ -75,10 +75,45 @@ function formatDateChina(date, format = 'datetime') {
       return `${year}-${month}-${day}`;
     case 'time':
       return `${hour}:${minute}`;
+    case 'full':
+      return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
     case 'datetime':
     default:
       return `${year}-${month}-${day} ${hour}:${minute}`;
   }
+}
+
+/**
+ * 获取当前中国时间（UTC+8）
+ * @returns {Date} 中国时间的Date对象
+ */
+function getChinaTime() {
+  const now = new Date();
+  const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
+  return new Date(now.getTime() + chinaTimeOffset);
+}
+
+/**
+ * 获取今天的日期字符串（中国时区，格式：YYYY-MM-DD）
+ * @returns {String} 今天的日期字符串
+ */
+function getTodayDateStr() {
+  const chinaTime = getChinaTime();
+  const year = chinaTime.getUTCFullYear();
+  const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(chinaTime.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * 获取当前月份字符串（中国时区，格式：YYYY-MM）
+ * @returns {String} 当前月份字符串
+ */
+function getCurrentMonthStr() {
+  const chinaTime = getChinaTime();
+  const year = chinaTime.getUTCFullYear();
+  const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
 }
 
 /**
@@ -135,6 +170,8 @@ function formatDateShort(date) {
 
 module.exports = {
   formatDateChina,
-  formatDateShort
+  formatDateShort,
+  getChinaTime,
+  getTodayDateStr,
+  getCurrentMonthStr
 };
-

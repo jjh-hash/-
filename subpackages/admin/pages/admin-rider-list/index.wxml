@@ -76,22 +76,20 @@
           </view>
         </view>
 
-        <view class="rider-actions" wx:if="{{item.status === 'pending'}}">
+        <view class="rider-actions" wx:if="{{item.status === 'pending'}}" catchtap="stopPropagation">
           <button 
             class="action-btn approve-btn" 
-            bindtap="onAuditRider"
+            catchtap="onAuditRider"
             data-rider="{{item}}"
             data-action="approve"
-            catchtap="true"
           >
             通过
           </button>
           <button 
             class="action-btn reject-btn" 
-            bindtap="onAuditRider"
+            catchtap="onAuditRider"
             data-rider="{{item}}"
             data-action="reject"
-            catchtap="true"
           >
             拒绝
           </button>

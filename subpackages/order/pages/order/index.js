@@ -681,6 +681,20 @@ Page({
   formatDate(date) {
     if (!date) return '';
     
+    // 如果已经是格式化好的字符串（格式：YYYY-MM-DD HH:mm 或 YYYY-MM-DD HH:mm:ss），且没有时区信息
+    // 说明云函数已经转换为中国时间了，直接提取日期部分并转换格式
+    if (typeof date === 'string') {
+      const formattedPattern = /^(\d{4})-(\d{2})-(\d{2})( \d{2}:\d{2}(:\d{2})?)?$/;
+      const match = date.match(formattedPattern);
+      if (match && !date.includes('T') && !date.includes('Z') && !/[+-]\d{2}:?\d{2}$/.test(date)) {
+        // 已经是格式化好的中国时间，提取日期部分并转换格式
+        const year = match[1];
+        const month = match[2];
+        const day = match[3];
+        return `${year}.${month}.${day}`;
+      }
+    }
+    
     let d;
     
     // 处理服务器日期对象（有getTime方法）

@@ -33,39 +33,7 @@
         </view>
       </view>
 
-      <!-- 同时接单量 -->
-      <view class="setting-item">
-        <view class="setting-left" bindtap="onSetMaxOrders">
-          <text class="setting-label">同时接单量</text>
-          <text class="setting-value-inline">{{maxOrders}}单(最大)</text>
-          <text class="setting-desc">当同时接单量达到上限时,将无法抢单和派单</text>
-          <text class="setting-link" catchtap="onShowMaxOrdersHelp">同时接单量如何计算?</text>
-        </view>
-        <view class="setting-right" bindtap="onSetMaxOrders">
-          <text class="arrow">></text>
-        </view>
-      </view>
     </view>
   </scroll-view>
-
-  <!-- 同时接单量选择弹窗 -->
-  <view class="modal" wx:if="{{showMaxOrdersModal}}" bindtap="onCloseMaxOrdersModal">
-    <view class="modal-content" catchtap="stopPropagation">
-      <view class="modal-header">
-        <text class="modal-title">设置同时接单量</text>
-        <text class="modal-close" bindtap="onCloseMaxOrdersModal">×</text>
-      </view>
-      <view class="modal-body">
-        <view class="picker-item" 
-          wx:for="{{maxOrdersOptions}}" 
-          wx:key="value"
-          data-value="{{item.value}}"
-          bindtap="onSelectMaxOrders">
-          <text class="picker-label">{{item.label}}</text>
-          <text class="picker-check" wx:if="{{maxOrders === item.value}}">✓</text>
-        </view>
-      </view>
-    </view>
-  </view>
 </view>
 

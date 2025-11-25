@@ -21,10 +21,16 @@ Page({
   onGenderChange(e) {
     const index = Number(e.detail.value); // 确保转换为数字
     const gender = index === 0 ? 'male' : 'female';
+    
+    console.log('【注册骑手】性别选择:', { index, gender, options: this.data.genderOptions });
+    
     this.setData({
       genderIndex: index,
       gender: gender
     });
+    
+    // 验证设置是否正确
+    console.log('【注册骑手】设置后的值:', { genderIndex: this.data.genderIndex, gender: this.data.gender });
   },
 
   onVehicleInput(e) {
@@ -47,7 +53,7 @@ Page({
   },
 
   async onSubmit() {
-    const { name, phone, gender, vehicle, inviteCode } = this.data;
+    const { name, phone, gender, genderIndex, vehicle, inviteCode } = this.data;
 
     if (!name.trim()) {
       wx.showToast({ title: '请输入姓名', icon: 'none' });
@@ -57,14 +63,26 @@ Page({
       wx.showToast({ title: '请输入正确手机号', icon: 'none' });
       return;
     }
-    if (!gender) {
+    
+    // 确保性别值正确：如果 gender 为空，根据 genderIndex 设置
+    let finalGender = gender;
+    if (!finalGender || (finalGender !== 'male' && finalGender !== 'female')) {
+      // 如果 gender 值不正确，根据 genderIndex 重新设置
+      finalGender = genderIndex === 0 ? 'male' : 'female';
+      console.log('【注册骑手】性别值不正确，根据 genderIndex 重新设置:', { genderIndex, finalGender });
+    }
+    
+    if (!finalGender) {
       wx.showToast({ title: '请选择性别', icon: 'none' });
       return;
     }
+    
     if (!vehicle.trim()) {
       wx.showToast({ title: '请输入配送工具', icon: 'none' });
       return;
     }
+
+    console.log('【注册骑手】提交数据:', { name, phone, gender: finalGender, genderIndex, vehicle });
 
     wx.showLoading({ title: '提交中...' });
 
@@ -75,7 +93,7 @@ Page({
         data: {
           name: name.trim(),
           phone: phone.trim(),
-          gender: gender,
+          gender: finalGender, // 使用修正后的性别值
           vehicle: vehicle.trim(),
           inviteCode: inviteCode || ''
         }

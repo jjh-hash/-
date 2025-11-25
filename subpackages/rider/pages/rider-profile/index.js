@@ -97,18 +97,78 @@ Page({
       status: riderStatus
     });
     
-    // 格式化日期
+    // 格式化日期为中国时间（UTC+8）
     const formatDate = (date) => {
       if (!date) return '未知';
       if (typeof date === 'string' && date !== '未知' && date !== '从未登录') {
+        // 如果已经是格式化好的字符串，检查是否需要转换
+        // 如果是UTC时间字符串，需要转换
+        if (date.includes('T') || date.includes('Z') || /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          try {
+            let dateStr = date;
+            if (dateStr.includes(' ') && !dateStr.includes('T')) {
+              const hasTimezone = dateStr.endsWith('Z') || 
+                                 /[+-]\d{2}:?\d{2}$/.test(dateStr) ||
+                                 dateStr.match(/[+-]\d{4}$/);
+              if (!hasTimezone) {
+                dateStr = dateStr.replace(' ', 'T') + 'Z';
+              } else {
+                dateStr = dateStr.replace(' ', 'T');
+              }
+            }
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime())) {
+              // 转换为中国时间（UTC+8）
+              const chinaTimeOffset = 8 * 60 * 60 * 1000;
+              const chinaTime = new Date(d.getTime() + chinaTimeOffset);
+              const year = chinaTime.getUTCFullYear();
+              const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+              const day = String(chinaTime.getUTCDate()).padStart(2, '0');
+              return `${year}-${month}-${day}`;
+            }
+          } catch (e) {
+            // 如果转换失败，返回原字符串
+          }
+        }
         return date;
       }
       try {
-        const d = new Date(date);
+        let d;
+        if (date && typeof date === 'object' && date.getTime && typeof date.getTime === 'function') {
+          d = new Date(date.getTime());
+        } else if (date && typeof date === 'object' && date.getFullYear) {
+          d = date;
+        } else if (typeof date === 'string') {
+          let dateStr = date;
+          if (dateStr.includes(' ') && !dateStr.includes('T')) {
+            const hasTimezone = dateStr.endsWith('Z') || 
+                               /[+-]\d{2}:?\d{2}$/.test(dateStr) ||
+                               dateStr.match(/[+-]\d{4}$/);
+            if (!hasTimezone) {
+              dateStr = dateStr.replace(' ', 'T') + 'Z';
+            } else {
+              dateStr = dateStr.replace(' ', 'T');
+            }
+          }
+          d = new Date(dateStr);
+        } else if (typeof date === 'object' && date.type === 'date') {
+          if (date.date) {
+            d = new Date(date.date);
+          } else {
+            d = new Date(date);
+          }
+        } else {
+          d = new Date(date);
+        }
+        
         if (isNaN(d.getTime())) return '未知';
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        
+        // 转换为中国时间（UTC+8）- 假设云数据库返回的是UTC时间
+        const chinaTimeOffset = 8 * 60 * 60 * 1000;
+        const chinaTime = new Date(d.getTime() + chinaTimeOffset);
+        const year = chinaTime.getUTCFullYear();
+        const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(chinaTime.getUTCDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       } catch (e) {
         return '未知';

@@ -13,6 +13,12 @@ exports.main = async (event, context) => {
   const { name, phone, gender, vehicle, inviteCode } = event;
 
   console.log('【骑手注册】请求:', { name, phone, gender, vehicle, openid });
+  console.log('【骑手注册】性别值验证:', { 
+    gender, 
+    isMale: gender === 'male', 
+    isFemale: gender === 'female',
+    isValid: gender === 'male' || gender === 'female'
+  });
 
   try {
     // 验证必填字段
@@ -78,16 +84,22 @@ exports.main = async (event, context) => {
         }
       }
       
+      const updateData = {
+        name: name.trim(),
+        phone: phone.trim(),
+        gender: gender, // 确保保存正确的性别值
+        vehicle: vehicle.trim(),
+        status: newStatus, // 重新提交时重置为待审核（如果之前不是已通过）
+        updatedAt: db.serverDate()
+      };
+      
+      console.log('【骑手注册】更新数据:', { riderId: existingRider._id, updateData });
+      
       await db.collection('riders').doc(existingRider._id).update({
-        data: {
-          name: name.trim(),
-          phone: phone.trim(),
-          gender: gender,
-          vehicle: vehicle.trim(),
-          status: newStatus, // 重新提交时重置为待审核（如果之前不是已通过）
-          updatedAt: db.serverDate()
-        }
+        data: updateData
       });
+      
+      console.log('【骑手注册】更新成功，性别:', gender);
       
       return {
         code: 200,
@@ -103,20 +115,24 @@ exports.main = async (event, context) => {
       // 如果仍然失败，请检查：
       // 1. 云函数是否已正确部署（右键 cloudfunctions/riderRegister -> 上传并部署：云端安装依赖）
       // 2. 数据库权限是否允许创建集合
+      const riderData = {
+        openid: openid,
+        name: name.trim(),
+        phone: phone.trim(),
+        gender: gender, // 确保保存正确的性别值
+        vehicle: vehicle.trim(),
+        status: 'pending',
+        createdAt: db.serverDate(),
+        updatedAt: db.serverDate()
+      };
+      
+      console.log('【骑手注册】准备保存的数据:', riderData);
+      
       const riderResult = await db.collection('riders').add({
-        data: {
-          openid: openid,
-          name: name.trim(),
-          phone: phone.trim(),
-          gender: gender,
-          vehicle: vehicle.trim(),
-          status: 'pending',
-          createdAt: db.serverDate(),
-          updatedAt: db.serverDate()
-        }
+        data: riderData
       });
 
-      console.log('【骑手注册】创建成功，骑手ID:', riderResult._id);
+      console.log('【骑手注册】创建成功，骑手ID:', riderResult._id, '性别:', gender);
 
       return {
         code: 200,

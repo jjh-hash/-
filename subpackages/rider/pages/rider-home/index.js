@@ -4,7 +4,6 @@ Page({
     currentArea: '待命区域',
     tabs: ['待抢单', '待取货', '待送达'],
     activeTab: 0, // 默认显示待抢单标签页
-    maxOrders: 6, // 同时接单量（用于显示在跑单设置徽章上）
     refreshing: false, // 下拉刷新状态
     loading: false,
     orders: [], // 待抢单订单列表
@@ -19,14 +18,12 @@ Page({
   onLoad() {
     // 页面加载时获取数据
     this.loadRiderStatus();
-    this.loadMaxOrders();
     this.loadOrdersByTab(this.data.activeTab);
   },
 
   onShow() {
     // 页面显示时刷新数据
     this.loadRiderStatus();
-    this.loadMaxOrders();
     this.loadOrdersByTab(this.data.activeTab);
   },
 
@@ -66,36 +63,6 @@ Page({
     }
   },
 
-  // 加载同时接单量（用于显示在跑单设置徽章上）
-  async loadMaxOrders() {
-    try {
-      const res = await wx.cloud.callFunction({
-        name: 'riderManage',
-        data: {
-          action: 'getRiderSettings',
-          data: {}
-        }
-      });
-
-      if (res.result && res.result.code === 200) {
-        const settings = res.result.data || {};
-        this.setData({
-          maxOrders: settings.maxOrders || 6
-        });
-      } else {
-        // 如果获取失败，使用默认值
-        this.setData({
-          maxOrders: 6
-        });
-      }
-    } catch (error) {
-      console.error('加载同时接单量失败:', error);
-      // 使用默认值
-    this.setData({
-        maxOrders: 6
-    });
-    }
-  },
 
   onTabChange(e) {
     const index = Number(e.currentTarget.dataset.index);
@@ -447,9 +414,6 @@ Page({
                 // 刷新订单列表
                 await this.loadOrdersByTab(this.data.activeTab);
                 
-                // 刷新同时接单量（因为完成订单后可能影响接单量）
-                this.loadMaxOrders();
-                
                 // 通知个人中心页面刷新统计数据（如果页面已打开）
                 const pages = getCurrentPages();
                 const profilePage = pages.find(page => page.route === 'subpackages/rider/pages/rider-profile/index');
@@ -530,7 +494,6 @@ Page({
     
     // 刷新订单数据
     this.loadOrdersByTab(this.data.activeTab);
-    this.loadMaxOrders();
     
     setTimeout(() => {
       wx.hideLoading();
@@ -553,9 +516,6 @@ Page({
     
     // 刷新当前标签页的订单数据
     this.loadOrdersByTab(this.data.activeTab).then(() => {
-      // 刷新同时接单量
-      return this.loadMaxOrders();
-    }).then(() => {
       // 刷新完成，停止下拉刷新动画
       setTimeout(() => {
         this.setData({
