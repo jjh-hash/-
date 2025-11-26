@@ -33,7 +33,7 @@
       <!-- 添加长按提示 -->
       <view class="longpress-tip">
         <text class="tip-icon">💡</text>
-        <text class="tip-text">使用说明：点击二维码图片 → 在预览界面长按 → 选择"识别图中二维码"进行支付</text>
+        <text class="tip-text">使用说明：保存二维码支付之后，付款时请备注您地址上的昵称，然后返回程序上传支付凭证截图呦。如果备注和地址上的昵称不同/没有备注，将会被退回哦。</text>
       </view>
 
       <view class="merchant-info" wx:if="{{orderInfo}}">

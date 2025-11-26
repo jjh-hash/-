@@ -158,6 +158,7 @@ Page({
         const { activeTab } = this.data;
         let status = null;
         let filterRefund = false;
+        let filterUnpaid = false;
         this.getStatusFromTab(activeTab, (s, f, u) => {
           status = s;
           filterRefund = f;
@@ -652,7 +653,8 @@ Page({
           readyAt: order.readyAt || null,
           createdAt: order.createdAt,
           refundInfo: order.refundInfo || null, // 退款申请信息
-          payStatus: order.payStatus || 'paid' // 支付状态
+          payStatus: order.payStatus || 'paid', // 支付状态
+          paymentProof: (order.paymentProof !== undefined && order.paymentProof !== null && order.paymentProof !== '') ? order.paymentProof : '' // 支付凭证的云存储fileID，确保正确保存
         }));
 
         // 如果筛选退款订单，只显示有退款申请的订单
@@ -904,6 +906,178 @@ Page({
           } catch (error) {
             wx.hideLoading();
             console.error('【商家订单页面】确认支付异常:', error);
+            wx.showToast({
+              title: '操作失败',
+              icon: 'none'
+            });
+          }
+        }
+      }
+    });
+  },
+
+  // 查看支付凭证
+  onViewPaymentProof(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const paymentProof = e.currentTarget.dataset.proof;
+    
+    // 如果从详情弹层调用，从detail中获取
+    let proofFileId = paymentProof;
+    if (!proofFileId && this.data.detail && this.data.detail.id === orderId) {
+      proofFileId = this.data.detail.paymentProof;
+    }
+    
+    // 如果订单列表中没有，尝试从订单列表查找
+    if (!proofFileId) {
+      const order = this.data.orders.find(o => o.id === orderId);
+      if (order) {
+        proofFileId = order.paymentProof;
+      }
+    }
+    
+    // 如果还是没有，从detail中获取（详情弹窗场景）
+    if (!proofFileId && this.data.detail) {
+      proofFileId = this.data.detail.paymentProof;
+    }
+    
+    if (!proofFileId) {
+      wx.showToast({
+        title: '支付凭证不存在',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    console.log('【查看支付凭证】订单ID:', orderId, '凭证fileID:', proofFileId);
+    
+    // 使用 wx.previewImage 预览支付凭证图片
+    // 注意：预览图片不会影响页面数据，返回后数据应该保持不变
+    wx.previewImage({
+      current: proofFileId, // 当前显示图片的fileID
+      urls: [proofFileId], // 需要预览的图片链接列表
+      success: () => {
+        console.log('【查看支付凭证】预览成功');
+        // 预览成功后，确保订单数据中的 paymentProof 字段仍然存在
+        // 不需要做任何操作，因为预览图片不会修改页面数据
+      },
+      fail: (err) => {
+        console.error('【查看支付凭证】预览失败:', err);
+        wx.showToast({
+          title: '预览失败',
+          icon: 'none'
+        });
+      }
+    });
+  },
+
+  // 拒绝出餐（取消未支付订单）
+  async onRejectOrder(e) {
+    // 优先从dataset获取，如果没有则从detail中获取（详情弹窗场景）
+    let orderId = e.currentTarget.dataset.id;
+    
+    // 如果详情弹窗中没有订单ID，从detail中获取
+    if (!orderId && this.data.detail && this.data.detail.id) {
+      orderId = this.data.detail.id;
+    }
+    
+    // 如果还是没有订单ID，尝试从当前显示的订单列表中查找
+    if (!orderId && this.data.detail && this.data.detail.orderNo) {
+      const order = this.data.orders.find(o => o.orderNo === this.data.detail.orderNo);
+      if (order) {
+        orderId = order.id;
+      }
+    }
+    
+    console.log('【商家订单页面】拒绝出餐，orderId:', orderId);
+    
+    if (!orderId) {
+      wx.showToast({
+        title: '缺少订单ID',
+        icon: 'none'
+      });
+      console.error('【商家订单页面】无法获取订单ID');
+      return;
+    }
+
+    // 获取订单信息，显示确认对话框
+    const order = this.data.orders.find(o => o.id === orderId) || this.data.detail;
+    if (!order) {
+      wx.showToast({
+        title: '订单不存在',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 检查订单是否已支付
+    if (order.payStatus === 'paid') {
+      wx.showModal({
+        title: '订单已支付',
+        content: '该订单已支付，无法拒绝出餐',
+        showCancel: false,
+        confirmText: '确定'
+      });
+      return;
+    }
+
+    wx.showModal({
+      title: '拒绝出餐',
+      content: `确认拒绝订单 ${order.orderNo} 的出餐请求吗？\n\n拒绝后将取消该订单。`,
+      confirmText: '确认拒绝',
+      cancelText: '取消',
+      confirmColor: '#ff4d4f',
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            wx.showLoading({ title: '处理中...' });
+
+            const result = await wx.cloud.callFunction({
+              name: 'orderManage',
+              data: {
+                action: 'cancelOrder',
+                data: {
+                  orderId: orderId
+                }
+              }
+            });
+
+            wx.hideLoading();
+
+            if (result.result && result.result.code === 200) {
+              wx.showToast({
+                title: '订单已取消',
+                icon: 'success'
+              });
+              
+              // 关闭详情弹窗
+              this.setData({ showDetail: false });
+              
+              // 刷新订单列表，保持当前标签状态
+              const { activeTab } = this.data;
+              let status = null;
+              let filterRefund = false;
+              let filterUnpaid = false;
+              
+              switch(activeTab) {
+                case 0: status = null; filterRefund = false; filterUnpaid = false; break;
+                case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
+                case 2: status = null; filterRefund = false; filterUnpaid = true; break;
+                case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
+                case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
+                case 5: status = null; filterRefund = true; filterUnpaid = false; break;
+              }
+              
+              this.loadOrders(status, filterRefund, false, filterUnpaid);
+            } else {
+              wx.showToast({
+                title: result.result?.message || '操作失败',
+                icon: 'none'
+              });
+            }
+
+          } catch (error) {
+            wx.hideLoading();
+            console.error('【商家订单页面】拒绝出餐异常:', error);
             wx.showToast({
               title: '操作失败',
               icon: 'none'
@@ -1228,17 +1402,18 @@ Page({
         return this.formatAmount(rawFee);
       })(),
       amountDiscount: order.amountDiscount || 0,
-          amountTotal: this.formatAmount(order.amountTotal || order.amountPayable || 0),
-          merchantIncome: this.calculateMerchantIncome(order.amountGoods || 0, order.platformFee || 0, order.merchantIncome), // 商家收入
-          needCutlery: order.needCutlery !== undefined ? order.needCutlery : true, // 是否需要餐具
-          cutleryQuantity: order.cutleryQuantity || 0, // 餐具数量
-          expiredAt: order.expiredAt || null,
-          expiredMinutes: order.expiredMinutes || null,
-          readyAt: order.readyAt || null,
-          createdAt: this.formatDateTime(order.createdAt),
+      amountTotal: this.formatAmount(order.amountTotal || order.amountPayable || 0),
+      merchantIncome: this.calculateMerchantIncome(order.amountGoods || 0, order.platformFee || 0, order.merchantIncome), // 商家收入
+      needCutlery: order.needCutlery !== undefined ? order.needCutlery : true, // 是否需要餐具
+      cutleryQuantity: order.cutleryQuantity || 0, // 餐具数量
+      expiredAt: order.expiredAt || null,
+      expiredMinutes: order.expiredMinutes || null,
+      readyAt: order.readyAt || null,
+      createdAt: this.formatDateTime(order.createdAt),
           refundInfo: order.refundInfo || null, // 退款申请信息
-          payStatus: order.payStatus || 'paid' // 支付状态
-        };
+          payStatus: order.payStatus || 'paid', // 支付状态
+          paymentProof: (order.paymentProof !== undefined && order.paymentProof !== null && order.paymentProof !== '') ? order.paymentProof : '' // 支付凭证的云存储fileID，确保正确保存
+    };
     
     this.setData({ showDetail: true, detail: detail });
   },

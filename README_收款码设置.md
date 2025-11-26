@@ -46,3 +46,4 @@
 
 将 `qrcode-url="/images/wechat-pay-qrcode.png"` 修改为你想要的路径。
 
+

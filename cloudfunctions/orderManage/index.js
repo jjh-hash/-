@@ -132,7 +132,7 @@ exports.main = async (event, context) => {
  */
 async function createOrder(openid, data) {
   try {
-    const { storeId, cartItems, cartTotal, storeInfo, address, remark, deliveryFee, deliveryType, needCutlery, cutleryQuantity } = data;
+    const { storeId, cartItems, cartTotal, storeInfo, address, remark, deliveryFee, deliveryType, needCutlery, cutleryQuantity, payStatus, paymentProof } = data;
     
     console.log('【创建订单】接收到的参数:', data);
     console.log('【创建订单】参数详情:', {
@@ -368,7 +368,8 @@ async function createOrder(openid, data) {
       
       // 订单状态：根据自动接单设置决定初始状态
       orderStatus: initialOrderStatus, // pending-待确认, confirmed-已确认, preparing-制作中, ready-待配送, delivering-配送中, completed-已完成, cancelled-已取消
-      payStatus: 'unpaid', // 未支付（需要商家确认收到款项后更新为paid）
+      payStatus: payStatus || 'unpaid', // 支付状态：使用客户端传递的值，默认为未支付（需要商家确认收到款项后更新为paid）
+      paymentProof: paymentProof || '', // 支付凭证的云存储fileID
       
       // 时间戳
       createdAt: db.serverDate(),
@@ -1142,8 +1143,69 @@ async function cancelOrder(openid, data) {
     
     const order = orderResult.data;
     
-    // 验证订单归属：只有订单的创建者才能取消订单
-    if (order.userOpenid && order.userOpenid !== openid) {
+    // 验证权限：订单创建者或商家可以取消订单
+    let hasPermission = false;
+    
+    // 1. 检查是否是订单创建者
+    if (order.userOpenid && order.userOpenid === openid) {
+      hasPermission = true;
+      console.log('【取消订单】权限验证通过：订单创建者');
+    }
+    
+    // 2. 检查是否是商家（未支付订单允许商家取消）
+    if (!hasPermission && order.storeId) {
+      try {
+        // 查询商家信息
+        const merchantResult = await db.collection('merchants')
+          .where({ 
+            openid: openid,
+            status: db.command.in(['active', 'pending'])
+          })
+          .get();
+        
+        if (merchantResult.data && merchantResult.data.length > 0) {
+          const merchant = merchantResult.data[0];
+          
+          // 查询商家关联的店铺
+          const storeResult = await db.collection('stores')
+            .where({ merchantId: merchant._id })
+            .get();
+          
+          if (storeResult.data && storeResult.data.length > 0) {
+            const store = storeResult.data.find(s => s._id === order.storeId);
+            if (store) {
+              // 商家只能取消未支付的订单
+              if (order.payStatus === 'unpaid') {
+                hasPermission = true;
+                console.log('【取消订单】权限验证通过：商家取消未支付订单');
+              } else {
+                console.log('【取消订单】商家只能取消未支付的订单');
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('【取消订单】商家权限验证失败:', err);
+      }
+    }
+    
+    // 3. 检查是否是管理员
+    if (!hasPermission) {
+      try {
+        const adminResult = await db.collection('admins')
+          .where({ openid: openid })
+          .get();
+        
+        if (adminResult.data && adminResult.data.length > 0) {
+          hasPermission = true;
+          console.log('【取消订单】权限验证通过：管理员权限');
+        }
+      } catch (err) {
+        console.warn('【取消订单】查询管理员失败:', err);
+      }
+    }
+    
+    if (!hasPermission) {
       return {
         code: 403,
         message: '无权取消此订单'
@@ -1703,7 +1765,8 @@ async function getAdminOrderList(openid, data) {
           platformFeeRate: order.platformFeeRate || 0.08,
           refundInfo: refundInfo,
           items: formattedItems,
-          address: order.address || null
+          address: order.address || null,
+          paymentProof: order.paymentProof || '' // 支付凭证的云存储fileID
         };
         
         return {
@@ -2105,7 +2168,9 @@ async function getAdminOrderList(openid, data) {
         // 退款信息
         refundInfo: refundInfo,
         // 商品列表
-        items: formattedItems
+        items: formattedItems,
+        // 支付凭证
+        paymentProof: order.paymentProof || '' // 支付凭证的云存储fileID
       };
       
       orderList.push(formattedOrder);

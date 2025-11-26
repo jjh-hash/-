@@ -541,9 +541,10 @@ Page({
             storeName: storeName,
             orderType: order.orderType || 'normal', // 订单类型
             date: this.formatDate(order.createdAt),
-            status: this.getStatusText(order.orderStatus, order.riderOpenid),
+            status: this.getStatusText(order.orderStatus, order.riderOpenid, order.payStatus || 'unpaid'),
             statusClass: this.getStatusClass(order.orderStatus),
             orderStatus: order.orderStatus,
+            payStatus: order.payStatus || 'unpaid', // 保存支付状态
             img: order.items && order.items[0] ? order.items[0].image : (order.images && order.images[0] ? order.images[0] : ''),
             total: this.formatAmount(order.amountPayable || order.amountTotal || '0.00'),
             amountGoods: this.formatAmount(order.amountGoods || '0.00'),
@@ -751,8 +752,13 @@ Page({
     return `${year}.${month}.${day}`;
   },
 
-  // 获取状态文本（根据订单状态和骑手接单情况）
-  getStatusText(status, riderOpenid) {
+  // 获取状态文本（根据订单状态、支付状态和骑手接单情况）
+  getStatusText(status, riderOpenid, payStatus) {
+    // 如果订单未支付，显示"待支付"（除非已取消）
+    if (payStatus === 'unpaid' && status !== 'cancelled') {
+      return '待支付';
+    }
+    
     // 如果订单状态是confirmed，且有骑手接单，显示"骑手已接单"
     if (status === 'confirmed' && riderOpenid) {
       return '骑手已接单';
@@ -768,10 +774,10 @@ Page({
       return '商家已出餐';
     }
     
-    // 根据订单状态显示对应文本
+    // 根据订单状态显示对应文本（只有在已支付的情况下才显示"商家已确认"）
     const statusMap = {
       'pending': '待确认',
-      'confirmed': '商家已确认',
+      'confirmed': payStatus === 'paid' ? '商家已确认' : '待支付',
       'preparing': '制作中',
       'delivering': '骑手正在配送',
       'completed': '已完成',

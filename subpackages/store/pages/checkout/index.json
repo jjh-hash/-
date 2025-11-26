@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "确认订单",
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "payment-qrcode-modal": "/components/payment-qrcode-modal/index"
+  }
 }

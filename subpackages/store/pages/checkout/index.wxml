@@ -152,4 +152,12 @@
     </view>
   </view>
 
+  <!-- 支付二维码弹窗 -->
+  <payment-qrcode-modal 
+    show="{{showPaymentQRCode}}"
+    order-info="{{paymentOrderInfo}}"
+    bind:close="onClosePaymentQRCode"
+    bind:paymentConfirmed="onPaymentConfirmed">
+  </payment-qrcode-modal>
+
 </view>

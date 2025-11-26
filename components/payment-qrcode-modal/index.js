@@ -18,7 +18,9 @@ Component({
   data: {
     showModal: false,
     qrcodeImage: '', // 本地图片路径（用于长按识别）
-    qrcodeUrl: '' // 网络图片URL
+    qrcodeUrl: '', // 网络图片URL
+    paymentProofFileId: '', // 支付凭证的云存储fileID
+    uploadingProof: false // 上传支付凭证状态
   },
 
   observers: {
@@ -317,20 +319,97 @@ Component({
       });
     },
 
-    // 确认支付
+    // 确认支付（先选择支付凭证图片）
     onConfirmPayment() {
-      wx.showModal({
-        title: '确认支付',
-        content: '请确认已完成支付',
+      // 先选择支付凭证图片
+      wx.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
         success: (res) => {
-          if (res.confirm) {
-            // 触发支付确认事件
-            this.triggerEvent('paymentConfirmed');
-            // 关闭弹窗
-            this.onClose();
+          const tempFilePath = res.tempFilePaths[0];
+          console.log('【支付凭证】选择的图片路径:', tempFilePath);
+          
+          // 上传支付凭证
+          this.uploadPaymentProof(tempFilePath);
+        },
+        fail: (err) => {
+          console.error('【支付凭证】选择图片失败:', err);
+          if (!err.errMsg.includes('cancel')) {
+            wx.showToast({
+              title: '选择图片失败',
+              icon: 'none'
+            });
           }
         }
       });
+    },
+
+    // 上传支付凭证到云存储
+    async uploadPaymentProof(tempFilePath) {
+      if (this.data.uploadingProof) {
+        return;
+      }
+
+      this.setData({ uploadingProof: true });
+      wx.showLoading({
+        title: '上传支付凭证...',
+        mask: true
+      });
+
+      try {
+        // 生成云存储路径
+        const timestamp = Date.now();
+        const randomStr = Math.random().toString(36).substr(2, 9);
+        const cloudPath = `payment-proofs/${timestamp}-${randomStr}.jpg`;
+        
+        console.log('【支付凭证】开始上传到云存储:', cloudPath);
+
+        // 上传到云存储
+        const uploadRes = await wx.cloud.uploadFile({
+          cloudPath: cloudPath,
+          filePath: tempFilePath
+        });
+
+        console.log('【支付凭证】上传成功，fileID:', uploadRes.fileID);
+
+        wx.hideLoading();
+        this.setData({ 
+          uploadingProof: false,
+          paymentProofFileId: uploadRes.fileID
+        });
+
+        // 显示确认对话框
+        wx.showModal({
+          title: '确认支付',
+          content: '请确认已完成支付',
+          success: (res) => {
+            if (res.confirm) {
+              // 触发支付确认事件，传递支付凭证fileID
+              this.triggerEvent('paymentConfirmed', {
+                paymentProofFileId: uploadRes.fileID
+              });
+            } else {
+              // 用户取消确认，重置状态
+              this.setData({
+                paymentProofFileId: '',
+                uploadingProof: false
+              });
+            }
+          }
+        });
+
+      } catch (err) {
+        console.error('【支付凭证】上传失败:', err);
+        wx.hideLoading();
+        this.setData({ uploadingProof: false });
+        
+        wx.showToast({
+          title: '上传支付凭证失败，请重试',
+          icon: 'none',
+          duration: 2000
+        });
+      }
     },
 
     // 保存收款码到相册

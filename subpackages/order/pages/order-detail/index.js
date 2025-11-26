@@ -122,15 +122,26 @@ Page({
           ? (orderItems[0].productName || '商品')
           : '商品';
 
-        // 格式化订单状态文本
-        const statusTextMap = {
-          'pending': '待确认',
-          'confirmed': '已确认',
-          'preparing': '制作中',
-          'ready': '待配送',
-          'delivering': '配送中',
-          'completed': '订单已完成',
-          'cancelled': '订单已取消'
+        // 格式化订单状态文本（考虑支付状态）
+        const getStatusText = (orderStatus, payStatus) => {
+          // 如果订单未支付，显示"待支付"（除非已取消）
+          if (payStatus === 'unpaid' && orderStatus !== 'cancelled') {
+            if (orderStatus === 'confirmed') {
+              return '待支付';
+            }
+            return '待支付';
+          }
+          
+          const statusTextMap = {
+            'pending': '待确认',
+            'confirmed': '商家已确认',
+            'preparing': '制作中',
+            'ready': '待配送',
+            'delivering': '配送中',
+            'completed': '订单已完成',
+            'cancelled': '订单已取消'
+          };
+          return statusTextMap[orderStatus] || '订单详情';
         };
 
         // 格式化订单时间（完整格式）
@@ -161,7 +172,7 @@ Page({
             needCutlery: order.needCutlery !== undefined ? order.needCutlery : true, // 是否需要餐具
             cutleryQuantity: order.cutleryQuantity || 0 // 餐具数量
           },
-          orderStatusText: statusTextMap[order.orderStatus] || '订单详情',
+          orderStatusText: getStatusText(order.orderStatus, order.payStatus || 'unpaid'),
           firstProductName: firstProductName.length > 10 ? firstProductName.substring(0, 10) + '...' : firstProductName,
           showOrderDetails: false, // 订单详细信息展开/收起状态
           showAddressDetails: false // 地址详情展开/收起状态
