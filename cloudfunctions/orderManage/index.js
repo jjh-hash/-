@@ -41,6 +41,9 @@ exports.main = async (event, context) => {
       case 'updateOrderStatus':
         result = await updateOrderStatus(OPENID, data);
         break;
+      case 'updateOrderPayStatus':
+        result = await updateOrderPayStatus(OPENID, data);
+        break;
       case 'cancelOrder':
         result = await cancelOrder(OPENID, data);
         break;
@@ -365,7 +368,7 @@ async function createOrder(openid, data) {
       
       // 订单状态：根据自动接单设置决定初始状态
       orderStatus: initialOrderStatus, // pending-待确认, confirmed-已确认, preparing-制作中, ready-待配送, delivering-配送中, completed-已完成, cancelled-已取消
-      payStatus: 'paid', // 模拟已支付
+      payStatus: 'unpaid', // 未支付（需要商家确认收到款项后更新为paid）
       
       // 时间戳
       createdAt: db.serverDate(),
@@ -794,6 +797,122 @@ async function updateOrderStatus(openid, data) {
     return {
       code: 500,
       message: '更新订单状态失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 更新订单支付状态
+ */
+async function updateOrderPayStatus(openid, data) {
+  try {
+    const { orderId, payStatus } = data;
+    
+    console.log('【更新订单支付状态】参数:', { orderId, payStatus });
+    
+    if (!orderId || !payStatus) {
+      return {
+        code: 400,
+        message: '缺少必要参数'
+      };
+    }
+    
+    if (payStatus !== 'paid' && payStatus !== 'unpaid') {
+      return {
+        code: 400,
+        message: '无效的支付状态'
+      };
+    }
+    
+    // 获取订单信息
+    const orderResult = await db.collection('orders').doc(orderId).get();
+    if (!orderResult.data) {
+      return {
+        code: 404,
+        message: '订单不存在'
+      };
+    }
+    
+    const order = orderResult.data;
+    
+    // 验证权限：只有商家可以更新支付状态
+    // 通过订单的storeId查询店铺，验证商家权限
+    let hasPermission = false;
+    
+    if (order.storeId) {
+      try {
+        const merchantResult = await db.collection('merchants')
+          .where({ 
+            openid: openid,
+            status: db.command.in(['active', 'pending'])
+          })
+          .get();
+        
+        if (merchantResult.data && merchantResult.data.length > 0) {
+          const merchant = merchantResult.data[0];
+          
+          // 查询商家关联的店铺
+          const storeResult = await db.collection('stores')
+            .where({ merchantId: merchant._id })
+            .get();
+          
+          if (storeResult.data && storeResult.data.length > 0) {
+            const store = storeResult.data.find(s => s._id === order.storeId);
+            if (store) {
+              hasPermission = true;
+              console.log('【更新订单支付状态】权限验证通过：商家权限');
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('【更新订单支付状态】权限验证失败:', err);
+      }
+    }
+    
+    // 检查是否是管理员
+    if (!hasPermission) {
+      try {
+        const adminResult = await db.collection('admins')
+          .where({ openid: openid })
+          .get();
+        
+        if (adminResult.data && adminResult.data.length > 0) {
+          hasPermission = true;
+          console.log('【更新订单支付状态】权限验证通过：管理员权限');
+        }
+      } catch (err) {
+        console.warn('【更新订单支付状态】查询管理员失败:', err);
+      }
+    }
+    
+    if (!hasPermission) {
+      return {
+        code: 403,
+        message: '无权更新此订单的支付状态'
+      };
+    }
+    
+    // 更新订单支付状态
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        payStatus: payStatus,
+        updatedAt: db.serverDate()
+      }
+    });
+    
+    console.log('【更新订单支付状态】更新成功，订单号:', order.orderNo, '支付状态:', payStatus);
+    
+    return {
+      code: 200,
+      message: '支付状态更新成功'
+    };
+    
+  } catch (error) {
+    console.error('【更新订单支付状态】异常:', error);
+    return {
+      code: 500,
+      message: '更新支付状态失败',
       error: error.message
     };
   }
@@ -2687,22 +2806,26 @@ async function getAvailableOrders(openid, data) {
     
     // 查询条件：状态为 ready 或 confirmed，且未分配骑手（riderOpenid 不存在或为空）
     // 只查询普通外卖订单（排除 gaming、reward、express）
+    // 只查询已支付的订单（payStatus === 'paid'）
     // 注意：普通外卖订单可能没有 orderType 字段，所以使用 or 条件来处理
     // 同时处理 orderType 不存在、null 或者不在排除列表中的情况
     const whereCondition = db.command.or([
       {
         orderStatus: db.command.in(['ready', 'confirmed']),
         riderOpenid: db.command.exists(false),
+        payStatus: 'paid', // 只返回已支付的订单
         orderType: db.command.exists(false) // orderType 不存在（普通外卖订单）
       },
       {
         orderStatus: db.command.in(['ready', 'confirmed']),
         riderOpenid: db.command.exists(false),
+        payStatus: 'paid', // 只返回已支付的订单
         orderType: null // orderType 为 null（普通外卖订单）
       },
       {
         orderStatus: db.command.in(['ready', 'confirmed']),
         riderOpenid: db.command.exists(false),
+        payStatus: 'paid', // 只返回已支付的订单
         orderType: db.command.nin(['gaming', 'reward', 'express']) // orderType 存在但不等于这些值
       }
     ]);

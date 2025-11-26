@@ -19,7 +19,8 @@ Page({
     cutleryQuantity: 1, // 餐具数量，默认1份
     estimatedDeliveryTimeRange: '30~45分钟', // 预计到达时间范围，默认值
     announcementExpanded: false, // 公告是否展开
-    announcementNeedExpand: false // 是否需要展开按钮（文字超过一定长度时）
+    announcementNeedExpand: false, // 是否需要展开按钮（文字超过一定长度时）
+    pendingOrderData: null // 待提交的订单数据
   },
 
   onLoad(options) {
@@ -218,7 +219,7 @@ Page({
     }
   },
 
-  // 提交订单
+  // 提交订单（显示确认支付对话框）
   onSubmitOrder() {
     if (this.data.cartItems.length === 0) {
       wx.showToast({
@@ -238,12 +239,15 @@ Page({
       return;
     }
 
-    // 显示确认对话框
+    // 显示确认支付对话框
     wx.showModal({
-      title: '确认下单',
-      content: `总金额：¥${this.data.totalAmount}`,
+      title: '确认支付',
+      content: `确认支付 ¥${this.data.totalAmount.toFixed(2)} 吗？\n\n支付后订单将提交给商家，商家确认收到款项后开始制作。`,
+      confirmText: '确认支付',
+      cancelText: '取消',
       success: (res) => {
         if (res.confirm) {
+          // 用户确认支付，直接提交订单
           this.placeOrder();
         }
       }
@@ -291,23 +295,26 @@ Page({
         return;
       }
       
+      // 准备订单数据
+      const orderData = {
+        storeId: storeId,
+        cartItems: this.data.cartItems,
+        cartTotal: this.data.cartTotal,
+        storeInfo: this.data.storeInfo,
+        address: this.data.userInfo,
+        remark: this.data.remark,
+        deliveryFee: this.data.deliveryFee,
+        deliveryType: this.data.deliveryType || 'delivery',
+        needCutlery: this.data.needCutlery,
+        cutleryQuantity: this.data.needCutlery ? this.data.cutleryQuantity : 0
+      };
+
       // 调用云函数创建订单
       const res = await wx.cloud.callFunction({
         name: 'orderManage',
         data: {
           action: 'createOrder',
-          data: {
-            storeId: storeId,
-            cartItems: this.data.cartItems,
-            cartTotal: this.data.cartTotal,
-            storeInfo: this.data.storeInfo,
-            address: this.data.userInfo,
-            remark: this.data.remark,
-            deliveryFee: this.data.deliveryFee,
-            deliveryType: this.data.deliveryType || 'delivery',
-            needCutlery: this.data.needCutlery,
-            cutleryQuantity: this.data.needCutlery ? this.data.cutleryQuantity : 0
-          }
+          data: orderData
         }
       });
 

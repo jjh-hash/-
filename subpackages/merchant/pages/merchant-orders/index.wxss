@@ -54,6 +54,8 @@
 .btn{min-width:92px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center}
 .btn.ghost{background:#fff;border:1px solid #e0e0e0;color:#333}
 .btn.refund{background:#ff4d4f;color:#fff;font-weight:500}
+.btn.payment{background:#07c160;color:#fff;font-weight:500}
+.btn.confirm-pay{background:#ff9800;color:#fff;font-weight:500}
 .btn.primary{background:#1677ff;color:#fff}
 .btn.success{background:#52c41a;color:#fff}
 .btn.cancelled{background:#f5f5f5;color:#999;border:1px solid #e0e0e0}
@@ -94,11 +96,15 @@
 .sheet-actions{display:flex;gap:10px;margin-top:12px}
 
 /* 退款相关样式 */
-.status-wrapper{display:flex;align-items:center;gap:8px}
+.status-wrapper{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .refund-badge{background:#ff4d4f;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px}
 .refund-status-badge{font-size:12px;padding:2px 8px;border-radius:4px;font-weight:500}
 .refund-status-badge.approved{background:#d4edda;color:#155724}
 .refund-status-badge.rejected{background:#f8d7da;color:#721c24}
+.pay-status-badge{font-size:12px;padding:2px 8px;border-radius:4px;font-weight:500}
+.pay-status-badge.unpaid{background:#fff3cd;color:#856404}
+.pay-status-badge.paid{background:#d4edda;color:#155724}
+.sheet-status-wrapper{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 
 .refund-section{margin-top:12px;background:#f8f9fa;border-radius:8px;padding:12px}
 .refund-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}

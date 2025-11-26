@@ -6,7 +6,7 @@ Page({
     orders: [],
     loading: false, // 初始状态为false，允许首次加载
     refreshing: false, // 下拉刷新状态
-    tabs: ['待确认', '制作中', '待配送', '已完成'],
+    tabs: ['全部', '待确认', '待支付', '已完成', '已取消', '待退款'],
     watchOrder: null,        // watch监听器
     refreshTimer: null,      // 防抖定时器
     reconnectTimer: null,    // 重连定时器
@@ -18,7 +18,8 @@ Page({
     lastRefreshTime: 0,      // 上次刷新时间
     lastScrollTime: 0,       // 上次滚动时间
     isScrolling: false,     // 是否正在滚动
-    scrollTop: 0            // 当前滚动位置
+    scrollTop: 0,            // 当前滚动位置
+    filterUnpaid: false      // 是否筛选未支付订单
   },
 
   onLoad() {
@@ -34,31 +35,43 @@ Page({
     const { activeTab } = this.data;
     let status = null;
     let filterRefund = false;
+    let filterUnpaid = false;
     
     switch(activeTab) {
       case 0: // 全部
         status = null;
         filterRefund = false;
+        filterUnpaid = false;
         break;
       case 1: // 待确认
         status = 'pending';
         filterRefund = false;
+        filterUnpaid = false;
         break;
-      case 2: // 已完成
+      case 2: // 待支付
+        status = null;
+        filterRefund = false;
+        filterUnpaid = true;
+        break;
+      case 3: // 已完成
         status = 'completed';
         filterRefund = false;
+        filterUnpaid = false;
         break;
-      case 3: // 已取消
+      case 4: // 已取消
         status = 'cancelled';
         filterRefund = false;
+        filterUnpaid = false;
         break;
-      case 4: // 待退款
+      case 5: // 待退款
         status = null;
         filterRefund = true;
+        filterUnpaid = false;
         break;
     }
     
-    this.loadOrders(status, filterRefund);
+    this.setData({ filterUnpaid: filterUnpaid });
+    this.loadOrders(status, filterRefund, false, filterUnpaid);
     
     // 重新启动订单监听
     this.startOrderWatch();
@@ -106,15 +119,18 @@ Page({
     let status = null;
     let filterRefund = false;
     
+    let filterUnpaid = false;
     switch(activeTab) {
-      case 0: status = null; filterRefund = false; break;
-      case 1: status = 'pending'; filterRefund = false; break;
-      case 2: status = 'completed'; filterRefund = false; break;
-      case 3: status = 'cancelled'; filterRefund = false; break;
-      case 4: status = null; filterRefund = true; break;
+      case 0: status = null; filterRefund = false; filterUnpaid = false; break;
+      case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
+      case 2: status = null; filterRefund = false; filterUnpaid = true; break;
+      case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
+      case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
+      case 5: status = null; filterRefund = true; filterUnpaid = false; break;
     }
     
-    this.loadOrders(status, filterRefund);
+    this.setData({ filterUnpaid: filterUnpaid });
+    this.loadOrders(status, filterRefund, false, filterUnpaid);
     
     wx.showToast({
       title: '刷新成功',
@@ -142,11 +158,12 @@ Page({
         const { activeTab } = this.data;
         let status = null;
         let filterRefund = false;
-        this.getStatusFromTab(activeTab, (s, f) => {
+        this.getStatusFromTab(activeTab, (s, f, u) => {
           status = s;
           filterRefund = f;
+          filterUnpaid = u;
         });
-        this.startPolling(status, filterRefund);
+        this.startPolling(status, filterRefund, filterUnpaid);
         return;
       }
       
@@ -189,11 +206,13 @@ Page({
       const { activeTab } = this.data;
       let status = null;
       let filterRefund = false;
-      this.getStatusFromTab(activeTab, (s, f) => {
+      let filterUnpaid = false;
+      this.getStatusFromTab(activeTab, (s, f, u) => {
         status = s;
         filterRefund = f;
+        filterUnpaid = u;
       });
-      this.startPolling(status, filterRefund);
+      this.startPolling(status, filterRefund, filterUnpaid);
     }
   },
 
@@ -201,16 +220,18 @@ Page({
   getStatusFromTab(activeTab, callback) {
     let status = null;
     let filterRefund = false;
+    let filterUnpaid = false;
     
     switch(activeTab) {
-      case 0: status = null; filterRefund = false; break;
-      case 1: status = 'pending'; filterRefund = false; break;
-      case 2: status = 'completed'; filterRefund = false; break;
-      case 3: status = 'cancelled'; filterRefund = false; break;
-      case 4: status = null; filterRefund = true; break;
+      case 0: status = null; filterRefund = false; filterUnpaid = false; break;
+      case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
+      case 2: status = null; filterRefund = false; filterUnpaid = true; break;
+      case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
+      case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
+      case 5: status = null; filterRefund = true; filterUnpaid = false; break;
     }
     
-    callback(status, filterRefund);
+    callback(status, filterRefund, filterUnpaid);
   },
 
   // 处理订单变化（防抖+滚动检测）
@@ -238,9 +259,11 @@ Page({
       const { activeTab } = this.data;
       let status = null;
       let filterRefund = false;
-      this.getStatusFromTab(activeTab, (s, f) => {
+      let filterUnpaid = false;
+      this.getStatusFromTab(activeTab, (s, f, u) => {
         status = s;
         filterRefund = f;
+        filterUnpaid = u;
       });
       this.data.refreshTimer = setTimeout(() => {
         this.handleOrderChange();
@@ -270,9 +293,11 @@ Page({
     const { activeTab } = this.data;
     let status = null;
     let filterRefund = false;
-    this.getStatusFromTab(activeTab, (s, f) => {
+    let filterUnpaid = false;
+    this.getStatusFromTab(activeTab, (s, f, u) => {
       status = s;
       filterRefund = f;
+      filterUnpaid = u;
     });
     
     // 延迟刷新，避免频繁刷新
@@ -282,7 +307,7 @@ Page({
     
     this.data.refreshTimer = setTimeout(() => {
       if (!this.data.loading) {
-        this.loadOrders(status, filterRefund);
+        this.loadOrders(status, filterRefund, false, filterUnpaid);
       }
     }, 500);
   },
@@ -299,11 +324,13 @@ Page({
       const { activeTab } = this.data;
       let status = null;
       let filterRefund = false;
-      this.getStatusFromTab(activeTab, (s, f) => {
+      let filterUnpaid = false;
+      this.getStatusFromTab(activeTab, (s, f, u) => {
         status = s;
         filterRefund = f;
+        filterUnpaid = u;
       });
-      this.startPolling(status, filterRefund);
+      this.startPolling(status, filterRefund, filterUnpaid);
       return;
     }
     
@@ -321,7 +348,7 @@ Page({
   },
 
   // 启动智能轮询（降级方案）
-  startPolling(status = null, filterRefund = false) {
+  startPolling(status = null, filterRefund = false, filterUnpaid = false) {
     // 如果已经在轮询，不重复启动
     if (this.data.pollingActive) {
       return;
@@ -331,11 +358,11 @@ Page({
     this.setData({ pollingActive: true });
     
     // 立即执行一次
-    this.pollOrders(status, filterRefund);
+    this.pollOrders(status, filterRefund, filterUnpaid);
     
     // 设置定时轮询
     this.data.pollingTimer = setInterval(() => {
-      this.pollOrders(status, filterRefund);
+      this.pollOrders(status, filterRefund, filterUnpaid);
     }, this.getPollingInterval());
   },
 
@@ -350,7 +377,7 @@ Page({
   },
 
   // 轮询订单
-  pollOrders(status = null, filterRefund = false) {
+  pollOrders(status = null, filterRefund = false, filterUnpaid = false) {
     // 检查是否有进行中的订单
     const hasActiveOrders = this.data.orders.some(order => {
       const orderStatus = order.orderStatus;
@@ -386,11 +413,13 @@ Page({
       const { activeTab } = this.data;
       let currentStatus = null;
       let currentFilterRefund = false;
-      this.getStatusFromTab(activeTab, (s, f) => {
+      let currentFilterUnpaid = false;
+      this.getStatusFromTab(activeTab, (s, f, u) => {
         currentStatus = s;
         currentFilterRefund = f;
+        currentFilterUnpaid = u;
       });
-      this.loadOrders(currentStatus, currentFilterRefund);
+      this.loadOrders(currentStatus, currentFilterRefund, false, currentFilterUnpaid);
     }
   },
 
@@ -478,7 +507,7 @@ Page({
   },
 
   // 加载订单列表
-  async loadOrders(status = null, filterRefund = false, isPullRefresh = false) {
+  async loadOrders(status = null, filterRefund = false, isPullRefresh = false, filterUnpaid = false) {
     // 如果已经在加载中，则跳过（避免重复请求）
     if (this.data.loading) {
       return Promise.resolve();
@@ -622,7 +651,8 @@ Page({
           expiredMinutes: order.expiredMinutes || null,
           readyAt: order.readyAt || null,
           createdAt: order.createdAt,
-          refundInfo: order.refundInfo || null // 退款申请信息
+          refundInfo: order.refundInfo || null, // 退款申请信息
+          payStatus: order.payStatus || 'paid' // 支付状态
         }));
 
         // 如果筛选退款订单，只显示有退款申请的订单
@@ -632,6 +662,13 @@ Page({
                    (order.refundInfo.status === 'pending' || 
                     order.refundInfo.status === 'processing' || 
                     order.refundInfo.status === 'approved');
+          });
+        }
+
+        // 如果筛选未支付订单，只显示未支付的订单
+        if (filterUnpaid) {
+          orders = orders.filter(order => {
+            return order.payStatus === 'unpaid';
           });
         }
 
@@ -772,6 +809,111 @@ Page({
     });
   },
 
+  // 确认支付（更新订单支付状态为已支付）
+  async onConfirmPayment(e) {
+    // 优先从dataset获取，如果没有则从detail中获取（详情弹窗场景）
+    let orderId = e.currentTarget.dataset.id;
+    
+    // 如果详情弹窗中没有订单ID，从detail中获取
+    if (!orderId && this.data.detail && this.data.detail.id) {
+      orderId = this.data.detail.id;
+    }
+    
+    // 如果还是没有订单ID，尝试从当前显示的订单列表中查找
+    if (!orderId && this.data.detail && this.data.detail.orderNo) {
+      const order = this.data.orders.find(o => o.orderNo === this.data.detail.orderNo);
+      if (order) {
+        orderId = order.id;
+      }
+    }
+    
+    console.log('【商家订单页面】确认支付，orderId:', orderId);
+    
+    if (!orderId) {
+      wx.showToast({
+        title: '缺少订单ID',
+        icon: 'none'
+      });
+      console.error('【商家订单页面】无法获取订单ID');
+      return;
+    }
+
+    // 获取订单信息，显示确认对话框
+    const order = this.data.orders.find(o => o.id === orderId) || this.data.detail;
+    if (!order) {
+      wx.showToast({
+        title: '订单不存在',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.showModal({
+      title: '确认支付',
+      content: `确认收到订单 ${order.orderNo} 的款项 ¥${order.amountTotal} 吗？`,
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            wx.showLoading({ title: '处理中...' });
+
+            const result = await wx.cloud.callFunction({
+              name: 'orderManage',
+              data: {
+                action: 'updateOrderPayStatus',
+                data: {
+                  orderId: orderId,
+                  payStatus: 'paid'
+                }
+              }
+            });
+
+            wx.hideLoading();
+
+            if (result.result && result.result.code === 200) {
+              wx.showToast({
+                title: '支付确认成功',
+                icon: 'success'
+              });
+              
+              // 关闭详情弹窗
+              this.setData({ showDetail: false });
+              
+              // 刷新订单列表，保持当前标签状态
+              const { activeTab } = this.data;
+              let status = null;
+              let filterRefund = false;
+              let filterUnpaid = false;
+              
+              switch(activeTab) {
+                case 0: status = null; filterRefund = false; filterUnpaid = false; break;
+                case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
+                case 2: status = null; filterRefund = false; filterUnpaid = true; break;
+                case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
+                case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
+                case 5: status = null; filterRefund = true; filterUnpaid = false; break;
+              }
+              
+              this.loadOrders(status, filterRefund, false, filterUnpaid);
+            } else {
+              wx.showToast({
+                title: result.result?.message || '操作失败',
+                icon: 'none'
+              });
+            }
+
+          } catch (error) {
+            wx.hideLoading();
+            console.error('【商家订单页面】确认支付异常:', error);
+            wx.showToast({
+              title: '操作失败',
+              icon: 'none'
+            });
+          }
+        }
+      }
+    });
+  },
+
   // 确认订单（pending -> confirmed）
   async onConfirmOrder(e) {
     // 优先从dataset获取，如果没有则从detail中获取（详情弹窗场景）
@@ -798,6 +940,18 @@ Page({
         icon: 'none'
       });
       console.error('【商家订单页面】无法获取订单ID');
+      return;
+    }
+
+    // 检查订单是否已支付
+    const order = this.data.orders.find(o => o.id === orderId) || this.data.detail;
+    if (order && order.payStatus === 'unpaid') {
+      wx.showModal({
+        title: '订单未支付',
+        content: '请先确认收到款项后再确认订单',
+        showCancel: false,
+        confirmText: '确定'
+      });
       return;
     }
     
@@ -830,16 +984,18 @@ Page({
         const { activeTab } = this.data;
         let status = null;
         let filterRefund = false;
+        let filterUnpaid = false;
         
         switch(activeTab) {
-          case 0: status = null; filterRefund = false; break;
-          case 1: status = 'pending'; filterRefund = false; break;
-          case 2: status = 'completed'; filterRefund = false; break;
-          case 3: status = 'cancelled'; filterRefund = false; break;
-          case 4: status = null; filterRefund = true; break;
+          case 0: status = null; filterRefund = false; filterUnpaid = false; break;
+          case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
+          case 2: status = null; filterRefund = false; filterUnpaid = true; break;
+          case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
+          case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
+          case 5: status = null; filterRefund = true; filterUnpaid = false; break;
         }
         
-        this.loadOrders(status, filterRefund);
+        this.loadOrders(status, filterRefund, false, filterUnpaid);
       } else {
         wx.showToast({
           title: res.result?.message || '操作失败',
@@ -885,6 +1041,18 @@ Page({
       console.error('【商家订单页面】无法获取订单ID');
       return;
     }
+
+    // 检查订单是否已支付
+    const order = this.data.orders.find(o => o.id === orderId) || this.data.detail;
+    if (order && order.payStatus === 'unpaid') {
+      wx.showModal({
+        title: '订单未支付',
+        content: '请先确认收到款项后再出餐',
+        showCancel: false,
+        confirmText: '确定'
+      });
+      return;
+    }
     
     try {
       wx.showLoading({ title: '处理中...' });
@@ -911,8 +1079,22 @@ Page({
         // 关闭详情弹窗（如果打开）
         this.setData({ showDetail: false });
         
-        // 刷新订单列表
-        this.loadOrders();
+        // 刷新订单列表，保持当前标签状态
+        const { activeTab } = this.data;
+        let status = null;
+        let filterRefund = false;
+        let filterUnpaid = false;
+        
+        switch(activeTab) {
+          case 0: status = null; filterRefund = false; filterUnpaid = false; break;
+          case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
+          case 2: status = null; filterRefund = false; filterUnpaid = true; break;
+          case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
+          case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
+          case 5: status = null; filterRefund = true; filterUnpaid = false; break;
+        }
+        
+        this.loadOrders(status, filterRefund, false, filterUnpaid);
       } else {
         wx.showToast({
           title: res.result?.message || '操作失败',
@@ -1046,16 +1228,17 @@ Page({
         return this.formatAmount(rawFee);
       })(),
       amountDiscount: order.amountDiscount || 0,
-      amountTotal: this.formatAmount(order.amountTotal || order.amountPayable || 0),
-      merchantIncome: this.calculateMerchantIncome(order.amountGoods || 0, order.platformFee || 0, order.merchantIncome), // 商家收入
-      needCutlery: order.needCutlery !== undefined ? order.needCutlery : true, // 是否需要餐具
-      cutleryQuantity: order.cutleryQuantity || 0, // 餐具数量
-      expiredAt: order.expiredAt || null,
-      expiredMinutes: order.expiredMinutes || null,
-      readyAt: order.readyAt || null,
-      createdAt: this.formatDateTime(order.createdAt),
-      refundInfo: order.refundInfo || null // 退款申请信息
-    };
+          amountTotal: this.formatAmount(order.amountTotal || order.amountPayable || 0),
+          merchantIncome: this.calculateMerchantIncome(order.amountGoods || 0, order.platformFee || 0, order.merchantIncome), // 商家收入
+          needCutlery: order.needCutlery !== undefined ? order.needCutlery : true, // 是否需要餐具
+          cutleryQuantity: order.cutleryQuantity || 0, // 餐具数量
+          expiredAt: order.expiredAt || null,
+          expiredMinutes: order.expiredMinutes || null,
+          readyAt: order.readyAt || null,
+          createdAt: this.formatDateTime(order.createdAt),
+          refundInfo: order.refundInfo || null, // 退款申请信息
+          payStatus: order.payStatus || 'paid' // 支付状态
+        };
     
     this.setData({ showDetail: true, detail: detail });
   },
@@ -1343,6 +1526,7 @@ Page({
   stopPropagation() {
     // 空函数，用于阻止事件冒泡
   },
+
   
   onBottomTap(e){
     const tab = e.currentTarget.dataset.tab;

@@ -148,7 +148,8 @@
       <text class="total-amount">¥{{totalAmount}}</text>
     </view>
     <view class="submit-btn" bindtap="onSubmitOrder">
-      <text class="submit-text">提交订单</text>
+      <text class="submit-text">结算</text>
     </view>
   </view>
+
 </view>
