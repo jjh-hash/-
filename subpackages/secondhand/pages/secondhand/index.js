@@ -154,14 +154,14 @@ Page({
     console.log('点击商品:', id);
     // 跳转到商品详情页
     wx.navigateTo({
-      url: `/pages/secondhand-detail/index?id=${id}`
+      url: `/subpackages/secondhand/pages/secondhand-detail/index?id=${id}`
     });
   },
 
   // 发布商品
   onPublishTap() {
     wx.navigateTo({
-      url: '/pages/secondhand-publish/index'
+      url: '/subpackages/secondhand/pages/secondhand-publish/index'
     });
   },
 
@@ -177,6 +177,14 @@ Page({
 
   // 返回
   onBackTap() {
-    wx.navigateBack();
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      wx.navigateBack();
+    } else {
+      // 如果没有上一页，跳转到首页
+      wx.reLaunch({
+        url: '/pages/home/index'
+      });
+    }
   }
 });

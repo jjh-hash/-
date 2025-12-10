@@ -87,7 +87,7 @@ Page({
     const tab = e.currentTarget.dataset.tab;
     if (tab === 'order') {
       wx.reLaunch({
-        url: '/subpackages/order/pages/order/index'
+        url: '/subpackages/order/pages/receive-order/index'
       });
     } else if (tab === 'receive') {
       // 接单功能正在开发中
@@ -145,45 +145,21 @@ Page({
         url: '/subpackages/store/pages/store/index'
       });
     } else if (cat.text === '悬赏') {
-      // 悬赏功能正在开发中
-      wx.showToast({
-        title: '正在开发中',
-        icon: 'none',
-        duration: 2000
+      wx.navigateTo({
+        url: '/subpackages/category/pages/reward/index'
       });
-      // wx.navigateTo({
-      //   url: '/pages/reward/index'
-      // });
     } else if (cat.text === '游戏陪玩') {
-      // 游戏陪玩功能正在开发中
-      wx.showToast({
-        title: '正在开发中',
-        icon: 'none',
-        duration: 2000
+      wx.navigateTo({
+        url: '/subpackages/category/pages/gaming/index'
       });
-      // wx.navigateTo({
-      //   url: '/pages/gaming/index'
-      // });
     } else if (cat.text === '代拿快递') {
-      // 代拿快递功能正在开发中
-      wx.showToast({
-        title: '正在开发中',
-        icon: 'none',
-        duration: 2000
+      wx.navigateTo({
+        url: '/subpackages/category/pages/express/index'
       });
-      // wx.navigateTo({
-      //   url: '/pages/express/index'
-      // });
     } else if (cat.text === '闲置出售') {
-      // 闲置出售功能正在开发中
-      wx.showToast({
-        title: '正在开发中',
-        icon: 'none',
-        duration: 2000
+      wx.navigateTo({
+        url: '/subpackages/secondhand/pages/secondhand/index'
       });
-      // wx.navigateTo({
-      //   url: '/pages/secondhand/index'
-      // });
     }
   },
 

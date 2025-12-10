@@ -38,6 +38,7 @@
     "wxext14566970e7e9f62": "2.27.3"
   },
   "editorSetting": {},
-  "cloudfunctionTemplateRoot": "cloudfunctionTemplate",
-  "projectArchitecture": "multiPlatform"
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/",
+  "projectArchitecture": "multiPlatform",
+  "libVersion": "3.10.2"
 }

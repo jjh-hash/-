@@ -13,7 +13,7 @@ exports.main = async (event, context) => {
   console.log('请求参数:', event);
   
   try {
-    const { nickname, avatar, campus, college, major, phone } = event;
+    const { nickname, avatar, campus, college, major, phone, wechat, qq } = event;
     
     console.log('接收到的昵称:', nickname);
     console.log('接收到的头像:', avatar);
@@ -97,6 +97,18 @@ exports.main = async (event, context) => {
     if (phone !== undefined && phone !== null) {
       updateData.phone = phone === '' ? '' : phone.trim();
       console.log('✓ 准备更新电话:', updateData.phone);
+    }
+    
+    // 更新微信号（允许空字符串）
+    if (wechat !== undefined && wechat !== null) {
+      updateData.wechat = wechat === '' ? '' : wechat.trim();
+      console.log('✓ 准备更新微信号:', updateData.wechat);
+    }
+    
+    // 更新QQ号（允许空字符串）
+    if (qq !== undefined && qq !== null) {
+      updateData.qq = qq === '' ? '' : qq.trim();
+      console.log('✓ 准备更新QQ号:', updateData.qq);
     }
     
     console.log('要更新的数据:', JSON.stringify(updateData, null, 2));

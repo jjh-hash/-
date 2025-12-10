@@ -1,4 +1,4 @@
-.page{min-height:100vh;background:#f5f5f5;display:flex;flex-direction:column}
+.page{height:100vh;background:#f5f5f5;display:flex;flex-direction:column;overflow:hidden}
 .status-bar{width:100%}
 .nav{height:44px;background:#fff;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;position:relative}
 .back{position:absolute;left:12px;color:#333;font-size:18px}
@@ -20,7 +20,7 @@
 .tab.active{color:#1677ff;font-weight:600}
 .tab.active::after{content:'';position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:24px;height:2px;background:#1677ff;border-radius:1px}
 
-.review-list{flex:1;padding:12px;height:0}
+.review-list{flex:1;padding:12px;height:100%;overflow:hidden}
 .loading-container,.empty-container{padding:40px;text-align:center;color:#999;font-size:14px}
 .review-item{background:#fff;margin-bottom:12px;border-radius:12px;padding:16px}
 .user-info{display:flex;align-items:center;margin-bottom:12px}

@@ -1,0 +1,99 @@
+/* 自定义导航 */
+.nav { background:#ffffff; color:#111827; }
+.status-bar{ width:100%; }
+.nav-bar{ height:44px; display:flex; align-items:center; justify-content:center; padding:0 12px; position:relative; border-bottom:1px solid #f1f3f5; }
+.back{ position:absolute; left:12px; color:#374151; }
+.title{ font-size:17px; font-weight:600; color:#111827; }
+.icons{ display:none; }
+
+.content{ height: calc(100vh - 88px); background:#f5f6f8; }
+
+/* 分类标签 */
+.category-tabs {
+  display: flex;
+  padding: 12px;
+  gap: 8px;
+  background: #fff;
+  border-bottom: 1px solid #eef0f3;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.category-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: #f5f6f8;
+  color: #6b7280;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.category-tab.active {
+  background: #3cc51f;
+  color: #fff;
+}
+
+.category-icon {
+  margin-right: 4px;
+  font-size: 14px;
+}
+
+.category-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 加载和空状态 */
+.loading-container, .empty-container{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:60px 20px;
+  color:#999;
+  font-size:14px;
+}
+
+/* 订单列表 */
+.order-list{ padding:12px; }
+.order-card{ background:#fff; border-radius:12px; padding:12px; margin-bottom:16px; border:1px solid #eef0f3; }
+
+/* 订单头部 */
+.order-header{ display:flex; align-items:flex-start; margin-bottom:12px; }
+.food-img{ width:60px; height:60px; border-radius:8px; background:#eee; margin-right:12px; }
+.order-info{ flex:1; }
+.store-name{ font-size:16px; font-weight:600; color:#1f2937; display:block; margin-bottom:4px; }
+.order-date{ font-size:12px; color:#6b7280; }
+.order-status{ font-size:14px; font-weight:500; margin-left:auto; }
+.order-status.pending{ color:#f59e0b; }
+.order-status.normal{ color:#374151; }
+.order-status.cancelled{ color:#ef4444; }
+
+/* 订单商品 */
+.order-items{ margin:8px 0 12px; background:#f9fafb; border-radius:8px; padding:12px; }
+.item-name{ font-size:14px; color:#4b5563; display:block; margin-bottom:4px; }
+
+/* 退款状态 */
+.refund-status-info{ margin:8px 0; padding:10px 12px; background:#f0f9ff; border-radius:6px; border-left:3px solid #1890ff; }
+.refund-status-text{ font-size:14px; font-weight:500; display:block; margin-bottom:6px; }
+.refund-status-text.refund-pending{ color:#faad14; }
+.refund-status-text.refund-success{ color:#52c41a; }
+.refund-status-text.refund-rejected{ color:#ff4d4f; }
+.refund-remark{ font-size:12px; color:#666; display:block; margin-top:4px; line-height:1.5; }
+.refund-amount{ font-size:12px; color:#1890ff; display:block; margin-top:4px; }
+
+/* 订单底部 */
+.order-footer{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
+.price-info{ flex:1; }
+.total-price{ font-size:14px; color:#6b7280; font-weight:600; display:block; }
+.price-detail{ margin-top:4px; }
+.detail-text{ font-size:12px; color:#9ca3af; }
+
+.safe-area-bottom {
+  height: env(safe-area-inset-bottom);
+  padding-bottom: 20px;
+}
+

@@ -2738,9 +2738,12 @@ async function getReceiveOrders(openid, data) {
       orderType: db.command.in(['gaming', 'reward', 'express'])
     };
     
-    // 根据状态筛选
+    // 根据状态筛选（如果不传status，则查询所有状态的订单，但排除已取消的）
     if (status) {
       whereCondition.orderStatus = status;
+    } else {
+      // 如果没有指定状态，查询所有状态的订单，但排除已取消的
+      whereCondition.orderStatus = db.command.neq('cancelled');
     }
     
     // 查询订单

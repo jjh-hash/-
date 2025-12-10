@@ -1,6 +1,6 @@
 {
   "libVersion": "3.10.2",
-  "projectname": "%E6%A0%A1%E5%9B%AD%E5%A4%96%E5%8D%96",
+  "projectname": "%25E6%25A0%25A1%25E5%259B%25AD%25E5%25A4%2596%25E5%258D%2596",
   "setting": {
     "urlCheck": false,
     "coverView": true,
@@ -19,17 +19,5 @@
     "ignoreDevUnusedFiles": true,
     "bigPackageSizeSupport": false
   },
-  "condition": {
-    "miniprogram": {
-      "list": [
-        {
-          "name": "pages/order/index",
-          "pathName": "pages/home/index",
-          "query": "",
-          "scene": null,
-          "launchMode": "default"
-        }
-      ]
-    }
-  }
+  "condition": {}
 }

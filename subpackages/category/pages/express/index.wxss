@@ -255,6 +255,44 @@
   color: #999;
 }
 
+/* 联系信息显示 */
+.contact-info-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.contact-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contact-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #e0e0e0;
+}
+
+.contact-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.contact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 32px;
+}
+
+.contact-item {
+  font-size: 12px;
+  color: #666;
+}
+
 .section-title {
   flex: 1;
   font-size: 16px;

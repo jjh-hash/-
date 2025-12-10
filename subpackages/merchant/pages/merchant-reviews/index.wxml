@@ -67,11 +67,12 @@
               class="review-img" 
               wx:for="{{reviewItem.images}}" 
               wx:for-item="img" 
-              wx:key="*this" 
+              wx:for-index="imgIndex"
+              wx:key="{{reviewItem.id}}_{{imgIndex}}" 
               src="{{img}}" 
               mode="aspectFill"
               data-images="{{reviewItem.images}}"
-              data-index="{{index}}"
+              data-index="{{imgIndex}}"
               bindtap="onPreviewImage" />
           </view>
           

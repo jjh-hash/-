@@ -1,0 +1,74 @@
+<view class="page">
+  <!-- 自定义导航 -->
+  <view class="nav">
+    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+    <view class="nav-bar">
+      <text class="back" bindtap="onBack">◀</text>
+      <text class="title">联系信息</text>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="content">
+    <!-- 用户信息展示 -->
+    <view class="user-info-section">
+      <view class="avatar-container">
+        <image class="avatar" src="{{userInfo.avatar || '/pages/小标/默认头像.png'}}" mode="aspectFill"></image>
+      </view>
+      <view class="user-name">{{userInfo.nickname || '微信用户'}}</view>
+      <view class="user-tip">头像和名称来自微信登录信息</view>
+    </view>
+
+    <!-- 联系方式编辑（选填一个即可） -->
+    <view class="form-section">
+      <view class="form-item">
+        <text class="form-label">电话号码</text>
+        <input 
+          class="form-input" 
+          type="number"
+          placeholder="选填" 
+          value="{{contactInfo.phone}}"
+          bindinput="onPhoneInput"
+          maxlength="11"
+        />
+      </view>
+    </view>
+
+    <view class="form-section">
+      <view class="form-item">
+        <text class="form-label">微信号</text>
+        <input 
+          class="form-input" 
+          placeholder="选填" 
+          value="{{contactInfo.wechat}}"
+          bindinput="onWechatInput"
+          maxlength="50"
+        />
+      </view>
+    </view>
+
+    <view class="form-section">
+      <view class="form-item">
+        <text class="form-label">QQ号</text>
+        <input 
+          class="form-input" 
+          type="number"
+          placeholder="选填" 
+          value="{{contactInfo.qq}}"
+          bindinput="onQQInput"
+          maxlength="15"
+        />
+      </view>
+    </view>
+
+    <view class="form-tip">
+      <text class="tip-text">💡 至少填写一种联系方式即可</text>
+    </view>
+
+    <view class="safe-area-bottom"></view>
+  </scroll-view>
+
+  <view class="footer">
+    <button class="btn-save" type="primary" bindtap="onSave">保存</button>
+  </view>
+</view>
+

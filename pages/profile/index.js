@@ -46,7 +46,7 @@ Page({
       });
     } else if (tab === 'order') {
       wx.reLaunch({
-        url: '/pages/order/index'
+        url: '/subpackages/order/pages/receive-order/index'
       });
     } else if (tab === 'receive') {
       // 接单功能正在开发中
@@ -82,6 +82,11 @@ Page({
       case 'reviews':
         wx.navigateTo({
           url: '/subpackages/store/pages/my-reviews/index'
+        });
+        break;
+      case 'my-orders':
+        wx.navigateTo({
+          url: '/subpackages/common/pages/my-orders/index'
         });
         break;
       case 'address':

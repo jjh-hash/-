@@ -42,47 +42,51 @@ Page({
   },
 
   onLoad() {
-    // 页面加载时加载用户默认地址
-    this.loadUserAddress();
+    // 页面加载时加载用户联系信息
+    this.loadContactInfo();
   },
 
   onShow() {
-    // 从地址选择页面返回时，地址已在onSelectAddress中通过setData设置
-    // 这里不需要额外处理
+    // 从联系信息页面返回时，联系信息已在onSelectAddress中通过setData设置
+    this.loadContactInfo();
   },
 
-  // 加载用户默认地址
-  async loadUserAddress() {
+  // 加载用户联系信息
+  async loadContactInfo() {
     try {
-      const res = await wx.cloud.callFunction({
-        name: 'addressManage',
-        data: {
-          action: 'getAddressList',
-          data: {}
-        }
-      });
-
-      console.log('【express页面】加载地址结果:', res.result);
-
-      if (res.result && res.result.code === 200 && res.result.data.list.length > 0) {
-        // 获取默认地址或第一个地址
-        const defaultAddress = res.result.data.list.find(addr => addr.isDefault) || res.result.data.list[0];
-        console.log('【express页面】设置默认地址:', defaultAddress);
+      // 从本地存储获取用户信息
+      const userInfo = wx.getStorageSync('userInfo') || getApp().globalData.userInfo;
+      if (userInfo) {
+        // 构建联系信息对象（兼容地址格式，用于订单创建）
+        const contactInfo = {
+          name: userInfo.nickname || '微信用户',
+          phone: userInfo.phone || '',
+          wechat: userInfo.wechat || '',
+          qq: userInfo.qq || '',
+          avatar: userInfo.avatar || '',
+          // 为了兼容订单创建，保留地址格式字段
+          buildingName: '',
+          houseNumber: '',
+          addressDetail: '',
+          address: ''
+        };
+        
         this.setData({
-          address: defaultAddress
+          address: contactInfo
         });
+        console.log('【代拿快递页面】设置联系信息:', contactInfo);
       } else {
-        console.log('【express页面】用户没有地址');
+        console.log('【代拿快递页面】用户信息不存在');
       }
     } catch (error) {
-      console.error('加载地址失败:', error);
+      console.error('加载联系信息失败:', error);
     }
   },
 
-  // 选择地址
+  // 选择联系信息
   onSelectAddress() {
     wx.navigateTo({
-      url: '/pages/address/index?from=express'
+      url: '/subpackages/common/pages/contact-info/index?from=express'
     });
   },
 
@@ -294,7 +298,7 @@ Page({
 
     // 验证地址
     if (!this.data.address) {
-      missingFields.push('收货地址');
+      missingFields.push('联系信息');
     }
 
     // 如果有缺失项，统一提示

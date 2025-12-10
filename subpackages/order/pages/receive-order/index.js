@@ -1,11 +1,22 @@
 Page({
   data:{
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
-    activeTab: 0,
-    bottomActive: 'receive',
+    bottomActive: 'order',
     orders: [],
+    allOrders: [], // 存储所有订单用于筛选
     loading: true,
-    tabs: ['全部', '待确认', '已完成', '已取消']
+    searchKeyword: '', // 搜索关键词
+    selectedService: '', // 选中的服务类型
+    selectedStatus: '', // 选中的状态
+    selectedLocation: '', // 选中的地点
+    selectedGender: '', // 选中的性别
+    showServiceFilter: false, // 显示服务筛选弹窗
+    showStatusFilter: false, // 显示状态筛选弹窗
+    showLocationFilter: false, // 显示地点筛选弹窗
+    serviceOptions: ['全部服务', '游戏陪玩', '悬赏', '代拿快递'],
+    statusOptions: ['全部', '待接单', '进行中', '已完成'],
+    locationOptions: ['全部地点', '图书馆', '宿舍楼', '教学楼', '食堂', '体育馆', '其他地点'],
+    genderOptions: ['全部性别', '男生', '女生']
   },
 
   onLoad() {
@@ -18,34 +29,36 @@ Page({
     this.loadOrders();
   },
 
-  // 加载订单列表
-  async loadOrders(status = null) {
+  // 加载订单列表（加载所有状态的订单，包括待接单、进行中、已完成）
+  async loadOrders() {
     this.setData({ loading: true });
 
     try {
       wx.showLoading({ title: '加载中...' });
 
+      // 不传 status 参数，查询所有状态的订单（待接单、进行中、已完成）
       const res = await wx.cloud.callFunction({
         name: 'orderManage',
         data: {
           action: 'getReceiveOrders',
           data: {
             page: 1,
-            pageSize: 50,
-            status: status
+            pageSize: 50
+            // 不传 status，查询所有状态的订单
           }
         }
       });
 
       wx.hideLoading();
 
-      console.log('【接单页面】云函数返回结果:', res.result);
+      console.log('【任务大厅】云函数返回结果:', res.result);
 
       if (res.result && res.result.code === 200) {
         const orders = res.result.data.list.map(order => ({
           id: order._id,
           orderNo: order.orderNo,
-          orderType: order.orderType, // 订单类型
+          orderType: order.orderType,
+          orderTypeText: this.getOrderTypeText(order.orderType),
           statusText: this.getStatusText(order.orderStatus),
           statusClass: this.getStatusClass(order.orderStatus),
           orderStatus: order.orderStatus,
@@ -68,24 +81,34 @@ Page({
           expiredMinutes: order.expiredMinutes || null,
           readyAt: order.readyAt || null,
           createdAt: order.createdAt,
-          // 订单特有信息
           userInfo: order.userInfo || null,
           gameType: order.gameType || null,
           sessionDuration: order.sessionDuration || null,
           requirements: order.requirements || null,
+          selectedRequirements: order.selectedRequirements || null,
           helpLocation: order.helpLocation || null,
           helpContent: order.helpContent || null,
           category: order.category || null,
           pickupLocation: order.pickupLocation || null,
-          deliveryLocation: order.deliveryLocation || null
+          deliveryLocation: order.deliveryLocation || null,
+          pickupCode: order.pickupCode || null,
+          packageSizes: order.packageSizes || null,
+          images: order.images || null,
+          bounty: order.bounty ? (order.bounty >= 100 ? order.bounty / 100 : order.bounty) : null,
+          // 用于搜索和筛选的字段
+          searchText: `${order.orderNo} ${order.orderTypeText} ${order.helpContent || order.requirements || ''} ${order.address ? order.address.fullAddress : ''} ${order.pickupLocation || ''} ${order.helpLocation || ''}`.toLowerCase()
         }));
 
         this.setData({
+          allOrders: orders,
           orders: orders,
           loading: false
         });
 
-        console.log('【接单页面】订单加载成功，共', orders.length, '条');
+        // 应用筛选
+        this.applyFilters();
+
+        console.log('【任务大厅】订单加载成功，共', orders.length, '条');
       } else {
         wx.showToast({
           title: res.result?.message || '加载失败',
@@ -96,13 +119,250 @@ Page({
 
     } catch (error) {
       wx.hideLoading();
-      console.error('【接单页面】加载异常:', error);
+      console.error('【任务大厅】加载异常:', error);
       wx.showToast({
         title: '加载失败',
         icon: 'none'
       });
       this.setData({ loading: false });
     }
+  },
+
+  // 获取订单类型文本
+  getOrderTypeText(orderType) {
+    const typeMap = {
+      'gaming': '游戏陪玩',
+      'reward': '悬赏',
+      'express': '代拿快递'
+    };
+    return typeMap[orderType] || '未知';
+  },
+
+  // 应用筛选
+  applyFilters() {
+    let filteredOrders = [...this.data.allOrders];
+
+    // 搜索筛选
+    if (this.data.searchKeyword) {
+      const keyword = this.data.searchKeyword.toLowerCase();
+      filteredOrders = filteredOrders.filter(order => 
+        order.searchText.includes(keyword)
+      );
+    }
+
+    // 服务类型筛选
+    if (this.data.selectedService) {
+      const serviceMap = {
+        '游戏陪玩': 'gaming',
+        '悬赏': 'reward',
+        '代拿快递': 'express'
+      };
+      const orderType = serviceMap[this.data.selectedService];
+      if (orderType) {
+        filteredOrders = filteredOrders.filter(order => order.orderType === orderType);
+      }
+    }
+
+    // 状态筛选
+    if (this.data.selectedStatus) {
+      const statusMap = {
+        '待接单': 'pending',
+        '进行中': 'confirmed',
+        '已完成': 'completed'
+      };
+      const orderStatus = statusMap[this.data.selectedStatus];
+      if (orderStatus) {
+        filteredOrders = filteredOrders.filter(order => order.orderStatus === orderStatus);
+      }
+    }
+
+    // 地点筛选
+    if (this.data.selectedLocation) {
+      filteredOrders = filteredOrders.filter(order => {
+        // 检查地址信息中是否包含选中的地点
+        if (order.address && order.address.fullAddress) {
+          return order.address.fullAddress.includes(this.data.selectedLocation);
+        }
+        // 检查代拿快递的取件位置
+        if (order.pickupLocation && order.pickupLocation.includes(this.data.selectedLocation)) {
+          return true;
+        }
+        // 检查悬赏的帮助地点
+        if (order.helpLocation && order.helpLocation.includes(this.data.selectedLocation)) {
+          return true;
+        }
+        return false;
+      });
+    }
+
+    // 性别筛选
+    if (this.data.selectedGender) {
+      filteredOrders = filteredOrders.filter(order => {
+        // 检查用户信息中的性别
+        if (order.userInfo && order.userInfo.gender !== undefined) {
+          const genderMap = {
+            '男生': 1,
+            '女生': 2
+          };
+          return order.userInfo.gender === genderMap[this.data.selectedGender];
+        }
+        // 如果没有用户信息，检查订单备注或其他字段
+        if (order.remark && order.remark.includes(this.data.selectedGender)) {
+          return true;
+        }
+        return false;
+      });
+    }
+
+    this.setData({
+      orders: filteredOrders
+    });
+  },
+
+  // 搜索输入
+  onSearchInput(e) {
+    this.setData({
+      searchKeyword: e.detail.value
+    });
+    this.applyFilters();
+  },
+
+  // 搜索提交
+  onSearchSubmit() {
+    this.applyFilters();
+  },
+
+  // 服务类型筛选
+  onServiceFilterTap() {
+    this.setData({
+      showServiceFilter: true
+    });
+  },
+
+  // 选择服务类型
+  onSelectService(e) {
+    const service = e.currentTarget.dataset.service;
+    this.setData({
+      selectedService: service === '全部服务' ? '' : service,
+      showServiceFilter: false
+    });
+    this.applyFilters();
+  },
+
+  // 关闭服务筛选弹窗
+  onCloseServiceFilter() {
+    this.setData({
+      showServiceFilter: false
+    });
+  },
+
+  // 状态筛选
+  onStatusFilterTap() {
+    this.setData({
+      showStatusFilter: true
+    });
+  },
+
+  // 选择状态
+  onSelectStatus(e) {
+    const status = e.currentTarget.dataset.status;
+    this.setData({
+      selectedStatus: status === '全部' ? '' : status,
+      showStatusFilter: false
+    });
+    this.applyFilters();
+  },
+
+  // 关闭状态筛选弹窗
+  onCloseStatusFilter() {
+    this.setData({
+      showStatusFilter: false
+    });
+  },
+
+  // 重置服务筛选
+  onResetService() {
+    this.setData({
+      selectedService: ''
+    });
+    this.applyFilters();
+  },
+
+  // 重置状态筛选
+  onResetStatus() {
+    this.setData({
+      selectedStatus: ''
+    });
+    this.applyFilters();
+  },
+
+  // 地点筛选
+  onLocationFilterTap() {
+    this.setData({
+      showLocationFilter: true
+    });
+  },
+
+  // 选择地点
+  onSelectLocation(e) {
+    const location = e.currentTarget.dataset.location;
+    this.setData({
+      selectedLocation: location === '全部地点' ? '' : location,
+      showLocationFilter: false
+    });
+    this.applyFilters();
+  },
+
+  // 关闭地点筛选弹窗
+  onCloseLocationFilter() {
+    this.setData({
+      showLocationFilter: false
+    });
+  },
+
+  // 重置地点筛选
+  onResetLocation() {
+    this.setData({
+      selectedLocation: ''
+    });
+    this.applyFilters();
+  },
+
+  // 性别筛选
+  onGenderFilterTap() {
+    this.setData({
+      showGenderFilter: true
+    });
+  },
+
+  // 选择性别
+  onSelectGender(e) {
+    const gender = e.currentTarget.dataset.gender;
+    this.setData({
+      selectedGender: gender === '全部性别' ? '' : gender,
+      showGenderFilter: false
+    });
+    this.applyFilters();
+  },
+
+  // 关闭性别筛选弹窗
+  onCloseGenderFilter() {
+    this.setData({
+      showGenderFilter: false
+    });
+  },
+
+  // 重置性别筛选
+  onResetGender() {
+    this.setData({
+      selectedGender: ''
+    });
+    this.applyFilters();
+  },
+
+  // 阻止事件冒泡
+  stopPropagation() {
+    // 空函数，用于阻止事件冒泡
   },
 
   // 获取状态文本
@@ -140,9 +400,8 @@ Page({
         url: '/pages/home/index'
       });
     } else if (tab === 'order') {
-      wx.reLaunch({
-        url: '/pages/order/index'
-      });
+      // 当前页面，不跳转
+      return;
     } else if (tab === 'receive') {
       // 接单功能正在开发中
       wx.showToast({
@@ -169,30 +428,6 @@ Page({
     }
   },
 
-onTabTap(e){
-    const tabIndex = Number(e.currentTarget.dataset.index);
-    this.setData({ activeTab: tabIndex });
-    
-    // 根据tab索引获取对应状态
-    let status = null;
-    switch(tabIndex) {
-      case 0: // 全部
-        status = null;
-        break;
-      case 1: // 待确认
-        status = 'pending';
-        break;
-      case 2: // 已完成
-        status = 'completed';
-        break;
-      case 3: // 已取消
-        status = 'cancelled';
-        break;
-    }
-    
-    // 重新加载对应状态的订单
-    this.loadOrders(status);
-  },
 
   // 联系用户
   async onContactUser(e) {
@@ -397,6 +632,29 @@ onTabTap(e){
       return;
     }
     
+    // 处理地址信息，确保 fullAddress 字段存在
+    let address = null;
+    if (order.address) {
+      address = {
+        name: order.address.name || '',
+        phone: order.address.phone || '',
+        addressDetail: order.address.addressDetail || order.address.address || '',
+        buildingName: order.address.buildingName || '',
+        houseNumber: order.address.houseNumber || '',
+        fullAddress: order.address.fullAddress || `${order.address.buildingName || ''}${order.address.houseNumber || ''}${order.address.addressDetail || order.address.address || ''}`
+      };
+    } else if (order.userInfo) {
+      // 如果没有地址信息，使用用户信息构建地址
+      address = {
+        name: order.userInfo.nickname || order.userInfo.userName || '用户',
+        phone: order.userInfo.phone || '',
+        addressDetail: '未设置地址',
+        buildingName: '',
+        houseNumber: '',
+        fullAddress: '未设置地址'
+      };
+    }
+    
     const detail = {
       id: order.id,
       orderId: order.id,
@@ -405,13 +663,28 @@ onTabTap(e){
       statusText: order.statusText,
       orderNo: order.orderNo,
       remark: order.remark,
-      items: order.items.map(item => ({
-        name: item.productName,
-        img: item.image || '',
-        price: item.price,
-        qty: item.quantity
-      })),
-      address: order.address,
+      items: order.items && order.items.length > 0 ? order.items.map(item => ({
+        name: item.productName || item.name || '商品',
+        img: item.image || item.img || '',
+        price: item.price || '0.00',
+        qty: item.quantity || item.qty || 1
+      })) : [],
+      address: address,
+      userInfo: order.userInfo || null,
+      orderType: order.orderType,
+      gameType: order.gameType,
+      sessionDuration: order.sessionDuration,
+      requirements: order.requirements,
+      selectedRequirements: order.selectedRequirements,
+      helpLocation: order.helpLocation,
+      helpContent: order.helpContent,
+      category: order.category,
+      pickupLocation: order.pickupLocation,
+      deliveryLocation: order.deliveryLocation,
+      pickupCode: order.pickupCode,
+      packageSizes: order.packageSizes,
+      images: order.images,
+      bounty: order.bounty,
       amountGoods: order.amountGoods || '0.00',
       amountDelivery: order.amountDelivery || '0.00',
       platformFee: order.platformFee || '0.00',
@@ -488,6 +761,172 @@ onTabTap(e){
 
   onCloseDetail(){ 
     this.setData({ showDetail: false }); 
+  },
+
+  // 点击地址信息
+  onAddressTap(e) {
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
+    
+    console.log('【接单页面】点击地址信息，detail:', this.data.detail);
+    
+    if (!this.data.detail) {
+      console.log('【接单页面】详情信息不存在');
+      wx.showToast({
+        title: '订单信息不存在',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 优先使用地址信息，如果没有则使用用户信息
+    let address = this.data.detail.address;
+    let userInfo = this.data.detail.userInfo;
+    
+    if (!address && userInfo) {
+      // 如果没有地址但有用户信息，使用用户信息
+      address = {
+        name: userInfo.nickname || userInfo.userName || '用户',
+        phone: userInfo.phone || '',
+        fullAddress: '未设置地址'
+      };
+    }
+    
+    if (!address) {
+      console.log('【接单页面】地址和用户信息都不存在');
+      wx.showToast({
+        title: '暂无地址信息',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    const fullAddress = address.fullAddress || `${address.buildingName || ''}${address.houseNumber || ''}${address.addressDetail || address.address || ''}` || '未设置地址';
+    const phone = address.phone || '';
+    
+    console.log('【接单页面】地址信息:', { fullAddress, phone, name: address.name });
+    
+    const actionList = [];
+    if (fullAddress && fullAddress !== '未设置地址') {
+      actionList.push('复制地址');
+    }
+    if (phone) {
+      actionList.push('复制电话');
+    }
+    if (fullAddress && fullAddress !== '未设置地址') {
+      actionList.push('打开地图');
+    }
+    
+    if (actionList.length === 0) {
+      wx.showToast({
+        title: '暂无可用操作',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.showActionSheet({
+      itemList: actionList,
+      success: (res) => {
+        const action = actionList[res.tapIndex];
+        if (action === '复制地址') {
+          // 复制地址
+          wx.setClipboardData({
+            data: fullAddress,
+            success: () => {
+              wx.showToast({
+                title: '地址已复制',
+                icon: 'success'
+              });
+            }
+          });
+        } else if (action === '复制电话') {
+          // 复制电话
+          wx.setClipboardData({
+            data: phone,
+            success: () => {
+              wx.showToast({
+                title: '电话已复制',
+                icon: 'success'
+              });
+            }
+          });
+        } else if (action === '打开地图') {
+          // 打开地图
+          wx.openLocation({
+            latitude: 0,
+            longitude: 0,
+            name: fullAddress,
+            address: fullAddress,
+            fail: () => {
+              wx.showToast({
+                title: '请手动搜索地址',
+                icon: 'none'
+              });
+            }
+          });
+        }
+      },
+      fail: (err) => {
+        console.error('【接单页面】显示操作菜单失败:', err);
+      }
+    });
+  },
+
+  // 点击用户信息
+  onUserInfoTap(e) {
+    e.stopPropagation && e.stopPropagation();
+    
+    if (!this.data.detail || !this.data.detail.userInfo) {
+      console.log('【接单页面】用户信息不存在');
+      return;
+    }
+    
+    const userInfo = this.data.detail.userInfo;
+    const phone = userInfo.phone || '';
+    
+    if (!phone) {
+      wx.showToast({
+        title: '用户未设置电话',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    console.log('【接单页面】点击用户信息:', userInfo);
+    
+    wx.showActionSheet({
+      itemList: ['复制电话', '拨打电话'],
+      success: (res) => {
+        if (res.tapIndex === 0) {
+          // 复制电话
+          wx.setClipboardData({
+            data: phone,
+            success: () => {
+              wx.showToast({
+                title: '电话已复制',
+                icon: 'success'
+              });
+            }
+          });
+        } else if (res.tapIndex === 1) {
+          // 拨打电话
+          wx.makePhoneCall({
+            phoneNumber: phone,
+            fail: () => {
+              wx.showToast({
+                title: '拨打失败',
+                icon: 'none'
+              });
+            }
+          });
+        }
+      },
+      fail: (err) => {
+        console.error('【接单页面】显示操作菜单失败:', err);
+      }
+    });
   },
 
   onCancelOrder(){ 

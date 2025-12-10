@@ -1,0 +1,88 @@
+<view class="page">
+  <!-- 自定义导航 -->
+  <view class="nav">
+    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+    <view class="nav-bar">
+      <text class="back" bindtap="onBack">◀</text>
+      <text class="title">历史订单</text>
+      <view class="icons">
+      </view>
+    </view>
+  </view>
+
+  <scroll-view 
+    scroll-y 
+    class="content"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onPullDownRefresh"
+  >
+    <!-- 分类标签 -->
+    <view class="category-tabs">
+      <block wx:for="{{categories}}" wx:key="id">
+        <view 
+          class="category-tab {{selectedCategory === item.id ? 'active' : ''}}" 
+          bindtap="onCategoryTap" 
+          data-id="{{item.id}}"
+        >
+          <text class="category-icon">{{item.icon}}</text>
+          <text class="category-text">{{item.name}}</text>
+        </view>
+      </block>
+    </view>
+
+    <!-- 加载状态 -->
+    <view wx:if="{{loading}}" class="loading-container">
+      <text>加载中...</text>
+    </view>
+    
+    <!-- 空状态 -->
+    <view wx:elif="{{filteredOrders.length === 0 && !loading}}" class="empty-container">
+      <text>暂无订单</text>
+    </view>
+    
+    <!-- 订单列表 -->
+    <view wx:elif="{{!loading && filteredOrders.length > 0}}" class="order-list">
+      <block wx:for="{{filteredOrders}}" wx:key="id">
+        <view class="order-card" bindtap="onOrderTap" data-id="{{item.id}}">
+          <!-- 顶部信息 -->
+          <view class="order-header">
+            <image class="food-img" src="{{item.img}}" mode="aspectFill" />
+            <view class="order-info">
+              <text class="store-name">{{item.storeName}}</text>
+              <text class="order-date">{{item.date}}</text>
+            </view>
+            <text class="order-status {{item.statusClass}}">{{item.status}}</text>
+          </view>
+
+          <!-- 订单商品 -->
+          <view class="order-items">
+            <block wx:for="{{item.items}}" wx:key="index" wx:for-item="food">
+              <text class="item-name">{{food.name}}</text>
+            </block>
+          </view>
+
+          <!-- 退款状态显示 -->
+          <view class="refund-status-info" wx:if="{{item.refundStatus}}">
+            <text class="refund-status-text {{item.refundStatusClass}}">{{item.refundStatusText}}</text>
+            <text class="refund-remark" wx:if="{{item.refundStatus === 'rejected' && item.refundInfo && item.refundInfo.remark}}">拒绝理由：{{item.refundInfo.remark}}</text>
+            <text class="refund-amount" wx:if="{{item.refundInfo && item.refundInfo.refundAmount}}">退款金额：¥{{item.refundInfo.refundAmount}}</text>
+          </view>
+
+          <!-- 底部价格 -->
+          <view class="order-footer">
+            <view class="price-info">
+              <text class="total-price">共 ¥{{item.total}}</text>
+              <view class="price-detail" wx:if="{{item.amountGoods || item.amountDelivery}}">
+                <text class="detail-text">商品¥{{item.amountGoods}} + 配送¥{{item.amountDelivery}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+    
+    <view class="safe-area-bottom"></view>
+  </scroll-view>
+</view>
+
