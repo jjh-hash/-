@@ -71,6 +71,19 @@
 .order-status.pending{ color:#f59e0b; }
 .order-status.normal{ color:#374151; }
 .order-status.cancelled{ color:#ef4444; }
+.order-status.completed{ color:#52c41a; }
+
+/* 接单者信息 */
+.receiver-info{ display:flex; align-items:center; padding:8px 0; margin-top:8px; border-top:1px solid #f1f3f5; }
+.receiver-label{ font-size:14px; color:#6b7280; margin-right:8px; }
+.receiver-avatar{ width:24px; height:24px; border-radius:50%; border:1px solid #e0e0e0; margin-right:8px; }
+.receiver-name{ font-size:14px; color:#333; }
+
+/* 操作按钮 */
+.order-actions{ display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid #f1f3f5; }
+.action-btn{ flex:1; padding:8px 16px; border-radius:6px; text-align:center; font-size:14px; }
+.action-btn.success{ background:#52c41a; color:#fff; }
+.action-btn.cancel{ background:#ff4d4f; color:#fff; }
 
 /* 订单商品 */
 .order-items{ margin:8px 0 12px; background:#f9fafb; border-radius:8px; padding:12px; }

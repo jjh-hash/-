@@ -120,6 +120,21 @@
       </view>
     </view>
 
+    <!-- 订单时间设置 -->
+    <view class="form-section">
+      <view class="section-header">
+        <view class="section-icon timeout-icon">⏱️</view>
+        <text class="section-title">订单截止时间</text>
+      </view>
+      <picker mode="multiSelector" range="{{dateTimeRange}}" value="{{dateTimeValue}}" bindchange="onOrderExpiredAtChange">
+        <view class="timeout-input">
+          <text class="timeout-value" wx:if="{{orderExpiredAtDisplay}}">{{orderExpiredAtDisplay}}</text>
+          <text class="timeout-placeholder" wx:else>请选择截止时间</text>
+          <text class="timeout-tip">超时未接单将自动取消</text>
+        </view>
+      </picker>
+    </view>
+
     <!-- 联系信息 -->
     <view class="form-section">
       <view class="section-header" bindtap="onSelectAddress">

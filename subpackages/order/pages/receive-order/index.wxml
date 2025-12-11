@@ -169,7 +169,14 @@
           
           <view class="order-top">
             <text class="order-no">订单号：{{item.orderNo}}</text>
-            <text class="status {{item.statusClass}}">{{item.statusText}}</text>
+            <view class="order-top-right">
+              <!-- 截止时间显示 -->
+              <view class="expired-time" wx:if="{{item.expiredAtDisplay}}">
+                <text class="expired-time-icon">🕐</text>
+                <text class="expired-time-text">{{item.expiredAtDisplay}}</text>
+              </view>
+              <text class="status {{item.statusClass}}">{{item.statusText}}</text>
+            </view>
           </view>
 
           <!-- 游戏陪玩订单特殊显示 -->
@@ -290,8 +297,20 @@
           </view>
           <view class="actions">
             <view class="btn ghost" bindtap="onContactUser" data-id="{{item.id}}" catchtap="stopPropagation">联系用户</view>
-            <view class="btn primary" bindtap="onConfirmOrder" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'pending'}}" catchtap="stopPropagation">接单</view>
-            <view class="btn success" bindtap="onCompleteOrder" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'confirmed'}}" catchtap="stopPropagation">完成订单</view>
+            <!-- 待接单：任何人都可以接单 -->
+            <view class="btn primary" bindtap="onConfirmOrder" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'pending'}}" catchtap="stopPropagation">
+              <text>接单</text>
+              <text class="btn-time" wx:if="{{currentTime}}">{{currentTime}}</text>
+            </view>
+            <!-- 已接单：接单者可以确认接单 -->
+            <view class="btn primary" bindtap="onReceiverConfirm" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'received' && item.receiverOpenid === currentUserOpenid}}" catchtap="stopPropagation">确认接单</view>
+            <!-- 接单者已确认：接单者可以完成订单 -->
+            <view class="btn success" bindtap="onCompleteOrder" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'confirmed_by_receiver' && item.receiverOpenid === currentUserOpenid}}" catchtap="stopPropagation">完成订单</view>
+            <!-- 等待用户确认：下单者可以确认完成 -->
+            <view class="btn success" bindtap="onUserConfirmComplete" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'waiting_user_confirm' && item.userOpenid === currentUserOpenid}}" catchtap="stopPropagation">确认完成</view>
+            <!-- 已完成 -->
+            <view class="btn completed" wx:if="{{item.orderStatus === 'completed'}}">已完成</view>
+            <!-- 已取消 -->
             <view class="btn cancelled" wx:if="{{item.orderStatus === 'cancelled'}}">订单已取消</view>
           </view>
         </view>
@@ -329,6 +348,14 @@
     <view class="sheet-line income"><text>合计</text><text class="red">¥{{detail.amountTotal || '0.00'}}</text></view>
 
     <view class="sheet-info">
+      <!-- 接单者信息 -->
+      <view class="i-row" wx:if="{{detail.receiverInfo}}">
+        <text class="i-label">接单者</text>
+        <view class="i-value">
+          <image class="receiver-avatar" src="{{detail.receiverInfo.avatarUrl || '/pages/小标/默认头像.png'}}" mode="aspectFill"></image>
+          <text class="receiver-name">{{detail.receiverInfo.nickname || '用户'}}</text>
+        </view>
+      </view>
       <view class="i-row" wx:if="{{detail.address || detail.userInfo}}" catchtap="onAddressTap">
         <text class="i-label">配送信息</text>
         <text class="i-value address-clickable" wx:if="{{detail.address}}">
@@ -356,9 +383,18 @@
 
     <view class="sheet-actions">
       <view class="btn ghost" bindtap="onContactUser" data-id="{{detail.id}}">联系用户</view>
-      <view class="btn cancelled" wx:if="{{detail.orderStatus === 'cancelled'}}">订单已取消</view>
+      <!-- 待接单：任何人都可以接单 -->
       <view class="btn primary" bindtap="onConfirmOrder" wx:if="{{detail.orderStatus === 'pending'}}">接单</view>
-      <view class="btn success" bindtap="onCompleteOrder" wx:if="{{detail.orderStatus === 'confirmed'}}">完成订单</view>
+      <!-- 已接单：接单者可以确认接单 -->
+      <view class="btn primary" bindtap="onReceiverConfirm" wx:if="{{detail.orderStatus === 'received' && detail.receiverOpenid === currentUserOpenid}}">确认接单</view>
+      <!-- 接单者已确认：接单者可以完成订单 -->
+      <view class="btn success" bindtap="onCompleteOrder" wx:if="{{detail.orderStatus === 'confirmed_by_receiver' && detail.receiverOpenid === currentUserOpenid}}">完成订单</view>
+      <!-- 等待用户确认：下单者可以确认完成 -->
+      <view class="btn success" bindtap="onUserConfirmComplete" wx:if="{{detail.orderStatus === 'waiting_user_confirm' && detail.userOpenid === currentUserOpenid}}">确认完成</view>
+      <!-- 已完成 -->
+      <view class="btn completed" wx:if="{{detail.orderStatus === 'completed'}}">已完成</view>
+      <!-- 已取消 -->
+      <view class="btn cancelled" wx:if="{{detail.orderStatus === 'cancelled'}}">订单已取消</view>
     </view>
   </view>
 

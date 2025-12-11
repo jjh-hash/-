@@ -636,3 +636,27 @@
 .confirm-btn .btn-text {
   color: #fff;
 }
+
+/* 订单时间设置 */
+.timeout-input {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.timeout-value {
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+}
+.timeout-placeholder {
+  font-size: 16px;
+  color: #999;
+}
+.timeout-tip {
+  font-size: 12px;
+  color: #999;
+}
+.timeout-icon {
+  background: #ff9800;
+}

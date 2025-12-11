@@ -62,11 +62,24 @@
             </block>
           </view>
 
+          <!-- 接单者信息（仅特殊订单类型显示） -->
+          <view class="receiver-info" wx:if="{{item.receiverInfo && (item.orderType === 'gaming' || item.orderType === 'reward' || item.orderType === 'express')}}">
+            <text class="receiver-label">接单者：</text>
+            <image class="receiver-avatar" src="{{item.receiverInfo.avatarUrl || '/pages/小标/默认头像.png'}}" mode="aspectFill"></image>
+            <text class="receiver-name">{{item.receiverInfo.nickname || '用户'}}</text>
+          </view>
+
           <!-- 退款状态显示 -->
           <view class="refund-status-info" wx:if="{{item.refundStatus}}">
             <text class="refund-status-text {{item.refundStatusClass}}">{{item.refundStatusText}}</text>
             <text class="refund-remark" wx:if="{{item.refundStatus === 'rejected' && item.refundInfo && item.refundInfo.remark}}">拒绝理由：{{item.refundInfo.remark}}</text>
             <text class="refund-amount" wx:if="{{item.refundInfo && item.refundInfo.refundAmount}}">退款金额：¥{{item.refundInfo.refundAmount}}</text>
+          </view>
+
+          <!-- 操作按钮（仅特殊订单类型显示） -->
+          <view class="order-actions" wx:if="{{(item.orderType === 'gaming' || item.orderType === 'reward' || item.orderType === 'express') && (item.orderStatus === 'waiting_user_confirm' || item.orderStatus === 'received' || item.orderStatus === 'confirmed_by_receiver')}}">
+            <view class="action-btn success" bindtap="onUserConfirmComplete" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'waiting_user_confirm'}}" catchtap="stopPropagation">确认完成</view>
+            <view class="action-btn cancel" bindtap="onCancelReceiver" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'received' || item.orderStatus === 'confirmed_by_receiver' || item.orderStatus === 'waiting_user_confirm'}}" catchtap="stopPropagation">取消接单</view>
           </view>
 
           <!-- 底部价格 -->

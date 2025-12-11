@@ -32,7 +32,9 @@ Page({
       { id: 6, name: '铂金以上来', active: false },
       { id: 7, name: '性别不限', active: false },
       { id: 8, name: '立刻上线', active: false }
-    ]
+    ],
+    orderExpiredAt: '', // 订单截止时间（日期时间字符串）
+    orderExpiredAtDisplay: '' // 订单截止时间显示文本
   },
 
   onLoad() {
@@ -242,7 +244,8 @@ Page({
         bounty: parseFloat(this.data.bounty) || 0,
         pricePerHour: this.data.pricePerHour,
         address: this.data.address,
-        totalPrice: totalPrice
+        totalPrice: totalPrice,
+        orderExpiredAt: this.data.orderExpiredAt // 订单截止时间（日期时间字符串）
       };
 
       console.log('提交游戏陪玩订单:', orderData);
@@ -262,15 +265,15 @@ Page({
         wx.showToast({
           title: '订单提交成功',
           icon: 'success',
-          duration: 2000
+          duration: 1500
         });
 
-        // 延迟跳转到订单页面
+        // 延迟跳转到首页，跳出当前页面
         setTimeout(() => {
-          wx.redirectTo({
-            url: '/pages/order/index'
+          wx.reLaunch({
+            url: '/pages/home/index'
           });
-        }, 2000);
+        }, 1500);
       } else {
         wx.showToast({
           title: res.result?.message || '订单提交失败',
@@ -286,6 +289,70 @@ Page({
         icon: 'none',
         duration: 2000
       });
+    }
+  },
+
+  // 选择订单截止时间
+  onOrderExpiredAtChange(e) {
+    const [dateIndex, timeIndex] = e.detail.value;
+    const dates = this.data.dateTimeRange[0];
+    const times = this.data.dateTimeRange[1];
+    
+    const dateStr = dates[dateIndex];
+    const timeStr = times[timeIndex];
+    
+    // 解析日期
+    const now = new Date();
+    const dateMatch = dateStr.match(/(\d+)-(\d+)/);
+    if (!dateMatch) return;
+    
+    const month = parseInt(dateMatch[1]) - 1;
+    const date = parseInt(dateMatch[2]);
+    const year = now.getFullYear();
+    
+    // 解析时间
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    
+    // 构建日期时间
+    const expiredAt = new Date(year, month, date, hours, minutes);
+    
+    // 如果选择的是今天，且时间已过，则设置为明天
+    if (dateIndex === 0 && expiredAt.getTime() <= now.getTime()) {
+      expiredAt.setDate(expiredAt.getDate() + 1);
+    }
+    
+    const expiredAtStr = expiredAt.toISOString().slice(0, 16).replace('T', ' ');
+    
+    this.setData({
+      orderExpiredAt: expiredAtStr,
+      orderExpiredAtDisplay: this.formatExpiredAtDisplay(expiredAt),
+      dateTimeValue: [dateIndex, timeIndex]
+    });
+  },
+
+  // 格式化截止时间显示
+  formatExpiredAtDisplay(expiredAt) {
+    if (!expiredAt) return '';
+    
+    const now = new Date();
+    const diff = expiredAt.getTime() - now.getTime();
+    
+    if (diff < 0) {
+      return '已过期';
+    }
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const month = expiredAt.getMonth() + 1;
+    const date = expiredAt.getDate();
+    const hoursStr = String(expiredAt.getHours()).padStart(2, '0');
+    const minutesStr = String(expiredAt.getMinutes()).padStart(2, '0');
+    
+    if (days === 0) {
+      return `今天 ${hoursStr}:${minutesStr}截止`;
+    } else if (days === 1) {
+      return `明天 ${hoursStr}:${minutesStr}截止`;
+    } else {
+      return `${month}/${date} ${hoursStr}:${minutesStr}截止`;
     }
   },
 

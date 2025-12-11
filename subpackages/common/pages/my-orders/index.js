@@ -229,7 +229,14 @@ Page({
             refundStatus: refundStatus,
             refundStatusText: refundStatusText,
             refundStatusClass: refundStatusClass,
-            refundInfo: refundInfo || null
+            refundInfo: refundInfo || null,
+            // 接单者信息
+            receiverOpenid: order.receiverOpenid || null,
+            receiverId: order.receiverId || null,
+            receiverInfo: order.receiverInfo || null,
+            receiverConfirmedAt: order.receiverConfirmedAt || null,
+            receiverCompletedAt: order.receiverCompletedAt || null,
+            userConfirmedAt: order.userConfirmedAt || null
           };
         });
 
@@ -419,6 +426,121 @@ Page({
   },
 
   // 点击订单
+  // 阻止事件冒泡
+  stopPropagation() {
+    // 空函数，用于阻止事件冒泡
+  },
+
+  // 用户确认订单完成
+  async onUserConfirmComplete(e) {
+    const orderId = e.currentTarget.dataset.id;
+    
+    if (!orderId) {
+      wx.showToast({
+        title: '缺少订单ID',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    try {
+      wx.showLoading({ title: '处理中...' });
+
+      const res = await wx.cloud.callFunction({
+        name: 'orderManage',
+        data: {
+          action: 'userConfirmComplete',
+          data: {
+            orderId: orderId
+          }
+        }
+      });
+
+      wx.hideLoading();
+
+      if (res.result && res.result.code === 200) {
+        wx.showToast({
+          title: '确认完成成功',
+          icon: 'success'
+        });
+        
+        this.loadOrders();
+      } else {
+        wx.showToast({
+          title: res.result?.message || '操作失败',
+          icon: 'none'
+        });
+      }
+
+    } catch (error) {
+      wx.hideLoading();
+      console.error('【历史订单页面】用户确认订单完成异常:', error);
+      wx.showToast({
+        title: '操作失败',
+        icon: 'none'
+      });
+    }
+  },
+
+  // 取消接单
+  async onCancelReceiver(e) {
+    const orderId = e.currentTarget.dataset.id;
+    
+    if (!orderId) {
+      wx.showToast({
+        title: '缺少订单ID',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.showModal({
+      title: '确认取消',
+      content: '确定要取消接单吗？订单将重回任务大厅',
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            wx.showLoading({ title: '处理中...' });
+
+            const result = await wx.cloud.callFunction({
+              name: 'orderManage',
+              data: {
+                action: 'cancelReceiverOrder',
+                data: {
+                  orderId: orderId
+                }
+              }
+            });
+
+            wx.hideLoading();
+
+            if (result.result && result.result.code === 200) {
+              wx.showToast({
+                title: '取消接单成功',
+                icon: 'success'
+              });
+              
+              this.loadOrders();
+            } else {
+              wx.showToast({
+                title: result.result?.message || '操作失败',
+                icon: 'none'
+              });
+            }
+
+          } catch (error) {
+            wx.hideLoading();
+            console.error('【历史订单页面】取消接单异常:', error);
+            wx.showToast({
+              title: '操作失败',
+              icon: 'none'
+            });
+          }
+        }
+      }
+    });
+  },
+
   onOrderTap(e) {
     const orderId = e.currentTarget.dataset.id;
     if (orderId) {

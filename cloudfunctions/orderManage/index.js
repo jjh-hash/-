@@ -104,6 +104,24 @@ exports.main = async (event, context) => {
       case 'getRiderMonthStats':
         result = await getRiderMonthStats(OPENID, data);
         break;
+      case 'acceptOrder':
+        result = await acceptOrder(OPENID, data);
+        break;
+      case 'receiverConfirmOrder':
+        result = await receiverConfirmOrder(OPENID, data);
+        break;
+      case 'receiverCompleteOrder':
+        result = await receiverCompleteOrder(OPENID, data);
+        break;
+      case 'userConfirmComplete':
+        result = await userConfirmComplete(OPENID, data);
+        break;
+      case 'cancelReceiverOrder':
+        result = await cancelReceiverOrder(OPENID, data);
+        break;
+      case 'autoCancelExpiredOrders':
+        result = await autoCancelExpiredOrders(OPENID, data);
+        break;
       default:
         console.warn('【订单管理】无效的操作类型:', action);
         result = {
@@ -761,7 +779,18 @@ async function updateOrderStatus(openid, data) {
     
     const order = orderResult.data;
     
-    // 限制：商家不能直接将订单状态更新为 completed（已完成）
+    // 判断是否为特殊订单类型（游戏陪玩、悬赏、代拿快递）
+    const isSpecialOrder = order.orderType === 'gaming' || order.orderType === 'reward' || order.orderType === 'express';
+    
+    // 对于特殊订单类型，不允许直接修改状态，必须通过专门的接口
+    if (isSpecialOrder) {
+      return {
+        code: 403,
+        message: '特殊订单类型必须通过专门的接口修改状态（接单、确认、完成等）'
+      };
+    }
+    
+    // 限制：普通外卖订单不能直接将订单状态更新为 completed（已完成）
     // 只有骑手通过 confirmDelivery 接口才能将订单状态更新为 completed
     if (status === 'completed') {
       return {
@@ -2284,7 +2313,7 @@ function getStatusText(payStatus, orderStatus) {
  */
 async function createExpressOrder(openid, data) {
   try {
-    const { pickupLocation, deliveryLocation, packageSizes, images, pickupCode, address, totalPrice } = data;
+    const { pickupLocation, deliveryLocation, packageSizes, images, pickupCode, address, totalPrice, orderExpiredAt } = data;
     
     console.log('【创建代拿快递订单】接收到的参数:', data);
     
@@ -2402,6 +2431,13 @@ async function createExpressOrder(openid, data) {
         phone: userInfo.phone || ''
       },
       
+      // 订单截止时间（如果超时未接单，自动取消）
+      expiredAt: orderExpiredAt ? new Date(orderExpiredAt.replace(' ', 'T')) : (() => {
+        // 如果没有设置截止时间，默认30分钟后过期
+        const now = new Date();
+        return new Date(now.getTime() + 30 * 60 * 1000);
+      })(),
+      
       // 时间戳
       createdAt: db.serverDate(),
       updatedAt: db.serverDate()
@@ -2441,7 +2477,7 @@ async function createExpressOrder(openid, data) {
  */
 async function createGamingOrder(openid, data) {
   try {
-    const { gameType, sessionDuration, requirements, selectedRequirements, bounty, pricePerHour, address, totalPrice } = data;
+    const { gameType, sessionDuration, requirements, selectedRequirements, bounty, pricePerHour, address, totalPrice, orderExpiredAt } = data;
     
     console.log('【创建游戏陪玩订单】接收到的参数:', data);
     
@@ -2546,6 +2582,13 @@ async function createGamingOrder(openid, data) {
         phone: userInfo.phone || ''
       },
       
+      // 订单截止时间（如果超时未接单，自动取消）
+      expiredAt: orderExpiredAt ? new Date(orderExpiredAt.replace(' ', 'T')) : (() => {
+        // 如果没有设置截止时间，默认30分钟后过期
+        const now = new Date();
+        return new Date(now.getTime() + 30 * 60 * 1000);
+      })(),
+      
       // 时间戳
       createdAt: db.serverDate(),
       updatedAt: db.serverDate()
@@ -2585,7 +2628,7 @@ async function createGamingOrder(openid, data) {
  */
 async function createRewardOrder(openid, data) {
   try {
-    const { helpLocation, helpContent, category, images, remarks, bounty, address, totalPrice } = data;
+    const { helpLocation, helpContent, category, images, remarks, bounty, address, totalPrice, orderExpiredAt } = data;
     
     console.log('【创建悬赏订单】接收到的参数:', data);
     
@@ -2690,6 +2733,13 @@ async function createRewardOrder(openid, data) {
         phone: userInfo.phone || ''
       },
       
+      // 订单截止时间（如果超时未接单，自动取消）
+      expiredAt: orderExpiredAt ? new Date(orderExpiredAt.replace(' ', 'T')) : (() => {
+        // 如果没有设置截止时间，默认30分钟后过期
+        const now = new Date();
+        return new Date(now.getTime() + 30 * 60 * 1000);
+      })(),
+      
       // 时间戳
       createdAt: db.serverDate(),
       updatedAt: db.serverDate()
@@ -2738,12 +2788,12 @@ async function getReceiveOrders(openid, data) {
       orderType: db.command.in(['gaming', 'reward', 'express'])
     };
     
-    // 根据状态筛选（如果不传status，则查询所有状态的订单，但排除已取消的）
+    // 根据状态筛选（如果不传status，默认只查询pending状态的订单）
     if (status) {
       whereCondition.orderStatus = status;
     } else {
-      // 如果没有指定状态，查询所有状态的订单，但排除已取消的
-      whereCondition.orderStatus = db.command.neq('cancelled');
+      // 默认只查询待接单的订单（pending状态）
+      whereCondition.orderStatus = 'pending';
     }
     
     // 查询订单
@@ -2835,7 +2885,14 @@ async function getReceiveOrders(openid, data) {
         expiredMinutes: expiredMinutes,
         readyAt: order.readyAt ? formatDate(order.readyAt) : null,
         createdAt: formatDate(order.createdAt),
-        items: items
+        items: items,
+        // 接单者信息
+        receiverOpenid: order.receiverOpenid || null,
+        receiverId: order.receiverId || null,
+        receiverInfo: order.receiverInfo || null,
+        receiverConfirmedAt: order.receiverConfirmedAt ? formatDate(order.receiverConfirmedAt) : null,
+        receiverCompletedAt: order.receiverCompletedAt ? formatDate(order.receiverCompletedAt) : null,
+        userConfirmedAt: order.userConfirmedAt ? formatDate(order.userConfirmedAt) : null
       };
     });
     
@@ -4435,6 +4492,571 @@ async function getRiderTodayIncome(riderOpenid, data) {
     return {
       code: 500,
       message: '获取今日收入明细失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 接单接口（特殊订单：游戏陪玩、悬赏、代拿快递）
+ */
+async function acceptOrder(openid, data) {
+  try {
+    const { orderId } = data;
+    
+    console.log('【接单】参数:', { orderId, receiverOpenid: openid });
+    
+    if (!orderId) {
+      return {
+        code: 400,
+        message: '缺少订单ID'
+      };
+    }
+    
+    // 获取订单信息
+    const orderResult = await db.collection('orders').doc(orderId).get();
+    if (!orderResult.data) {
+      return {
+        code: 404,
+        message: '订单不存在'
+      };
+    }
+    
+    const order = orderResult.data;
+    
+    // 检查订单类型
+    const isSpecialOrder = order.orderType === 'gaming' || order.orderType === 'reward' || order.orderType === 'express';
+    if (!isSpecialOrder) {
+      return {
+        code: 400,
+        message: '此订单类型不支持接单功能'
+      };
+    }
+    
+    // 检查订单状态
+    if (order.orderStatus !== 'pending') {
+      return {
+        code: 400,
+        message: '订单状态不允许接单'
+      };
+    }
+    
+    // 检查是否已被其他人接单
+    if (order.receiverOpenid && order.receiverOpenid !== openid) {
+      return {
+        code: 403,
+        message: '订单已被其他人接单'
+      };
+    }
+    
+    // 检查是否是自己下的订单
+    if (order.userOpenid === openid) {
+      return {
+        code: 403,
+        message: '不能接自己的订单'
+      };
+    }
+    
+    // 查询接单者信息
+    const receiverUser = await db.collection('users')
+      .where({ openid })
+      .get();
+    
+    if (!receiverUser.data || receiverUser.data.length === 0) {
+      return {
+        code: 404,
+        message: '接单者信息不存在'
+      };
+    }
+    
+    const receiverInfo = receiverUser.data[0];
+    
+    // 更新订单：记录接单者信息，状态改为 received
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        receiverOpenid: openid,
+        receiverId: receiverInfo._id,
+        receiverInfo: {
+          nickname: receiverInfo.nickname || '用户',
+          avatarUrl: receiverInfo.avatarUrl || receiverInfo.avatar || '',
+          phone: receiverInfo.phone || ''
+        },
+        orderStatus: 'received',
+        updatedAt: db.serverDate()
+      }
+    });
+    
+    console.log('【接单】接单成功');
+    
+    // 发送消息通知给下单者
+    try {
+      await cloud.callFunction({
+        name: 'messageManage',
+        data: {
+          action: 'createMessage',
+          data: {
+            toUserId: order.userOpenid,
+            toUserName: order.userInfo?.nickname || '用户',
+            messageType: order.orderType, // gaming/express/reward
+            relatedId: orderId,
+            relatedTitle: `订单 ${order.orderNo || orderId} 已被接单`
+          }
+        }
+      });
+    } catch (err) {
+      console.error('【接单】创建消息记录失败:', err);
+      // 即使创建失败也继续
+    }
+    
+    return {
+      code: 200,
+      message: '接单成功',
+      data: {
+        orderId: orderId,
+        orderNo: order.orderNo
+      }
+    };
+    
+  } catch (error) {
+    console.error('【接单】异常:', error);
+    return {
+      code: 500,
+      message: '接单失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 接单者确认接单接口
+ */
+async function receiverConfirmOrder(openid, data) {
+  try {
+    const { orderId } = data;
+    
+    console.log('【接单者确认接单】参数:', { orderId, receiverOpenid: openid });
+    
+    if (!orderId) {
+      return {
+        code: 400,
+        message: '缺少订单ID'
+      };
+    }
+    
+    // 获取订单信息
+    const orderResult = await db.collection('orders').doc(orderId).get();
+    if (!orderResult.data) {
+      return {
+        code: 404,
+        message: '订单不存在'
+      };
+    }
+    
+    const order = orderResult.data;
+    
+    // 检查订单状态
+    if (order.orderStatus !== 'received') {
+      return {
+        code: 400,
+        message: '订单状态不允许确认'
+      };
+    }
+    
+    // 检查是否为当前接单者的订单
+    if (order.receiverOpenid !== openid) {
+      return {
+        code: 403,
+        message: '无权操作此订单'
+      };
+    }
+    
+    // 更新订单状态为 confirmed_by_receiver
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        orderStatus: 'confirmed_by_receiver',
+        receiverConfirmedAt: db.serverDate(),
+        updatedAt: db.serverDate()
+      }
+    });
+    
+    console.log('【接单者确认接单】确认成功');
+    
+    // 发送消息通知给下单者
+    try {
+      await cloud.callFunction({
+        name: 'messageManage',
+        data: {
+          action: 'createMessage',
+          data: {
+            toUserId: order.userOpenid,
+            toUserName: order.userInfo?.nickname || '用户',
+            messageType: order.orderType,
+            relatedId: orderId,
+            relatedTitle: `订单 ${order.orderNo || orderId} 接单者已确认`
+          }
+        }
+      });
+    } catch (err) {
+      console.error('【接单者确认接单】创建消息记录失败:', err);
+    }
+    
+    return {
+      code: 200,
+      message: '确认成功'
+    };
+    
+  } catch (error) {
+    console.error('【接单者确认接单】异常:', error);
+    return {
+      code: 500,
+      message: '确认失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 接单者完成订单接口
+ */
+async function receiverCompleteOrder(openid, data) {
+  try {
+    const { orderId } = data;
+    
+    console.log('【接单者完成订单】参数:', { orderId, receiverOpenid: openid });
+    
+    if (!orderId) {
+      return {
+        code: 400,
+        message: '缺少订单ID'
+      };
+    }
+    
+    // 获取订单信息
+    const orderResult = await db.collection('orders').doc(orderId).get();
+    if (!orderResult.data) {
+      return {
+        code: 404,
+        message: '订单不存在'
+      };
+    }
+    
+    const order = orderResult.data;
+    
+    // 检查订单状态
+    if (order.orderStatus !== 'confirmed_by_receiver') {
+      return {
+        code: 400,
+        message: '订单状态不允许完成'
+      };
+    }
+    
+    // 检查是否为当前接单者的订单
+    if (order.receiverOpenid !== openid) {
+      return {
+        code: 403,
+        message: '无权操作此订单'
+      };
+    }
+    
+    // 更新订单状态为 waiting_user_confirm
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        orderStatus: 'waiting_user_confirm',
+        receiverCompletedAt: db.serverDate(),
+        updatedAt: db.serverDate()
+      }
+    });
+    
+    console.log('【接单者完成订单】完成成功');
+    
+    // 发送消息通知给下单者
+    try {
+      await cloud.callFunction({
+        name: 'messageManage',
+        data: {
+          action: 'createMessage',
+          data: {
+            toUserId: order.userOpenid,
+            toUserName: order.userInfo?.nickname || '用户',
+            messageType: order.orderType,
+            relatedId: orderId,
+            relatedTitle: `订单 ${order.orderNo || orderId} 接单者已完成，请确认`
+          }
+        }
+      });
+    } catch (err) {
+      console.error('【接单者完成订单】创建消息记录失败:', err);
+    }
+    
+    return {
+      code: 200,
+      message: '完成成功，等待用户确认'
+    };
+    
+  } catch (error) {
+    console.error('【接单者完成订单】异常:', error);
+    return {
+      code: 500,
+      message: '完成失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 用户确认订单完成接口
+ */
+async function userConfirmComplete(openid, data) {
+  try {
+    const { orderId } = data;
+    
+    console.log('【用户确认订单完成】参数:', { orderId, userOpenid: openid });
+    
+    if (!orderId) {
+      return {
+        code: 400,
+        message: '缺少订单ID'
+      };
+    }
+    
+    // 获取订单信息
+    const orderResult = await db.collection('orders').doc(orderId).get();
+    if (!orderResult.data) {
+      return {
+        code: 404,
+        message: '订单不存在'
+      };
+    }
+    
+    const order = orderResult.data;
+    
+    // 检查订单状态
+    if (order.orderStatus !== 'waiting_user_confirm') {
+      return {
+        code: 400,
+        message: '订单状态不允许确认完成'
+      };
+    }
+    
+    // 检查是否为当前用户的订单
+    if (order.userOpenid !== openid) {
+      return {
+        code: 403,
+        message: '无权操作此订单'
+      };
+    }
+    
+    // 更新订单状态为 completed
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        orderStatus: 'completed',
+        userConfirmedAt: db.serverDate(),
+        completedAt: db.serverDate(),
+        updatedAt: db.serverDate()
+      }
+    });
+    
+    console.log('【用户确认订单完成】确认成功');
+    
+    // 发送消息通知给接单者
+    try {
+      await cloud.callFunction({
+        name: 'messageManage',
+        data: {
+          action: 'createMessage',
+          data: {
+            toUserId: order.receiverOpenid,
+            toUserName: order.receiverInfo?.nickname || '用户',
+            messageType: order.orderType,
+            relatedId: orderId,
+            relatedTitle: `订单 ${order.orderNo || orderId} 用户已确认完成`
+          }
+        }
+      });
+    } catch (err) {
+      console.error('【用户确认订单完成】创建消息记录失败:', err);
+    }
+    
+    return {
+      code: 200,
+      message: '确认完成成功'
+    };
+    
+  } catch (error) {
+    console.error('【用户确认订单完成】异常:', error);
+    return {
+      code: 500,
+      message: '确认失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 取消接单接口（用户取消接单者的接单，订单重回大厅）
+ */
+async function cancelReceiverOrder(openid, data) {
+  try {
+    const { orderId } = data;
+    
+    console.log('【取消接单】参数:', { orderId, userOpenid: openid });
+    
+    if (!orderId) {
+      return {
+        code: 400,
+        message: '缺少订单ID'
+      };
+    }
+    
+    // 获取订单信息
+    const orderResult = await db.collection('orders').doc(orderId).get();
+    if (!orderResult.data) {
+      return {
+        code: 404,
+        message: '订单不存在'
+      };
+    }
+    
+    const order = orderResult.data;
+    
+    // 检查订单状态
+    const allowedStatuses = ['received', 'confirmed_by_receiver', 'waiting_user_confirm'];
+    if (!allowedStatuses.includes(order.orderStatus)) {
+      return {
+        code: 400,
+        message: '订单状态不允许取消接单'
+      };
+    }
+    
+    // 检查是否为当前用户的订单
+    if (order.userOpenid !== openid) {
+      return {
+        code: 403,
+        message: '无权操作此订单'
+      };
+    }
+    
+    // 保存接单者信息（用于发送通知）
+    const receiverOpenid = order.receiverOpenid;
+    const receiverInfo = order.receiverInfo;
+    
+    // 清除接单者信息，状态改回 pending
+    await db.collection('orders').doc(orderId).update({
+      data: {
+        receiverOpenid: null,
+        receiverId: null,
+        receiverInfo: null,
+        receiverConfirmedAt: null,
+        receiverCompletedAt: null,
+        orderStatus: 'pending',
+        updatedAt: db.serverDate()
+      }
+    });
+    
+    console.log('【取消接单】取消成功，订单重回大厅');
+    
+    // 发送消息通知给接单者
+    if (receiverOpenid) {
+      try {
+        await cloud.callFunction({
+          name: 'messageManage',
+          data: {
+            action: 'createMessage',
+            data: {
+              toUserId: receiverOpenid,
+              toUserName: receiverInfo?.nickname || '用户',
+              messageType: order.orderType,
+              relatedId: orderId,
+              relatedTitle: `订单 ${order.orderNo || orderId} 已被取消接单`
+            }
+          }
+        });
+      } catch (err) {
+        console.error('【取消接单】创建消息记录失败:', err);
+      }
+    }
+    
+    return {
+      code: 200,
+      message: '取消接单成功，订单已重回大厅'
+    };
+    
+  } catch (error) {
+    console.error('【取消接单】异常:', error);
+    return {
+      code: 500,
+      message: '取消失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 自动取消超时未接单的订单
+ */
+async function autoCancelExpiredOrders(openid, data) {
+  try {
+    console.log('【自动取消超时订单】开始检查');
+    
+    const now = new Date();
+    
+    // 查询所有待接单的特殊订单（游戏陪玩、悬赏、代拿快递），且已过期的订单
+    const expiredOrders = await db.collection('orders')
+      .where({
+        orderType: db.command.in(['gaming', 'reward', 'express']),
+        orderStatus: 'pending', // 只处理待接单的订单
+        expiredAt: db.command.lte(now) // 过期时间小于等于当前时间
+      })
+      .get();
+    
+    console.log('【自动取消超时订单】找到过期订单数量:', expiredOrders.data.length);
+    
+    if (expiredOrders.data.length === 0) {
+      return {
+        code: 200,
+        message: '没有需要取消的过期订单',
+        data: {
+          cancelledCount: 0
+        }
+      };
+    }
+    
+    // 批量取消订单
+    let cancelledCount = 0;
+    const cancelPromises = expiredOrders.data.map(async (order) => {
+      try {
+        await db.collection('orders').doc(order._id).update({
+          data: {
+            orderStatus: 'cancelled',
+            cancelledAt: db.serverDate(),
+            cancelledReason: '超时未接单自动取消',
+            updatedAt: db.serverDate()
+          }
+        });
+        cancelledCount++;
+        console.log('【自动取消超时订单】订单已取消:', order.orderNo);
+      } catch (error) {
+        console.error('【自动取消超时订单】取消订单失败:', order._id, error);
+      }
+    });
+    
+    await Promise.all(cancelPromises);
+    
+    console.log('【自动取消超时订单】完成，共取消', cancelledCount, '个订单');
+    
+    return {
+      code: 200,
+      message: '自动取消完成',
+      data: {
+        cancelledCount: cancelledCount
+      }
+    };
+    
+  } catch (error) {
+    console.error('【自动取消超时订单】异常:', error);
+    return {
+      code: 500,
+      message: '自动取消失败',
       error: error.message
     };
   }
