@@ -126,39 +126,14 @@
       </view>
     </view>
 
-    <!-- 订单时间设置 -->
-    <view class="form-section">
-      <view class="section-header">
-        <view class="section-icon timeout-icon">⏱️</view>
-        <text class="section-title">订单截止时间</text>
-      </view>
-      <picker mode="multiSelector" range="{{dateTimeRange}}" value="{{dateTimeValue}}" bindchange="onOrderExpiredAtChange">
-        <view class="timeout-input">
-          <text class="timeout-value" wx:if="{{orderExpiredAtDisplay}}">{{orderExpiredAtDisplay}}</text>
-          <text class="timeout-placeholder" wx:else>请选择截止时间</text>
-          <text class="timeout-tip">超时未接单将自动取消</text>
-        </view>
-      </picker>
-    </view>
-
-    <!-- 联系信息 -->
+    <!-- 收货地址 -->
     <view class="form-section">
       <view class="section-header" bindtap="onSelectAddress">
         <view class="section-icon address-icon">📍</view>
         <view class="section-content">
-          <text class="section-title">联系信息</text>
-          <view class="contact-info-display" wx:if="{{address}}">
-            <view class="contact-name-row" wx:if="{{address.name}}">
-              <image class="contact-avatar" src="{{address.avatar || '/pages/小标/默认头像.png'}}" mode="aspectFill"></image>
-              <text class="contact-name">{{address.name}}</text>
-            </view>
-            <view class="contact-details">
-              <text class="contact-item" wx:if="{{address.phone}}">电话：{{address.phone}}</text>
-              <text class="contact-item" wx:if="{{address.wechat}}">微信：{{address.wechat}}</text>
-              <text class="contact-item" wx:if="{{address.qq}}">QQ：{{address.qq}}</text>
-            </view>
-          </view>
-          <text class="address-placeholder" wx:else>请选择联系信息</text>
+          <text class="section-title">收货地址</text>
+          <text class="address-text" wx:if="{{address}}">{{address.buildingName || ''}}{{address.houseNumber || ''}}{{address.addressDetail || ''}}</text>
+          <text class="address-placeholder" wx:else>请选择收货地址</text>
         </view>
         <view class="arrow">></view>
       </view>

@@ -642,16 +642,46 @@
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
-.timeout-value {
+.duration-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.duration-input {
+  flex: 1;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 16px;
+  background: #fff;
+}
+.duration-unit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  height: 40px;
+  min-width: 80px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
   font-size: 16px;
   color: #333;
-  font-weight: 500;
+  background: #fff;
 }
-.timeout-placeholder {
-  font-size: 16px;
+.duration-unit .arrow {
+  font-size: 12px;
   color: #999;
+}
+.timeout-display {
+  margin-top: 4px;
+}
+.timeout-value {
+  font-size: 14px;
+  color: #1677ff;
+  font-weight: 500;
 }
 .timeout-tip {
   font-size: 12px;

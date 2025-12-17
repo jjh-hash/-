@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page {{showDetail ? 'sheet-open' : ''}}">
   <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   <view class="nav">
     <text class="title">任务大厅</text>
@@ -264,8 +264,8 @@
 
           <view class="remark" wx:if="{{item.remark}}">备注：{{item.remark}}</view>
           
-          <!-- 地址信息 -->
-          <view class="address-info" wx:if="{{item.address}}">
+          <!-- 地址信息（游戏陪玩订单不显示地址，且未接单前不显示联系人和电话） -->
+          <view class="address-info" wx:if="{{item.address && item.orderType !== 'gaming'}}">
             <view class="address-line">
               <text class="address-label">联系人：</text>
               <text>{{item.address.name}}</text>
@@ -280,8 +280,28 @@
             </view>
           </view>
 
-          <!-- 用户信息（无店铺订单） -->
-          <view class="address-info" wx:if="{{!item.address && item.userInfo}}">
+          <!-- 游戏陪玩订单的联系信息（只有接单后才显示） -->
+          <view class="address-info" wx:if="{{item.orderType === 'gaming' && item.orderStatus !== 'pending' && (item.address || item.userInfo)}}">
+            <view class="address-line" wx:if="{{item.address && item.address.name}}">
+              <text class="address-label">联系人：</text>
+              <text>{{item.address.name}}</text>
+            </view>
+            <view class="address-line" wx:if="{{item.address && item.address.phone}}">
+              <text class="address-label">电话：</text>
+              <text>{{item.address.phone}}</text>
+            </view>
+            <view class="address-line" wx:if="{{item.userInfo && (item.userInfo.nickname || item.userInfo.userName)}}">
+              <text class="address-label">联系人：</text>
+              <text>{{item.userInfo.nickname || item.userInfo.userName || '用户'}}</text>
+            </view>
+            <view class="address-line" wx:if="{{item.userInfo && item.userInfo.phone}}">
+              <text class="address-label">电话：</text>
+              <text>{{item.userInfo.phone}}</text>
+            </view>
+          </view>
+
+          <!-- 用户信息（无店铺订单，非游戏陪玩） -->
+          <view class="address-info" wx:if="{{!item.address && item.userInfo && item.orderType !== 'gaming'}}">
             <view class="address-line">
               <text class="address-label">用户：</text>
               <text>{{item.userInfo.nickname || item.userInfo.userName || '用户'}}</text>
@@ -296,9 +316,10 @@
             <text>合计：¥{{item.amountTotal}}</text>
           </view>
           <view class="actions">
-            <view class="btn ghost" bindtap="onContactUser" data-id="{{item.id}}" catchtap="stopPropagation">联系用户</view>
-            <!-- 待接单：任何人都可以接单 -->
-            <view class="btn primary" bindtap="onConfirmOrder" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'pending'}}" catchtap="stopPropagation">
+            <!-- 接单后才能联系用户 -->
+            <view class="btn ghost" bindtap="onContactUser" data-id="{{item.id}}" wx:if="{{item.orderStatus !== 'pending' && item.orderStatus !== 'cancelled'}}" catchtap="stopPropagation">联系用户</view>
+            <!-- 待接单：任何人都可以接单，但不能接自己的订单 -->
+            <view class="btn primary" bindtap="onConfirmOrder" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'pending' && item.userOpenid !== currentUserOpenid}}" catchtap="stopPropagation">
               <text>接单</text>
               <text class="btn-time" wx:if="{{currentTime}}">{{currentTime}}</text>
             </view>
@@ -321,8 +342,8 @@
   </scroll-view>
 
   <!-- 订单详情弹层 -->
-  <view class="sheet-mask {{showDetail? 'show':''}}" catchtouchmove="true" bindtap="onCloseDetail"></view>
-  <view class="sheet {{showDetail? 'show':''}}" catchtouchmove="true">
+  <view class="sheet-mask {{showDetail? 'show':''}}" catchtouchmove="preventTouchMove" bindtap="onCloseDetail"></view>
+  <view class="sheet {{showDetail? 'show':''}}" catchtouchmove="preventTouchMove">
     <view class="sheet-header">
       <text class="sheet-desk">{{detail.deskNo}}#</text>
       <text class="sheet-status {{detail.orderStatus === 'cancelled' ? 'cancelled' : ''}}">{{detail.statusText}}</text>
@@ -356,13 +377,24 @@
           <text class="receiver-name">{{detail.receiverInfo.nickname || '用户'}}</text>
         </view>
       </view>
-      <view class="i-row" wx:if="{{detail.address || detail.userInfo}}" catchtap="onAddressTap">
+      <!-- 配送信息（游戏陪玩订单不显示地址，且未接单前不显示联系人和电话） -->
+      <view class="i-row address-row" wx:if="{{(detail.address || detail.userInfo) && detail.orderType !== 'gaming'}}" catchtap="onAddressTap">
         <text class="i-label">配送信息</text>
         <text class="i-value address-clickable" wx:if="{{detail.address}}">
           {{detail.address.name || '用户'}} {{detail.address.phone || ''}}\n{{detail.address.fullAddress || (detail.address.buildingName || '') + (detail.address.houseNumber || '') + (detail.address.addressDetail || detail.address.address || '未设置地址')}}
         </text>
         <text class="i-value address-clickable" wx:elif="{{detail.userInfo}}">
           {{detail.userInfo.nickname || detail.userInfo.userName || '用户'}} {{detail.userInfo.phone || ''}}\n未设置地址
+        </text>
+      </view>
+      <!-- 游戏陪玩订单的联系信息（只有接单后才显示） -->
+      <view class="i-row address-row" wx:if="{{detail.orderType === 'gaming' && detail.orderStatus !== 'pending' && (detail.address || detail.userInfo)}}" catchtap="onAddressTap">
+        <text class="i-label">联系信息</text>
+        <text class="i-value address-clickable" wx:if="{{detail.address}}">
+          {{detail.address.name || '用户'}} {{detail.address.phone || ''}}
+        </text>
+        <text class="i-value address-clickable" wx:elif="{{detail.userInfo}}">
+          {{detail.userInfo.nickname || detail.userInfo.userName || '用户'}} {{detail.userInfo.phone || ''}}
         </text>
       </view>
       <view class="i-row"><text class="i-label">订单号码</text><text class="i-value">{{detail.orderNo}}</text></view>
@@ -382,9 +414,10 @@
     </view>
 
     <view class="sheet-actions">
-      <view class="btn ghost" bindtap="onContactUser" data-id="{{detail.id}}">联系用户</view>
-      <!-- 待接单：任何人都可以接单 -->
-      <view class="btn primary" bindtap="onConfirmOrder" wx:if="{{detail.orderStatus === 'pending'}}">接单</view>
+      <!-- 接单后才能联系用户 -->
+      <view class="btn ghost" bindtap="onContactUser" data-id="{{detail.id}}" wx:if="{{detail.orderStatus !== 'pending' && detail.orderStatus !== 'cancelled'}}">联系用户</view>
+      <!-- 待接单：任何人都可以接单，但不能接自己的订单 -->
+      <view class="btn primary" bindtap="onConfirmOrder" wx:if="{{detail.orderStatus === 'pending' && detail.userOpenid !== currentUserOpenid}}">接单</view>
       <!-- 已接单：接单者可以确认接单 -->
       <view class="btn primary" bindtap="onReceiverConfirm" wx:if="{{detail.orderStatus === 'received' && detail.receiverOpenid === currentUserOpenid}}">确认接单</view>
       <!-- 接单者已确认：接单者可以完成订单 -->

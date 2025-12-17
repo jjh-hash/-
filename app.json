@@ -125,8 +125,7 @@
         "pages/about/index",
         "pages/message/index",
         "pages/chat/index",
-        "pages/my-orders/index",
-        "pages/contact-info/index"
+        "pages/my-orders/index"
       ]
     }
   ],

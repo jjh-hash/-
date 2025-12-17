@@ -267,14 +267,15 @@ Page({
 
     // 状态筛选
     if (this.data.selectedStatus) {
-      const statusMap = {
-        '待接单': 'pending',
-        '进行中': 'confirmed',
-        '已完成': 'completed'
-      };
-      const orderStatus = statusMap[this.data.selectedStatus];
-      if (orderStatus) {
-        filteredOrders = filteredOrders.filter(order => order.orderStatus === orderStatus);
+      if (this.data.selectedStatus === '待接单') {
+        filteredOrders = filteredOrders.filter(order => order.orderStatus === 'pending');
+      } else if (this.data.selectedStatus === '进行中') {
+        // 进行中包括：已接单(received)、接单者已确认(confirmed_by_receiver)
+        filteredOrders = filteredOrders.filter(order => 
+          order.orderStatus === 'received' || order.orderStatus === 'confirmed_by_receiver'
+        );
+      } else if (this.data.selectedStatus === '已完成') {
+        filteredOrders = filteredOrders.filter(order => order.orderStatus === 'completed');
       }
     }
 
@@ -536,6 +537,11 @@ Page({
     // 空函数，用于阻止事件冒泡
   },
 
+  // 阻止触摸移动事件（防止弹窗滚动穿透）
+  preventTouchMove() {
+    // 空函数，用于阻止弹窗内的滚动穿透到背景页面
+  },
+
   // 判断是否为接单者
   isReceiver(order) {
     if (!order || !this.data.currentUserOpenid) return false;
@@ -552,7 +558,7 @@ Page({
   getStatusText(status) {
     const statusMap = {
       'pending': '待接单',
-      'received': '已接单',
+      'received': '进行中', // 接单后显示为"进行中"
       'confirmed_by_receiver': '进行中',
       'waiting_user_confirm': '待确认完成',
       'confirmed': '制作中',
@@ -676,7 +682,7 @@ Page({
     });
   },
 
-  // 确认订单（pending -> confirmed）
+  // 接单（pending -> received，特殊订单类型使用acceptOrder接口）
   async onConfirmOrder(e) {
     let orderId = e.currentTarget.dataset.id;
     
@@ -705,13 +711,65 @@ Page({
     try {
       wx.showLoading({ title: '处理中...' });
 
+      // 任务大厅中的订单都是特殊订单类型（游戏陪玩、悬赏、代拿快递），使用acceptOrder接口
       const res = await wx.cloud.callFunction({
         name: 'orderManage',
         data: {
-          action: 'updateOrderStatus',
+          action: 'acceptOrder',
           data: {
-            orderId: orderId,
-            status: 'confirmed'
+            orderId: orderId
+          }
+        }
+      });
+
+      wx.hideLoading();
+
+      if (res.result && res.result.code === 200) {
+        // 接单成功后，弹出确认弹窗
+        wx.showModal({
+          title: '确认接单',
+          content: '是否确认接单？确认后将开始服务。',
+          confirmText: '确认',
+          cancelText: '取消',
+          success: async (modalRes) => {
+            if (modalRes.confirm) {
+              // 用户点击确认，调用接单者确认接口
+              await this.onReceiverConfirmAfterAccept(orderId);
+            } else {
+              // 用户点击取消，取消接单，订单回到pending状态
+              await this.onCancelAcceptOrder(orderId);
+            }
+          }
+        });
+      } else {
+        wx.showToast({
+          title: res.result?.message || '接单失败',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+
+    } catch (error) {
+      wx.hideLoading();
+      console.error('【接单页面】确认订单异常:', error);
+      wx.showToast({
+        title: '接单失败',
+        icon: 'none'
+      });
+    }
+  },
+
+  // 接单后确认接单（received -> confirmed_by_receiver）
+  async onReceiverConfirmAfterAccept(orderId) {
+    try {
+      wx.showLoading({ title: '确认中...' });
+
+      const res = await wx.cloud.callFunction({
+        name: 'orderManage',
+        data: {
+          action: 'receiverConfirmOrder',
+          data: {
+            orderId: orderId
           }
         }
       });
@@ -720,7 +778,7 @@ Page({
 
       if (res.result && res.result.code === 200) {
         wx.showToast({
-          title: '已接单',
+          title: '接单成功，订单进行中',
           icon: 'success'
         });
         
@@ -729,16 +787,61 @@ Page({
         this.loadOrders();
       } else {
         wx.showToast({
-          title: res.result?.message || '操作失败',
-          icon: 'none'
+          title: res.result?.message || '确认失败',
+          icon: 'none',
+          duration: 2000
         });
       }
 
     } catch (error) {
       wx.hideLoading();
-      console.error('【接单页面】确认订单异常:', error);
+      console.error('【接单页面】确认接单异常:', error);
       wx.showToast({
-        title: '操作失败',
+        title: '确认失败',
+        icon: 'none'
+      });
+    }
+  },
+
+  // 取消接单（received -> pending）
+  async onCancelAcceptOrder(orderId) {
+    try {
+      wx.showLoading({ title: '取消中...' });
+
+      const res = await wx.cloud.callFunction({
+        name: 'orderManage',
+        data: {
+          action: 'cancelReceiverOrderByReceiver',
+          data: {
+            orderId: orderId
+          }
+        }
+      });
+
+      wx.hideLoading();
+
+      if (res.result && res.result.code === 200) {
+        wx.showToast({
+          title: '已取消接单',
+          icon: 'success'
+        });
+        
+        this.setData({ showDetail: false });
+        
+        this.loadOrders();
+      } else {
+        wx.showToast({
+          title: res.result?.message || '取消失败',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+
+    } catch (error) {
+      wx.hideLoading();
+      console.error('【接单页面】取消接单异常:', error);
+      wx.showToast({
+        title: '取消失败',
         icon: 'none'
       });
     }

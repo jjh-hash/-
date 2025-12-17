@@ -33,8 +33,9 @@ Page({
       { id: 7, name: '性别不限', active: false },
       { id: 8, name: '立刻上线', active: false }
     ],
-    orderExpiredAt: '', // 订单截止时间（日期时间字符串）
-    orderExpiredAtDisplay: '' // 订单截止时间显示文本
+    orderDuration: 30, // 订单在任务大厅存在时长（分钟），默认30分钟
+    orderDurationUnit: 'minute', // 时长单位：'minute' 或 'hour'
+    orderExpiredAtDisplay: '' // 订单截止时间显示文本（自动计算）
   },
 
   onLoad() {
@@ -245,7 +246,8 @@ Page({
         pricePerHour: this.data.pricePerHour,
         address: this.data.address,
         totalPrice: totalPrice,
-        orderExpiredAt: this.data.orderExpiredAt // 订单截止时间（日期时间字符串）
+        orderDuration: this.data.orderDuration, // 订单在任务大厅存在时长（分钟）
+        orderDurationUnit: this.data.orderDurationUnit // 时长单位
       };
 
       console.log('提交游戏陪玩订单:', orderData);
@@ -294,17 +296,48 @@ Page({
 
   // 选择订单截止时间
   onOrderExpiredAtChange(e) {
+    // 安全检查
+    if (!e || !e.detail || !e.detail.value || !Array.isArray(e.detail.value) || e.detail.value.length < 2) {
+      console.error('【游戏陪玩】日期时间选择器返回值无效:', e);
+      return;
+    }
+    
+    if (!this.data.dateTimeRange || !Array.isArray(this.data.dateTimeRange) || this.data.dateTimeRange.length < 2) {
+      console.error('【游戏陪玩】日期时间范围未初始化');
+      // 重新初始化
+      this.initDateTimePicker();
+      return;
+    }
+    
     const [dateIndex, timeIndex] = e.detail.value;
     const dates = this.data.dateTimeRange[0];
     const times = this.data.dateTimeRange[1];
     
+    if (!dates || !Array.isArray(dates) || !times || !Array.isArray(times)) {
+      console.error('【游戏陪玩】日期或时间数组无效');
+      return;
+    }
+    
+    if (dateIndex < 0 || dateIndex >= dates.length || timeIndex < 0 || timeIndex >= times.length) {
+      console.error('【游戏陪玩】日期或时间索引超出范围');
+      return;
+    }
+    
     const dateStr = dates[dateIndex];
     const timeStr = times[timeIndex];
+    
+    if (!dateStr || !timeStr) {
+      console.error('【游戏陪玩】日期或时间字符串无效');
+      return;
+    }
     
     // 解析日期
     const now = new Date();
     const dateMatch = dateStr.match(/(\d+)-(\d+)/);
-    if (!dateMatch) return;
+    if (!dateMatch) {
+      console.error('【游戏陪玩】日期格式解析失败:', dateStr);
+      return;
+    }
     
     const month = parseInt(dateMatch[1]) - 1;
     const date = parseInt(dateMatch[2]);
@@ -312,6 +345,11 @@ Page({
     
     // 解析时间
     const [hours, minutes] = timeStr.split(':').map(Number);
+    
+    if (isNaN(hours) || isNaN(minutes)) {
+      console.error('【游戏陪玩】时间解析失败:', timeStr);
+      return;
+    }
     
     // 构建日期时间
     const expiredAt = new Date(year, month, date, hours, minutes);

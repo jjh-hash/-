@@ -20,10 +20,9 @@ Page({
       { id: 5, name: '其他请说明', active: false },
       { id: 6, name: '代买商品', active: false }
     ],
-    orderExpiredAt: '', // 订单截止时间（日期时间字符串）
-    orderExpiredAtDisplay: '', // 订单截止时间显示文本
-    dateTimeRange: [[], []], // 日期时间选择器范围
-    dateTimeValue: [0, 0] // 日期时间选择器当前值
+    orderDuration: 30, // 订单在任务大厅存在时长（分钟），默认30分钟
+    orderDurationUnit: 'minute', // 时长单位：'minute' 或 'hour'
+    orderExpiredAtDisplay: '' // 订单截止时间显示文本（自动计算）
   },
 
   onLoad() {
@@ -31,112 +30,85 @@ Page({
     this.loadContactInfo();
     // 初始化总价
     this.updateTotalPrice();
-    // 初始化日期时间选择器
-    this.initDateTimePicker();
+    // 计算并显示截止时间
+    this.updateExpiredAtDisplay();
   },
 
-  // 初始化日期时间选择器
-  initDateTimePicker() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const date = now.getDate();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-    
-    // 生成日期范围（今天到30天后）
-    const dates = [];
-    for (let i = 0; i <= 30; i++) {
-      const d = new Date(year, month, date + i);
-      const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-      const dateStr = String(d.getDate()).padStart(2, '0');
-      if (i === 0) {
-        dates.push(`今天 ${monthStr}-${dateStr}`);
-      } else if (i === 1) {
-        dates.push(`明天 ${monthStr}-${dateStr}`);
-      } else {
-        dates.push(`${monthStr}-${dateStr}`);
-      }
+  // 输入订单存在时长
+  onOrderDurationInput(e) {
+    const value = e.detail.value;
+    // 只允许输入数字
+    const numValue = parseInt(value) || 0;
+    if (numValue < 1) {
+      wx.showToast({
+        title: '时长至少1分钟',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
     }
-    
-    // 生成时间范围（00:00 - 23:59，每15分钟一个选项）
-    const times = [];
-    for (let h = 0; h < 24; h++) {
-      for (let m = 0; m < 60; m += 15) {
-        const hStr = String(h).padStart(2, '0');
-        const mStr = String(m).padStart(2, '0');
-        times.push(`${hStr}:${mStr}`);
-      }
+    if (numValue > 10080) { // 最多7天（10080分钟）
+      wx.showToast({
+        title: '时长不能超过7天',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
     }
-    
     this.setData({
-      dateTimeRange: [dates, times],
-      dateTimeValue: [0, Math.floor((hour * 60 + minute) / 15)]
+      orderDuration: numValue
     });
+    // 更新截止时间显示
+    this.updateExpiredAtDisplay();
   },
 
-  // 选择订单截止时间
-  onOrderExpiredAtChange(e) {
-    const [dateIndex, timeIndex] = e.detail.value;
-    const dates = this.data.dateTimeRange[0];
-    const times = this.data.dateTimeRange[1];
-    
-    const dateStr = dates[dateIndex];
-    const timeStr = times[timeIndex];
-    
-    // 解析日期
-    const now = new Date();
-    const dateMatch = dateStr.match(/(\d+)-(\d+)/);
-    if (!dateMatch) return;
-    
-    const month = parseInt(dateMatch[1]) - 1;
-    const date = parseInt(dateMatch[2]);
-    const year = now.getFullYear();
-    
-    // 解析时间
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    
-    // 构建日期时间
-    const expiredAt = new Date(year, month, date, hours, minutes);
-    
-    // 如果选择的是今天，且时间已过，则设置为明天
-    if (dateIndex === 0 && expiredAt.getTime() <= now.getTime()) {
-      expiredAt.setDate(expiredAt.getDate() + 1);
-    }
-    
-    const expiredAtStr = expiredAt.toISOString().slice(0, 16).replace('T', ' ');
-    
+  // 选择时长单位
+  onOrderDurationUnitChange(e) {
+    const unit = e.detail.value === '0' ? 'minute' : 'hour';
     this.setData({
-      orderExpiredAt: expiredAtStr,
-      orderExpiredAtDisplay: this.formatExpiredAtDisplay(expiredAt),
-      dateTimeValue: [dateIndex, timeIndex]
+      orderDurationUnit: unit
     });
+    // 更新截止时间显示
+    this.updateExpiredAtDisplay();
   },
 
-  // 格式化截止时间显示
-  formatExpiredAtDisplay(expiredAt) {
-    if (!expiredAt) return '';
+  // 更新截止时间显示
+  updateExpiredAtDisplay() {
+    const duration = this.data.orderDuration;
+    const unit = this.data.orderDurationUnit;
     
-    const now = new Date();
-    const diff = expiredAt.getTime() - now.getTime();
-    
-    if (diff < 0) {
-      return '已过期';
+    // 转换为分钟
+    let totalMinutes = duration;
+    if (unit === 'hour') {
+      totalMinutes = duration * 60;
     }
     
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    // 计算截止时间
+    const now = new Date();
+    const expiredAt = new Date(now.getTime() + totalMinutes * 60 * 1000);
+    
+    // 格式化显示
     const month = expiredAt.getMonth() + 1;
     const date = expiredAt.getDate();
     const hoursStr = String(expiredAt.getHours()).padStart(2, '0');
     const minutesStr = String(expiredAt.getMinutes()).padStart(2, '0');
     
-    if (days === 0) {
-      return `今天 ${hoursStr}:${minutesStr}截止`;
-    } else if (days === 1) {
-      return `明天 ${hoursStr}:${minutesStr}截止`;
+    const days = Math.floor(totalMinutes / (24 * 60));
+    const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+    const mins = totalMinutes % 60;
+    
+    let displayText = '';
+    if (days > 0) {
+      displayText = `${month}/${date} ${hoursStr}:${minutesStr}截止`;
+    } else if (hours > 0) {
+      displayText = `今天 ${hoursStr}:${minutesStr}截止（${hours}小时${mins > 0 ? mins + '分钟' : ''}后）`;
     } else {
-      return `${month}/${date} ${hoursStr}:${minutesStr}截止`;
+      displayText = `今天 ${hoursStr}:${minutesStr}截止（${mins}分钟后）`;
     }
+    
+    this.setData({
+      orderExpiredAtDisplay: displayText
+    });
   },
 
   onShow() {
@@ -351,8 +323,9 @@ Page({
       missingFields.push('联系信息');
     }
 
-    if (!this.data.orderExpiredAt) {
-      missingFields.push('订单截止时间');
+    // 验证订单存在时长
+    if (!this.data.orderDuration || this.data.orderDuration < 1) {
+      missingFields.push('订单存在时长');
     }
 
     // 如果有缺失项，统一提示
@@ -363,20 +336,6 @@ Page({
         duration: 3000
       });
       return;
-    }
-
-    // 验证截止时间不能早于当前时间
-    if (this.data.orderExpiredAt) {
-      const expiredAt = new Date(this.data.orderExpiredAt.replace(' ', 'T'));
-      const now = new Date();
-      if (expiredAt.getTime() <= now.getTime()) {
-        wx.showToast({
-          title: '截止时间不能早于当前时间',
-          icon: 'none',
-          duration: 2000
-        });
-        return;
-      }
     }
 
     // 检查图片是否全部上传完成
@@ -406,7 +365,8 @@ Page({
         bounty: totalPrice,
         address: this.data.address,
         totalPrice: totalPrice,
-        orderExpiredAt: this.data.orderExpiredAt || null // 订单截止时间
+        orderDuration: this.data.orderDuration, // 订单在任务大厅存在时长（分钟）
+        orderDurationUnit: this.data.orderDurationUnit // 时长单位
       };
 
       console.log('提交悬赏订单:', orderData);

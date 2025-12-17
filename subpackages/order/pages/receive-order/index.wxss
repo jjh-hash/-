@@ -44,6 +44,8 @@
 
 .order-card{background:#fff;margin:10px 12px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.04);padding:10px;position:relative}
 .order-type-tag{position:absolute;top:10px;right:10px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;z-index:1}
+/* 当弹层打开时，隐藏订单卡片上的标签，避免遮盖弹层内容 */
+.page.sheet-open .order-type-tag{display:none}
 .order-type-tag.gaming{background:#e6f7ff;color:#1677ff}
 .order-type-tag.reward{background:#fff7e6;color:#fa8c16}
 .order-type-tag.express{background:#f6ffed;color:#52c41a}
@@ -86,9 +88,9 @@
 .safe-area-bottom{height:env(safe-area-inset-bottom)}
 
 /* 底部弹层 */
-.sheet-mask{position:fixed;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,.35);opacity:0;visibility:hidden;transition:all .2s}
+.sheet-mask{position:fixed;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,.35);opacity:0;visibility:hidden;transition:all .2s;z-index:998}
 .sheet-mask.show{opacity:1;visibility:visible}
-.sheet{position:fixed;left:0;right:0;bottom:-100%;background:#fff;border-radius:12px 12px 0 0;box-shadow:0 -4px 12px rgba(0,0,0,.08);padding:12px;transition:bottom .25s;height:70%}
+.sheet{position:fixed;left:0;right:0;bottom:-100%;background:#fff;border-radius:12px 12px 0 0;box-shadow:0 -4px 12px rgba(0,0,0,.08);padding:12px;transition:bottom .25s;height:70%;z-index:999}
 .sheet.show{bottom:0}
 .sheet-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .sheet-desk{font-size:18px;font-weight:700;color:#333}
@@ -111,7 +113,7 @@
 .i-value{color:#333;text-align:right;white-space:pre-line}
 .i-value.expired{color:#ff4d4f}
 .i-value.address-clickable{color:#1677ff;text-decoration:underline;cursor:pointer}
-.i-row[bindtap]{cursor:pointer}
+.i-row.address-row{cursor:pointer}
 .receiver-avatar{width:24px;height:24px;border-radius:50%;border:1px solid #e0e0e0;margin-right:8px;vertical-align:middle}
 .receiver-name{font-size:14px;color:#333;vertical-align:middle}
 .btn.completed{background:#52c41a;color:#fff}

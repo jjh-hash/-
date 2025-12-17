@@ -60,15 +60,30 @@
     <view class="form-section">
       <view class="section-header">
         <view class="section-icon timeout-icon">⏱️</view>
-        <text class="section-title">订单截止时间</text>
+        <text class="section-title">订单存在时长</text>
       </view>
-      <picker mode="multiSelector" range="{{dateTimeRange}}" value="{{dateTimeValue}}" bindchange="onOrderExpiredAtChange">
-        <view class="timeout-input">
-          <text class="timeout-value" wx:if="{{orderExpiredAtDisplay}}">{{orderExpiredAtDisplay}}</text>
-          <text class="timeout-placeholder" wx:else>请选择截止时间</text>
-          <text class="timeout-tip">超时未接单将自动取消</text>
+      <view class="timeout-input">
+        <view class="duration-input-wrapper">
+          <input 
+            class="duration-input" 
+            type="digit" 
+            placeholder="请输入时长" 
+            value="{{orderDuration}}" 
+            bindinput="onOrderDurationInput"
+            maxlength="4"
+          />
+          <picker mode="selector" range="{{['分钟', '小时']}}" value="{{orderDurationUnit === 'minute' ? 0 : 1}}" bindchange="onOrderDurationUnitChange">
+            <view class="duration-unit">
+              <text>{{orderDurationUnit === 'minute' ? '分钟' : '小时'}}</text>
+              <text class="arrow">></text>
+            </view>
+          </picker>
         </view>
-      </picker>
+        <view class="timeout-display" wx:if="{{orderExpiredAtDisplay}}">
+          <text class="timeout-value">{{orderExpiredAtDisplay}}</text>
+        </view>
+        <text class="timeout-tip">超时未接单将自动取消</text>
+      </view>
     </view>
 
     <!-- 联系信息 -->
