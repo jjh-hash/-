@@ -2,6 +2,10 @@
 .status-bar{width:100%}
 .nav{height:44px;background:linear-gradient(135deg, #1677ff 0%, #4096ff 100%);border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;position:relative}
 .title{font-size:24px;color:#fff;font-weight:700;text-shadow:0 2px 4px rgba(0,0,0,0.1)}
+.nav-icons{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px}
+.my-order-float-btn{position:fixed;right:16px;bottom:calc(50px + env(safe-area-inset-bottom) + 12px);width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg, #1677ff 0%, #4096ff 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(22,119,255,0.4);z-index:999;transition:all 0.3s}
+.my-order-float-btn:active{transform:scale(0.95);box-shadow:0 2px 8px rgba(22,119,255,0.3)}
+.my-order-icon{width:24px;height:24px;filter:brightness(0) invert(1)}
 
 /* 搜索区域 */
 .search-section{padding:12px;background:#fff;border-bottom:1px solid #eee}

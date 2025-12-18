@@ -32,19 +32,41 @@ Page({
   // 获取当前用户openid
   async getCurrentUserOpenid() {
     try {
+      // 优先从本地存储获取
       const userInfo = wx.getStorageSync('userInfo');
       if (userInfo && userInfo.openid) {
+        console.log('【接单页面】从本地存储获取用户openid:', userInfo.openid);
         this.setData({
           currentUserOpenid: userInfo.openid
         });
-      } else {
-        // 如果本地没有，尝试从云函数获取
-        const app = getApp();
-        if (app.globalData.userInfo && app.globalData.userInfo.openid) {
+        return;
+      }
+      
+      // 如果本地没有，尝试从全局数据获取
+      const app = getApp();
+      if (app.globalData.userInfo && app.globalData.userInfo.openid) {
+        console.log('【接单页面】从全局数据获取用户openid:', app.globalData.userInfo.openid);
+        this.setData({
+          currentUserOpenid: app.globalData.userInfo.openid
+        });
+        return;
+      }
+      
+      // 如果都没有，尝试从云函数获取
+      try {
+        const res = await wx.cloud.callFunction({
+          name: 'loginUser',
+          data: {}
+        });
+        if (res.result && res.result.code === 0 && res.result.data && res.result.data.userInfo) {
+          const openid = res.result.data.userInfo.openid;
+          console.log('【接单页面】从云函数获取用户openid:', openid);
           this.setData({
-            currentUserOpenid: app.globalData.userInfo.openid
+            currentUserOpenid: openid
           });
         }
+      } catch (err) {
+        console.error('【接单页面】从云函数获取用户openid失败:', err);
       }
     } catch (error) {
       console.error('【接单页面】获取用户openid失败:', error);
@@ -53,6 +75,8 @@ Page({
 
   onShow() {
     console.log('【接单页面】页面显示，刷新订单');
+    // 确保获取当前用户openid
+    this.getCurrentUserOpenid();
     // 更新当前时间
     this.updateCurrentTime();
     // 检查并自动取消超时订单
@@ -68,6 +92,28 @@ Page({
       this.updateExpiredAtDisplay();
     }, 1000);
     this.setData({ timeTimer: timer });
+  },
+
+  // 下拉刷新
+  async onPullDownRefresh() {
+    console.log('【接单页面】下拉刷新');
+    try {
+      // 更新当前时间
+      this.updateCurrentTime();
+      // 检查并自动取消超时订单
+      await this.checkAndCancelExpiredOrders();
+      // 重新加载订单列表（不显示加载提示，因为下拉刷新本身已有动画）
+      await this.loadOrders(false);
+    } catch (error) {
+      console.error('【接单页面】下拉刷新失败:', error);
+      wx.showToast({
+        title: '刷新失败',
+        icon: 'none'
+      });
+    } finally {
+      // 停止下拉刷新动画
+      wx.stopPullDownRefresh();
+    }
   },
 
   onHide() {
@@ -123,11 +169,13 @@ Page({
   },
 
   // 加载订单列表（加载所有状态的订单，包括待接单、进行中、已完成）
-  async loadOrders() {
+  async loadOrders(showLoading = true) {
     this.setData({ loading: true });
 
     try {
-      wx.showLoading({ title: '加载中...' });
+      if (showLoading) {
+        wx.showLoading({ title: '加载中...' });
+      }
 
       // 不传 status 参数，查询所有状态的订单（待接单、进行中、已完成）
       const res = await wx.cloud.callFunction({
@@ -142,7 +190,9 @@ Page({
         }
       });
 
-      wx.hideLoading();
+      if (showLoading) {
+        wx.hideLoading();
+      }
 
       console.log('【任务大厅】云函数返回结果:', res.result);
 
@@ -682,10 +732,11 @@ Page({
     });
   },
 
-  // 接单（pending -> received，特殊订单类型使用acceptOrder接口）
+  // 接单函数
   async onConfirmOrder(e) {
     let orderId = e.currentTarget.dataset.id;
     
+    // 如果从事件中获取不到，尝试从详情中获取
     if (!orderId && this.data.detail && this.data.detail.id) {
       orderId = this.data.detail.id;
     }
@@ -697,7 +748,7 @@ Page({
       }
     }
     
-    console.log('【接单页面】确认订单，orderId:', orderId);
+    console.log('【接单页面】点击接单，orderId:', orderId);
     
     if (!orderId) {
       wx.showToast({
@@ -708,10 +759,20 @@ Page({
       return;
     }
     
+    // 检查是否是自己的订单
+    const order = this.data.orders.find(o => o.id === orderId);
+    if (order && order.userOpenid === this.data.currentUserOpenid) {
+      wx.showToast({
+        title: '不能接自己的订单',
+        icon: 'none'
+      });
+      return;
+    }
+    
     try {
       wx.showLoading({ title: '处理中...' });
 
-      // 任务大厅中的订单都是特殊订单类型（游戏陪玩、悬赏、代拿快递），使用acceptOrder接口
+      // 调用云函数接单
       const res = await wx.cloud.callFunction({
         name: 'orderManage',
         data: {
@@ -723,6 +784,8 @@ Page({
       });
 
       wx.hideLoading();
+
+      console.log('【接单页面】接单云函数返回:', res.result);
 
       if (res.result && res.result.code === 200) {
         // 接单成功后，弹出确认弹窗
@@ -736,9 +799,21 @@ Page({
               // 用户点击确认，调用接单者确认接口
               await this.onReceiverConfirmAfterAccept(orderId);
             } else {
-              // 用户点击取消，取消接单，订单回到pending状态
+              // 用户点击取消，取消接单，订单恢复为待接单状态
+              console.log('【接单页面】用户点击取消，取消接单');
               await this.onCancelAcceptOrder(orderId);
             }
+          },
+          fail: (err) => {
+            // 如果弹窗操作失败，也取消接单
+            console.log('【接单页面】弹窗操作失败，取消接单:', err);
+            this.onCancelAcceptOrder(orderId).catch(error => {
+              console.error('【接单页面】取消接单异常:', error);
+              this.setData({ showDetail: false });
+              setTimeout(() => {
+                this.loadOrders();
+              }, 300);
+            });
           }
         });
       } else {
@@ -751,7 +826,7 @@ Page({
 
     } catch (error) {
       wx.hideLoading();
-      console.error('【接单页面】确认订单异常:', error);
+      console.error('【接单页面】接单异常:', error);
       wx.showToast({
         title: '接单失败',
         icon: 'none'
@@ -778,12 +853,14 @@ Page({
 
       if (res.result && res.result.code === 200) {
         wx.showToast({
-          title: '接单成功，订单进行中',
+          title: '接单成功',
           icon: 'success'
         });
         
+        // 关闭详情弹窗
         this.setData({ showDetail: false });
         
+        // 刷新订单列表，此时订单状态已变为 confirmed_by_receiver，会显示联系用户按钮
         this.loadOrders();
       } else {
         wx.showToast({
@@ -806,8 +883,20 @@ Page({
   // 取消接单（received -> pending）
   async onCancelAcceptOrder(orderId) {
     try {
+      console.log('【接单页面】开始取消接单，orderId:', orderId);
+      
+      if (!orderId) {
+        console.error('【接单页面】取消接单缺少订单ID');
+        this.setData({ showDetail: false });
+        setTimeout(() => {
+          this.loadOrders();
+        }, 300);
+        return;
+      }
+      
       wx.showLoading({ title: '取消中...' });
-
+      
+      // 调用云函数取消接单
       const res = await wx.cloud.callFunction({
         name: 'orderManage',
         data: {
@@ -820,97 +909,35 @@ Page({
 
       wx.hideLoading();
 
+      console.log('【接单页面】取消接单云函数返回:', res.result);
+
+      // 检查取消结果
       if (res.result && res.result.code === 200) {
-        wx.showToast({
-          title: '已取消接单',
-          icon: 'success'
-        });
-        
+        // 取消成功，关闭弹窗并刷新订单列表
+        console.log('【接单页面】取消接单成功，订单已重回待接单状态');
         this.setData({ showDetail: false });
-        
-        this.loadOrders();
+        // 延迟一下再刷新，确保数据库更新完成
+        setTimeout(() => {
+          this.loadOrders();
+        }, 500);
       } else {
-        wx.showToast({
-          title: res.result?.message || '取消失败',
-          icon: 'none',
-          duration: 2000
-        });
+        // 取消失败，记录日志
+        console.error('【接单页面】取消接单失败:', res.result?.message || '未知错误');
+        // 即使失败也关闭弹窗并刷新，让用户看到最新状态
+        this.setData({ showDetail: false });
+        setTimeout(() => {
+          this.loadOrders();
+        }, 500);
       }
 
     } catch (error) {
       wx.hideLoading();
+      // 异常时也关闭弹窗并刷新列表
       console.error('【接单页面】取消接单异常:', error);
-      wx.showToast({
-        title: '取消失败',
-        icon: 'none'
-      });
-    }
-  },
-
-  // 接单者完成订单（confirmed_by_receiver -> waiting_user_confirm）
-  async onCompleteOrder(e) {
-    let orderId = e.currentTarget.dataset.id;
-    
-    if (!orderId && this.data.detail && this.data.detail.id) {
-      orderId = this.data.detail.id;
-    }
-    
-    if (!orderId && this.data.detail && this.data.detail.orderNo) {
-      const order = this.data.orders.find(o => o.orderNo === this.data.detail.orderNo);
-      if (order) {
-        orderId = order.id;
-      }
-    }
-    
-    console.log('【接单页面】接单者完成订单，orderId:', orderId);
-    
-    if (!orderId) {
-      wx.showToast({
-        title: '缺少订单ID',
-        icon: 'none'
-      });
-      console.error('【接单页面】无法获取订单ID');
-      return;
-    }
-    
-    try {
-      wx.showLoading({ title: '处理中...' });
-
-      const res = await wx.cloud.callFunction({
-        name: 'orderManage',
-        data: {
-          action: 'receiverCompleteOrder',
-          data: {
-            orderId: orderId
-          }
-        }
-      });
-
-      wx.hideLoading();
-
-      if (res.result && res.result.code === 200) {
-        wx.showToast({
-          title: '完成成功，等待用户确认',
-          icon: 'success'
-        });
-        
-        this.setData({ showDetail: false });
-        
+      this.setData({ showDetail: false });
+      setTimeout(() => {
         this.loadOrders();
-      } else {
-        wx.showToast({
-          title: res.result?.message || '操作失败',
-          icon: 'none'
-        });
-      }
-
-    } catch (error) {
-      wx.hideLoading();
-      console.error('【接单页面】接单者完成订单异常:', error);
-      wx.showToast({
-        title: '操作失败',
-        icon: 'none'
-      });
+      }, 500);
     }
   },
 
@@ -997,71 +1024,7 @@ Page({
     this.setData({ showDetail: true, detail: detail });
   },
 
-  // 用户确认订单完成（waiting_user_confirm -> completed）
-  async onUserConfirmComplete(e) {
-    let orderId = e.currentTarget.dataset.id;
-    
-    if (!orderId && this.data.detail && this.data.detail.id) {
-      orderId = this.data.detail.id;
-    }
-    
-    if (!orderId && this.data.detail && this.data.detail.orderNo) {
-      const order = this.data.orders.find(o => o.orderNo === this.data.detail.orderNo);
-      if (order) {
-        orderId = order.id;
-      }
-    }
-    
-    console.log('【接单页面】用户确认订单完成，orderId:', orderId);
-    
-    if (!orderId) {
-      wx.showToast({
-        title: '缺少订单ID',
-        icon: 'none'
-      });
-      return;
-    }
-    
-    try {
-      wx.showLoading({ title: '处理中...' });
-
-      const res = await wx.cloud.callFunction({
-        name: 'orderManage',
-        data: {
-          action: 'userConfirmComplete',
-          data: {
-            orderId: orderId
-          }
-        }
-      });
-
-      wx.hideLoading();
-
-      if (res.result && res.result.code === 200) {
-        wx.showToast({
-          title: '确认完成成功',
-          icon: 'success'
-        });
-        
-        this.setData({ showDetail: false });
-        
-        this.loadOrders();
-      } else {
-        wx.showToast({
-          title: res.result?.message || '操作失败',
-          icon: 'none'
-        });
-      }
-
-    } catch (error) {
-      wx.hideLoading();
-      console.error('【接单页面】用户确认订单完成异常:', error);
-      wx.showToast({
-        title: '操作失败',
-        icon: 'none'
-      });
-    }
-  },
+  // TODO: 用户确认订单完成逻辑待实现
   
   formatDateTime(dateStr) {
     if (!dateStr) return '';
@@ -1296,6 +1259,20 @@ Page({
   onCancelOrder(){ 
     wx.showToast({ title:'已取消', icon:'none' }); 
     this.setData({ showDetail:false }); 
+  },
+
+  // 点击我的订单
+  onMyOrderTap() {
+    wx.navigateTo({
+      url: '/subpackages/order/pages/my-published-orders/index',
+      fail: (err) => {
+        console.error('跳转到我的订单页面失败:', err);
+        wx.showToast({
+          title: '跳转失败',
+          icon: 'none'
+        });
+      }
+    });
   },
 
   // 底部导航切换

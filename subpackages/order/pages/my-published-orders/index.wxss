@@ -1,0 +1,90 @@
+.page{min-height:100vh;background:#f5f5f5}
+.status-bar{width:100%}
+.nav{background:linear-gradient(135deg, #1677ff 0%, #4096ff 100%);border-bottom:1px solid #f0f0f0}
+.nav-bar{height:44px;display:flex;align-items:center;justify-content:center;padding:0 12px;position:relative}
+.back{position:absolute;left:12px;font-size:18px;color:#fff;opacity:0.9}
+.title{font-size:18px;color:#fff;font-weight:600}
+.icons{position:absolute;right:12px}
+
+.content{height:calc(100vh - 44px);padding-bottom:20px}
+
+/* 加载和空状态 */
+.loading-container, .empty-container{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:60px 20px;
+  color:#999;
+  font-size:14px;
+}
+.empty-illustration{
+  width:120px;
+  height:120px;
+  margin-bottom:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f0f0f0;
+  border-radius:12px;
+}
+.empty-icon{font-size:60px;opacity:0.5}
+.empty-text{font-size:16px;color:#999;margin-top:10px}
+.empty-desc{font-size:14px;color:#ccc;margin-top:8px}
+
+.order-list{padding:12px}
+.order-card{background:#fff;margin-bottom:12px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.04);padding:12px;position:relative}
+.order-type-tag{position:absolute;top:12px;right:12px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;z-index:1}
+.order-type-tag.gaming{background:#e6f7ff;color:#1677ff}
+.order-type-tag.reward{background:#fff7e6;color:#fa8c16}
+.order-type-tag.express{background:#f6ffed;color:#52c41a}
+.order-top{display:flex;justify-content:space-between;margin-bottom:8px;padding-right:60px;align-items:center}
+.order-no{font-size:14px;color:#666}
+.order-top-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.expired-time{display:flex;align-items:center;gap:4px}
+.expired-time-icon{font-size:12px}
+.expired-time-text{font-size:12px;color:#666}
+.status{font-size:12px;padding:2px 8px;border-radius:4px;font-weight:500}
+.status.pending{background:#fff7e6;color:#fa8c16}
+.status.received{background:#e6f7ff;color:#1677ff}
+.status.in-progress{background:#e6f7ff;color:#1677ff}
+.status.waiting-confirm{background:#f6ffed;color:#52c41a}
+.status.completed{background:#f6ffed;color:#52c41a}
+.status.cancelled{background:#f5f5f5;color:#999}
+
+/* 特殊订单信息显示 */
+.special-order-info{margin:8px 0;padding:10px;background:#f8f9fa;border-radius:6px;border-left:3px solid #1677ff}
+.special-info-item{display:flex;align-items:flex-start;margin-bottom:6px;line-height:1.5}
+.special-info-item:last-child{margin-bottom:0}
+.special-label{font-size:12px;color:#666;min-width:70px;flex-shrink:0}
+.special-value{font-size:12px;color:#333;flex:1;word-break:break-all}
+.special-value.price{color:#ff4d4f;font-weight:600}
+.special-value.code{color:#1677ff;font-weight:600;font-size:14px}
+.special-images{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.special-image{width:60px;height:60px;border-radius:6px;background:#f0f0f0}
+
+/* 接单者信息 */
+.receiver-section{margin-top:12px;padding:12px;background:#f8f9fa;border-radius:6px;border-left:3px solid #52c41a}
+.receiver-header{margin-bottom:8px}
+.receiver-title{font-size:14px;font-weight:600;color:#333}
+.receiver-info{display:flex;align-items:center;gap:12px}
+.receiver-avatar{width:40px;height:40px;border-radius:50%;border:2px solid #e0e0e0}
+.receiver-details{flex:1;display:flex;flex-direction:column;gap:4px}
+.receiver-name{font-size:14px;font-weight:500;color:#333}
+.receiver-status{font-size:12px;color:#1677ff}
+
+/* 未接单提示 */
+.no-receiver-tip{margin-top:12px;padding:12px;background:#fff7e6;border-radius:6px;text-align:center}
+.tip-text{font-size:14px;color:#fa8c16}
+
+.total-info{margin-top:12px;text-align:right;font-size:14px;font-weight:600;color:#333}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
+.btn{min-width:92px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;padding:4px 12px;font-size:14px}
+.btn.ghost{background:#fff;border:1px solid #e0e0e0;color:#333}
+.btn.success{background:#1677ff;color:#fff}
+.btn.completed{background:#52c41a;color:#fff}
+.btn.cancelled{background:#f5f5f5;color:#999;border:1px solid #e0e0e0}
+
+.safe-area-bottom{height:env(safe-area-inset-bottom)}
+
+

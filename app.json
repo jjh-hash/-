@@ -62,7 +62,8 @@
         "pages/order/index",
         "pages/order-detail/index",
         "pages/receive-order/index",
-        "pages/refund-apply/index"
+        "pages/refund-apply/index",
+        "pages/my-published-orders/index"
       ]
     },
     {
