@@ -9,15 +9,6 @@
   </view>
 
   <scroll-view scroll-y class="content">
-    <!-- 用户信息展示 -->
-    <view class="user-info-section">
-      <view class="avatar-container">
-        <image class="avatar" src="{{userInfo.avatar || '/pages/小标/默认头像.png'}}" mode="aspectFill"></image>
-      </view>
-      <view class="user-name">{{userInfo.nickname || '微信用户'}}</view>
-      <view class="user-tip">头像和名称来自微信登录信息</view>
-    </view>
-
     <!-- 联系方式编辑（选填一个即可） -->
     <view class="form-section">
       <view class="form-item">

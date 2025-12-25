@@ -46,27 +46,48 @@
 .empty-icon{font-size:60px;opacity:0.5}
 .empty-text{font-size:16px;color:#999;margin-top:10px}
 
-.order-card{background:#fff;margin:10px 12px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.04);padding:10px;position:relative}
-.order-type-tag{position:absolute;top:10px;right:10px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;z-index:1}
-/* 当弹层打开时，隐藏订单卡片上的标签，避免遮盖弹层内容 */
-.page.sheet-open .order-type-tag{display:none}
-.order-type-tag.gaming{background:#e6f7ff;color:#1677ff}
-.order-type-tag.reward{background:#fff7e6;color:#fa8c16}
-.order-type-tag.express{background:#f6ffed;color:#52c41a}
-.order-top{display:flex;justify-content:space-between;margin-bottom:6px;padding-right:60px;align-items:center}
-.order-no{font-size:14px;color:#666}
-.order-top-right{display:flex;align-items:center;gap:8px}
-.expired-time{display:flex;align-items:center;gap:4px}
-.expired-time-icon{font-size:12px}
+.order-card{background:#fff;margin:12px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:16px;position:relative;overflow:hidden}
+/* 订单头部 */
+.order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.order-header-left{display:flex;align-items:center;gap:10px;flex:1}
+.order-avatar{width:40px;height:40px;border-radius:50%;border:2px solid #f0f0f0;flex-shrink:0}
+.order-type-tag{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap}
+.order-type-tag.gaming{background:#ffebee;color:#e91e63}
+.order-type-tag.reward{background:#fff3e0;color:#ff9800}
+.order-type-tag.express{background:#e8f5e9;color:#4caf50}
+.order-header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.expired-time{display:flex;align-items:center;gap:4px;font-size:12px;color:#666}
+.expired-time-icon{font-size:14px}
 .expired-time-text{font-size:12px;color:#666}
-.desk{font-size:16px;font-weight:700;color:#333}
-.status{font-size:12px;color:#1677ff}
-.status.cancelled{color:#ef4444}
+.status-badge{padding:4px 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap}
+.status-badge.pending{background:#fff3cd;color:#856404}
+.status-badge.received{background:#d1ecf1;color:#0c5460}
+.status-badge.in-progress{background:#d1ecf1;color:#0c5460}
+.status-badge.waiting-confirm{background:#d4edda;color:#155724}
+.status-badge.completed{background:#d4edda;color:#155724}
+.status-badge.cancelled{background:#f8d7da;color:#721c24}
+/* 订单内容区域 */
+.order-content{margin-bottom:12px}
 .address-info{margin-top:6px;background:#f8f9fa;border-radius:6px;padding:8px;font-size:12px}
 .address-line{margin-bottom:4px;display:flex;align-items:flex-start}
 .address-line:last-child{margin-bottom:0}
 .address-label{color:#666;margin-right:4px;min-width:50px}
-.total-info{margin-top:6px;text-align:right;font-size:14px;font-weight:600;color:#333}
+/* 隐藏信息提示 */
+.hidden-info-tip{text-align:center;padding:16px;background:#f8f9fa;border-radius:8px;margin:8px 0}
+.hidden-tip-text{font-size:13px;color:#999;font-style:italic}
+/* 订单底部 */
+.order-footer{display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #f0f0f0;margin-top:12px}
+.reward-box{display:flex;align-items:center;gap:4px;background:#fff5f5;border:1px solid #ffccc7;border-radius:6px;padding:6px 12px}
+.reward-label{font-size:14px;color:#ff4d4f;font-weight:600}
+.reward-amount{font-size:16px;color:#ff4d4f;font-weight:700}
+.order-actions{display:flex;gap:8px;align-items:center}
+.action-btn{min-width:80px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;padding:4px 16px;font-size:13px;font-weight:500}
+.action-btn.ghost{background:#fff;border:1px solid #e0e0e0;color:#333}
+.action-btn.primary{background:#333;color:#fff}
+.action-btn.success{background:#1677ff;color:#fff}
+.action-btn.waiting{background:#faad14;color:#fff}
+.action-btn.completed{background:#52c41a;color:#fff}
+.action-btn.cancelled{background:#f5f5f5;color:#999;border:1px solid #e0e0e0}
 .spec{display:block;color:#999;font-size:12px;margin-top:2px}
 .item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f7f7f7}
 .item:last-child{border-bottom:none}
@@ -76,13 +97,7 @@
 .price{display:block;color:#999;font-size:12px;margin-top:2px}
 .qty{color:#999}
 .remark{background:#f7f7f7;color:#888;font-size:12px;border-radius:6px;padding:8px;margin-top:6px}
-.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px}
-.btn{min-width:92px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;padding:4px 12px}
-.btn.ghost{background:#fff;border:1px solid #e0e0e0;color:#333}
-.btn.primary{background:#1677ff;color:#fff}
-.btn.success{background:#1677ff;color:#fff}
-.btn.cancelled{background:#f5f5f5;color:#999;border:1px solid #e0e0e0}
-.btn-time{font-size:10px;opacity:0.8}
+.btn-time{font-size:10px;opacity:0.8;margin-top:2px}
 
 .tabbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #eee;display:flex;justify-content:space-around;padding:6px 0 env(safe-area-inset-bottom);z-index:100;height:50px}
 .t-item{display:flex;flex-direction:column;align-items:center;color:#999}
@@ -121,6 +136,7 @@
 .receiver-avatar{width:24px;height:24px;border-radius:50%;border:1px solid #e0e0e0;margin-right:8px;vertical-align:middle}
 .receiver-name{font-size:14px;color:#333;vertical-align:middle}
 .btn.completed{background:#52c41a;color:#fff}
+.btn.waiting{background:#faad14;color:#fff}
 .sheet-actions{display:flex;gap:10px;margin-top:12px}
 
 /* 特殊订单信息显示 */
@@ -152,3 +168,25 @@
 .filter-popup-btn{flex:1;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500}
 .filter-popup-btn.reset{background:#f5f5f5;color:#666}
 .filter-popup-btn.confirm{background:#1677ff;color:#fff}
+
+/* 联系信息弹窗 */
+.contact-mask{position:fixed;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,.5);opacity:0;visibility:hidden;transition:all .3s;z-index:1001}
+.contact-mask.show{opacity:1;visibility:visible}
+.contact-popup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.9);background:#fff;border-radius:16px;width:85%;max-width:400px;opacity:0;visibility:hidden;transition:all .3s;z-index:1002;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+.contact-popup.show{opacity:1;visibility:visible;transform:translate(-50%,-50%) scale(1)}
+.contact-popup-header{display:flex;justify-content:space-between;align-items:center;padding:20px 20px 16px;border-bottom:1px solid #f0f0f0}
+.contact-popup-title{font-size:18px;font-weight:600;color:#333}
+.contact-popup-close{font-size:28px;color:#999;width:32px;height:32px;display:flex;align-items:center;justify-content:center;line-height:1}
+.contact-popup-content{padding:20px}
+.contact-user-name{text-align:center;font-size:16px;font-weight:500;color:#333;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #f0f0f0}
+.contact-item{margin-bottom:20px}
+.contact-item:last-child{margin-bottom:0}
+.contact-item-label{display:flex;align-items:center;margin-bottom:12px;font-size:14px;color:#666}
+.contact-icon{font-size:16px;margin-right:6px}
+.contact-item-value{display:flex;flex-direction:column;gap:10px}
+.contact-value-text{font-size:16px;color:#333;font-weight:500;word-break:break-all;padding:12px;background:#f8f9fa;border-radius:8px}
+.contact-action-btn-group{display:flex;gap:10px}
+.contact-action-btn{flex:1;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;background:#f5f5f5;color:#333;border:1px solid #e0e0e0}
+.contact-action-btn.primary{background:#1677ff;color:#fff;border-color:#1677ff}
+.contact-action-btn:active{opacity:0.8}
+.contact-empty{text-align:center;padding:40px 20px;color:#999;font-size:14px}

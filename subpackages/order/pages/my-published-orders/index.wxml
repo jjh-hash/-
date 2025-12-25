@@ -9,6 +9,16 @@
     </view>
   </view>
 
+  <!-- 分类选择器 -->
+  <view class="tab-container">
+    <view class="tab-item {{currentTab === 'published' ? 'active' : ''}}" bindtap="onTabChange" data-tab="published">
+      <text>我的订单</text>
+    </view>
+    <view class="tab-item {{currentTab === 'received' ? 'active' : ''}}" bindtap="onTabChange" data-tab="received">
+      <text>我的接单</text>
+    </view>
+  </view>
+
   <scroll-view 
     scroll-y 
     class="content"
@@ -27,7 +37,7 @@
         <text class="empty-icon">📋</text>
       </view>
       <text class="empty-text">暂无订单</text>
-      <text class="empty-desc">您还没有发布过订单</text>
+      <text class="empty-desc">{{currentTab === 'published' ? '您还没有发布过订单' : '您还没有接取过订单'}}</text>
     </view>
     
     <!-- 订单列表 -->
@@ -42,11 +52,6 @@
           <view class="order-top">
             <text class="order-no">订单号：{{item.orderNo}}</text>
             <view class="order-top-right">
-              <!-- 截止时间显示 -->
-              <view class="expired-time" wx:if="{{item.expiredAtDisplay}}">
-                <text class="expired-time-icon">🕐</text>
-                <text class="expired-time-text">{{item.expiredAtDisplay}}</text>
-              </view>
               <text class="status {{item.statusClass}}">{{item.statusText}}</text>
             </view>
           </view>
@@ -59,7 +64,7 @@
             </view>
             <view class="special-info-item">
               <text class="special-label">时长：</text>
-              <text class="special-value">{{item.sessionDuration}}小时</text>
+              <text class="special-value">{{item.taskDuration || item.sessionDuration}}{{item.taskDurationUnit === 'minute' ? '分钟' : '小时'}}</text>
             </view>
             <view class="special-info-item" wx:if="{{item.requirements || item.selectedRequirements}}">
               <text class="special-label">要求：</text>
@@ -119,8 +124,8 @@
             </view>
           </view>
 
-          <!-- 接单者信息 -->
-          <view class="receiver-section" wx:if="{{item.receiverInfo}}">
+          <!-- 接单者信息（仅在我的订单中显示） -->
+          <view class="receiver-section" wx:if="{{item.receiverInfo && currentTab === 'published'}}">
             <view class="receiver-header">
               <text class="receiver-title">接单者信息</text>
             </view>
@@ -135,8 +140,24 @@
             </view>
           </view>
 
-          <!-- 未接单提示 -->
-          <view class="no-receiver-tip" wx:if="{{!item.receiverInfo && item.orderStatus === 'pending'}}">
+          <!-- 发布者信息（仅在我的接单中显示） -->
+          <view class="receiver-section" wx:if="{{item.userInfo && currentTab === 'received'}}">
+            <view class="receiver-header">
+              <text class="receiver-title">发布者信息</text>
+            </view>
+            <view class="receiver-info">
+              <image class="receiver-avatar" src="{{item.userInfo.avatarUrl || '/pages/小标/默认头像.png'}}" mode="aspectFill"></image>
+              <view class="receiver-details">
+                <text class="receiver-name">{{item.userInfo.nickname || '用户'}}</text>
+                <text class="receiver-status" wx:if="{{item.orderStatus === 'received'}}">已接单，等待确认</text>
+                <text class="receiver-status" wx:elif="{{item.orderStatus === 'confirmed_by_receiver'}}">进行中</text>
+                <text class="receiver-status" wx:elif="{{item.orderStatus === 'waiting_user_confirm'}}">等待发布者确认完成</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 未接单提示（仅在我的订单中显示） -->
+          <view class="no-receiver-tip" wx:if="{{!item.receiverInfo && item.orderStatus === 'pending' && currentTab === 'published'}}">
             <text class="tip-text">⏰ 等待接单中...</text>
           </view>
 
@@ -145,10 +166,12 @@
           </view>
           
           <view class="actions">
-            <!-- 联系接单者 -->
-            <view class="btn ghost" bindtap="onContactReceiver" data-id="{{item.id}}" wx:if="{{item.receiverInfo}}" catchtap="stopPropagation">联系接单者</view>
-            <!-- 等待用户确认：下单者可以确认完成 -->
-            <view class="btn success" bindtap="onUserConfirmComplete" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'waiting_user_confirm'}}" catchtap="stopPropagation">确认完成</view>
+            <!-- 我的订单：联系接单者 -->
+            <view class="btn ghost contact-btn" bindtap="onContactReceiver" data-id="{{item.id}}" wx:if="{{currentTab === 'published' && item.receiverInfo && item.orderStatus !== 'pending' && item.orderStatus !== 'cancelled'}}">联系接单者</view>
+            <!-- 我的订单：等待用户确认：下单者可以确认完成 -->
+            <view class="btn success" bindtap="onUserConfirmComplete" data-id="{{item.id}}" wx:if="{{currentTab === 'published' && item.orderStatus === 'waiting_user_confirm'}}">确认完成</view>
+            <!-- 我的接单：联系发布者 -->
+            <view class="btn ghost contact-btn" bindtap="onContactPublisher" data-id="{{item.id}}" wx:if="{{currentTab === 'received' && item.userInfo && item.orderStatus !== 'pending' && item.orderStatus !== 'cancelled'}}">联系发布者</view>
             <!-- 已完成 -->
             <view class="btn completed" wx:if="{{item.orderStatus === 'completed'}}">已完成</view>
             <!-- 已取消 -->
@@ -161,5 +184,9 @@
     <view class="safe-area-bottom"></view>
   </scroll-view>
 </view>
+
+
+
+
 
 

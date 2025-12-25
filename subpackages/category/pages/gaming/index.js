@@ -33,8 +33,10 @@ Page({
       { id: 7, name: '性别不限', active: false },
       { id: 8, name: '立刻上线', active: false }
     ],
+    taskDuration: 1, // 任务大约需要的时间，默认1小时
+    taskDurationUnit: 'hour', // 时长单位：'minute' 或 'hour'
     orderDuration: 30, // 订单在任务大厅存在时长（分钟），默认30分钟
-    orderDurationUnit: 'minute', // 时长单位：'minute' 或 'hour'
+    orderDurationUnit: 'minute', // 订单存在时长单位：'minute' 或 'hour'
     orderExpiredAtDisplay: '' // 订单截止时间显示文本（自动计算）
   },
 
@@ -43,6 +45,8 @@ Page({
     this.loadContactInfo();
     // 初始化总价
     this.updateTotalPrice();
+    // 计算并显示截止时间
+    this.updateExpiredAtDisplay();
   },
 
   onShow() {
@@ -85,8 +89,20 @@ Page({
 
   // 选择联系信息
   onSelectAddress() {
+    console.log('【游戏开黑页面】点击联系信息');
     wx.navigateTo({
-      url: '/subpackages/common/pages/contact-info/index?from=gaming'
+      url: '/subpackages/common/pages/contact-info/index?from=gaming',
+      success: (res) => {
+        console.log('【游戏开黑页面】跳转成功', res);
+      },
+      fail: (err) => {
+        console.error('【游戏开黑页面】跳转失败', err);
+        wx.showToast({
+          title: '跳转失败，请重试',
+          icon: 'none',
+          duration: 2000
+        });
+      }
     });
   },
 
@@ -178,6 +194,131 @@ Page({
     this.updateTotalPrice();
   },
 
+  // 输入任务时长
+  onTaskDurationInput(e) {
+    const value = e.detail.value;
+    // 只允许输入数字
+    const numValue = parseFloat(value) || 0;
+    if (numValue < 0.1) {
+      wx.showToast({
+        title: '时长至少0.1',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    if (this.data.taskDurationUnit === 'hour' && numValue > 168) { // 最多7天（168小时）
+      wx.showToast({
+        title: '时长不能超过7天',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    if (this.data.taskDurationUnit === 'minute' && numValue > 10080) { // 最多7天（10080分钟）
+      wx.showToast({
+        title: '时长不能超过7天',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    this.setData({
+      taskDuration: numValue
+    });
+  },
+
+  // 选择任务时长单位
+  onTaskDurationUnitChange(e) {
+    const unit = e.detail.value === '0' ? 'minute' : 'hour';
+    this.setData({
+      taskDurationUnit: unit
+    });
+  },
+
+  // 输入订单存在时长
+  onOrderDurationInput(e) {
+    const value = e.detail.value;
+    // 只允许输入数字
+    const numValue = parseInt(value) || 0;
+    if (numValue < 1) {
+      wx.showToast({
+        title: '时长至少1分钟',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    if (numValue > 10080) { // 最多7天（10080分钟）
+      wx.showToast({
+        title: '时长不能超过7天',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    this.setData({
+      orderDuration: numValue
+    });
+    // 更新截止时间显示
+    this.updateExpiredAtDisplay();
+  },
+
+  // 选择订单存在时长单位
+  onOrderDurationUnitChange(e) {
+    const unit = e.detail.value === '0' ? 'minute' : 'hour';
+    this.setData({
+      orderDurationUnit: unit
+    });
+    // 更新截止时间显示
+    this.updateExpiredAtDisplay();
+  },
+
+  // 更新截止时间显示（使用中国时区 UTC+8）
+  updateExpiredAtDisplay() {
+    const duration = this.data.orderDuration;
+    const unit = this.data.orderDurationUnit;
+    
+    // 转换为分钟
+    let totalMinutes = duration;
+    if (unit === 'hour') {
+      totalMinutes = duration * 60;
+    }
+    
+    // 获取当前时间（UTC）
+    const now = new Date();
+    // 计算中国时区偏移（UTC+8，即比UTC快8小时）
+    const chinaTimeOffset = 8 * 60 * 60 * 1000;
+    // 获取当前中国时区时间
+    const nowChinaTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) + chinaTimeOffset);
+    
+    // 计算截止时间（中国时区）
+    const expiredAt = new Date(nowChinaTime.getTime() + totalMinutes * 60 * 1000);
+    
+    // 格式化显示（使用中国时区）
+    const month = expiredAt.getUTCMonth() + 1;
+    const date = expiredAt.getUTCDate();
+    const hoursStr = String(expiredAt.getUTCHours()).padStart(2, '0');
+    const minutesStr = String(expiredAt.getUTCMinutes()).padStart(2, '0');
+    
+    const days = Math.floor(totalMinutes / (24 * 60));
+    const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+    const mins = totalMinutes % 60;
+    
+    let displayText = '';
+    if (days > 0) {
+      displayText = `${month}/${date} ${hoursStr}:${minutesStr}截止`;
+    } else if (hours > 0) {
+      displayText = `今天 ${hoursStr}:${minutesStr}截止（${hours}小时${mins > 0 ? mins + '分钟' : ''}后）`;
+    } else {
+      displayText = `今天 ${hoursStr}:${minutesStr}截止（${mins}分钟后）`;
+    }
+    
+    this.setData({
+      orderExpiredAtDisplay: displayText
+    });
+  },
+
   // 更新总价显示（已取消基础费用）
   updateTotalPrice() {
     const totalPrice = this.calculateTotalPrice();
@@ -215,8 +356,40 @@ Page({
       missingFields.push('开黑要求');
     }
 
+    if (!this.data.taskDuration || this.data.taskDuration <= 0) {
+      missingFields.push('任务时长');
+    }
+
+    // 验证订单存在时长
+    if (!this.data.orderDuration || this.data.orderDuration < 1) {
+      missingFields.push('订单存在时长');
+    }
+
+    // 验证联系信息：至少需要填写一种联系方式（电话、微信、QQ）
     if (!this.data.address) {
       missingFields.push('联系信息');
+    } else {
+      // 检查是否至少填写了一种联系方式
+      const hasPhone = this.data.address.phone && this.data.address.phone.trim() !== '';
+      const hasWechat = this.data.address.wechat && this.data.address.wechat.trim() !== '';
+      const hasQQ = this.data.address.qq && this.data.address.qq.trim() !== '';
+      
+      if (!hasPhone && !hasWechat && !hasQQ) {
+        // 如果没有填写任何联系方式，单独提示
+        wx.showModal({
+          title: '提示',
+          content: '请填写联系方式（电话号码、微信号或QQ号至少填写一种）',
+          showCancel: false,
+          confirmText: '去填写',
+          success: (res) => {
+            if (res.confirm) {
+              // 跳转到联系信息设置页面
+              this.onSelectAddress();
+            }
+          }
+        });
+        return;
+      }
     }
 
     // 如果有缺失项，统一提示
@@ -246,8 +419,10 @@ Page({
         pricePerHour: this.data.pricePerHour,
         address: this.data.address,
         totalPrice: totalPrice,
+        taskDuration: this.data.taskDuration, // 任务大约需要的时间
+        taskDurationUnit: this.data.taskDurationUnit, // 任务时长单位
         orderDuration: this.data.orderDuration, // 订单在任务大厅存在时长（分钟）
-        orderDurationUnit: this.data.orderDurationUnit // 时长单位
+        orderDurationUnit: this.data.orderDurationUnit // 订单存在时长单位
       };
 
       console.log('提交游戏陪玩订单:', orderData);
@@ -375,9 +550,10 @@ Page({
     const now = new Date();
     const diff = expiredAt.getTime() - now.getTime();
     
-    if (diff < 0) {
-      return '已过期';
-    }
+    // 不再显示已过期，订单不会过期
+    // if (diff < 0) {
+    //   return '已过期';
+    // }
     
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const month = expiredAt.getMonth() + 1;

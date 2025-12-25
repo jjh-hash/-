@@ -186,6 +186,26 @@
   color: #999;
 }
 
+/* 联系方式 */
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.contact-type-picker {
+  flex-shrink: 0;
+}
+
+.contact-picker {
+  width: 100px;
+  min-width: 100px;
+}
+
+.contact-input {
+  flex: 1;
+}
+
 .safe-area-bottom {
   height: env(safe-area-inset-bottom);
 }

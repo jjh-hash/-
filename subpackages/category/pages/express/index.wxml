@@ -54,6 +54,16 @@
         <text class="section-title">{{deliveryLocation || '送到哪里'}}</text>
         <view class="arrow" bindtap="onDeliveryLocationTap">></view>
       </view>
+      <!-- 寝室号输入（仅当选择宿舍楼时显示） -->
+      <view class="dormitory-input-wrapper" wx:if="{{deliveryLocation === '宿舍楼'}}">
+        <input 
+          class="dormitory-input" 
+          placeholder="请输入你的寝室号" 
+          placeholder-class="dormitory-placeholder"
+          value="{{dormitoryNumber}}"
+          bindinput="onDormitoryNumberInput"
+        />
+      </view>
     </view>
 
     <!-- 订单时间设置 -->

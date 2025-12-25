@@ -10,6 +10,10 @@ Page({
     categoryIndex: 0,
     categories: ['数码电子', '服装配饰', '图书文具', '生活用品', '运动器材', '其他'],
     location: '',
+    contactType: '微信号',
+    contactTypeIndex: 0,
+    contactTypes: ['微信号', '手机号', 'QQ号'],
+    contactInfo: '',
     images: [],
     maxImages: 9,
     uploading: false
@@ -75,6 +79,23 @@ Page({
   onLocationInput(e) {
     this.setData({
       location: e.detail.value
+    });
+  },
+
+  // 联系方式类型选择
+  onContactTypeChange(e) {
+    const index = e.detail.value;
+    const contactTypes = ['微信号', '手机号', 'QQ号'];
+    this.setData({
+      contactTypeIndex: index,
+      contactType: contactTypes[index]
+    });
+  },
+
+  // 联系方式输入
+  onContactInfoInput(e) {
+    this.setData({
+      contactInfo: e.detail.value
     });
   },
 
@@ -217,22 +238,29 @@ Page({
       const userInfo = wx.getStorageSync('userInfo') || {};
       const openid = userInfo.openid || '';
 
+      // 准备发布数据
+      const publishData = {
+        title: this.data.title.trim(),
+        description: this.data.description.trim(),
+        price: parseFloat(this.data.price),
+        originalPrice: this.data.originalPrice ? parseFloat(this.data.originalPrice) : null,
+        category: this.data.category,
+        location: this.data.location.trim() || '未填写',
+        contactType: this.data.contactType || '微信号',
+        contactInfo: this.data.contactInfo.trim() || '',
+        images: this.data.images,
+        sellerId: openid,
+        sellerName: userInfo.nickName || '匿名用户',
+        sellerAvatar: userInfo.avatarUrl || ''
+      };
+
+      console.log('【发布闲置商品】提交数据:', publishData);
+
       const res = await wx.cloud.callFunction({
         name: 'idleProductManage',
         data: {
           action: 'publish',
-          data: {
-            title: this.data.title.trim(),
-            description: this.data.description.trim(),
-            price: parseFloat(this.data.price),
-            originalPrice: this.data.originalPrice ? parseFloat(this.data.originalPrice) : null,
-            category: this.data.category,
-            location: this.data.location.trim() || '未填写',
-            images: this.data.images,
-            sellerId: openid,
-            sellerName: userInfo.nickName || '匿名用户',
-            sellerAvatar: userInfo.avatarUrl || ''
-          }
+          data: publishData
         }
       });
 

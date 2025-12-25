@@ -110,9 +110,11 @@ Page({
       wx.showLoading({ title: '保存中...' });
 
       // 调用云函数更新用户信息
+      // 需要传递昵称（从用户信息中获取），因为云函数要求昵称为必填项
       const res = await wx.cloud.callFunction({
         name: 'updateUserInfo',
         data: {
+          nickname: userInfo.nickname || '微信用户', // 保持原有昵称不变
           phone: contactInfo.phone || '',
           wechat: contactInfo.wechat || '',
           qq: contactInfo.qq || ''
@@ -142,14 +144,27 @@ Page({
           const pages = getCurrentPages();
           const prevPage = pages[pages.length - 2];
           if (prevPage) {
-            // 将联系信息传递给上一页
-            prevPage.setData({
-              contactInfo: {
-                ...contactInfo,
-                name: updatedUserInfo.nickname || '微信用户',
-                avatar: updatedUserInfo.avatar || ''
-              }
-            });
+            // 构建联系信息对象（兼容地址格式，用于订单创建）
+            const addressInfo = {
+              name: updatedUserInfo.nickname || '微信用户',
+              phone: contactInfo.phone || '',
+              wechat: contactInfo.wechat || '',
+              qq: contactInfo.qq || '',
+              avatar: updatedUserInfo.avatar || '',
+              // 为了兼容订单创建，保留地址格式字段
+              buildingName: '',
+              houseNumber: '',
+              addressDetail: '',
+              address: ''
+            };
+            
+            // 将联系信息传递给上一页（兼容不同的字段名）
+            if (prevPage.setData) {
+              prevPage.setData({
+                address: addressInfo,
+                contactInfo: addressInfo
+              });
+            }
           }
           wx.navigateBack();
         }, 1500);

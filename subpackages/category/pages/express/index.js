@@ -9,6 +9,7 @@ Page({
     maxImages: 3,
     pickupCode: '',
     address: null, // 选中的地址信息
+    dormitoryNumber: '', // 寝室号（当送达位置为宿舍楼时使用）
       packageSizes: [
       {
         id: 1,
@@ -49,83 +50,6 @@ Page({
     this.loadContactInfo();
     // 计算并显示截止时间
     this.updateExpiredAtDisplay();
-  },
-
-  // 输入订单存在时长
-  onOrderDurationInput(e) {
-    const value = e.detail.value;
-    // 只允许输入数字
-    const numValue = parseInt(value) || 0;
-    if (numValue < 1) {
-      wx.showToast({
-        title: '时长至少1分钟',
-        icon: 'none',
-        duration: 2000
-      });
-      return;
-    }
-    if (numValue > 10080) { // 最多7天（10080分钟）
-      wx.showToast({
-        title: '时长不能超过7天',
-        icon: 'none',
-        duration: 2000
-      });
-      return;
-    }
-    this.setData({
-      orderDuration: numValue
-    });
-    // 更新截止时间显示
-    this.updateExpiredAtDisplay();
-  },
-
-  // 选择时长单位
-  onOrderDurationUnitChange(e) {
-    const unit = e.detail.value === '0' ? 'minute' : 'hour';
-    this.setData({
-      orderDurationUnit: unit
-    });
-    // 更新截止时间显示
-    this.updateExpiredAtDisplay();
-  },
-
-  // 更新截止时间显示
-  updateExpiredAtDisplay() {
-    const duration = this.data.orderDuration;
-    const unit = this.data.orderDurationUnit;
-    
-    // 转换为分钟
-    let totalMinutes = duration;
-    if (unit === 'hour') {
-      totalMinutes = duration * 60;
-    }
-    
-    // 计算截止时间
-    const now = new Date();
-    const expiredAt = new Date(now.getTime() + totalMinutes * 60 * 1000);
-    
-    // 格式化显示
-    const month = expiredAt.getMonth() + 1;
-    const date = expiredAt.getDate();
-    const hoursStr = String(expiredAt.getHours()).padStart(2, '0');
-    const minutesStr = String(expiredAt.getMinutes()).padStart(2, '0');
-    
-    const days = Math.floor(totalMinutes / (24 * 60));
-    const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
-    const mins = totalMinutes % 60;
-    
-    let displayText = '';
-    if (days > 0) {
-      displayText = `${month}/${date} ${hoursStr}:${minutesStr}截止`;
-    } else if (hours > 0) {
-      displayText = `今天 ${hoursStr}:${minutesStr}截止（${hours}小时${mins > 0 ? mins + '分钟' : ''}后）`;
-    } else {
-      displayText = `今天 ${hoursStr}:${minutesStr}截止（${mins}分钟后）`;
-    }
-    
-    this.setData({
-      orderExpiredAtDisplay: displayText
-    });
   },
 
   onShow() {
@@ -191,10 +115,103 @@ Page({
       itemList: ['宿舍楼', '教学楼', '图书馆', '食堂', '其他位置'],
       success: (res) => {
         const locations = ['宿舍楼', '教学楼', '图书馆', '食堂', '其他位置'];
+        const selectedLocation = locations[res.tapIndex];
+        // 如果选择的是宿舍楼，保留寝室号；如果选择其他位置，清空寝室号
         this.setData({
-          deliveryLocation: locations[res.tapIndex]
+          deliveryLocation: selectedLocation,
+          dormitoryNumber: selectedLocation === '宿舍楼' ? this.data.dormitoryNumber : ''
         });
       }
+    });
+  },
+
+  // 输入寝室号
+  onDormitoryNumberInput(e) {
+    this.setData({
+      dormitoryNumber: e.detail.value
+    });
+  },
+
+  // 输入订单存在时长
+  onOrderDurationInput(e) {
+    const value = e.detail.value;
+    // 只允许输入数字
+    const numValue = parseInt(value) || 0;
+    if (numValue < 1) {
+      wx.showToast({
+        title: '时长至少1分钟',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    if (numValue > 10080) { // 最多7天（10080分钟）
+      wx.showToast({
+        title: '时长不能超过7天',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    this.setData({
+      orderDuration: numValue
+    });
+    // 更新截止时间显示
+    this.updateExpiredAtDisplay();
+  },
+
+  // 选择时长单位
+  onOrderDurationUnitChange(e) {
+    const unit = e.detail.value === '0' ? 'minute' : 'hour';
+    this.setData({
+      orderDurationUnit: unit
+    });
+    // 更新截止时间显示
+    this.updateExpiredAtDisplay();
+  },
+
+  // 更新截止时间显示（使用中国时区 UTC+8）
+  updateExpiredAtDisplay() {
+    const duration = this.data.orderDuration;
+    const unit = this.data.orderDurationUnit;
+    
+    // 转换为分钟
+    let totalMinutes = duration;
+    if (unit === 'hour') {
+      totalMinutes = duration * 60;
+    }
+    
+    // 获取当前时间（UTC）
+    const now = new Date();
+    // 计算中国时区偏移（UTC+8，即比UTC快8小时）
+    const chinaTimeOffset = 8 * 60 * 60 * 1000;
+    // 获取当前中国时区时间
+    const nowChinaTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) + chinaTimeOffset);
+    
+    // 计算截止时间（中国时区）
+    const expiredAt = new Date(nowChinaTime.getTime() + totalMinutes * 60 * 1000);
+    
+    // 格式化显示（使用中国时区）
+    const month = expiredAt.getUTCMonth() + 1;
+    const date = expiredAt.getUTCDate();
+    const hoursStr = String(expiredAt.getUTCHours()).padStart(2, '0');
+    const minutesStr = String(expiredAt.getUTCMinutes()).padStart(2, '0');
+    
+    const days = Math.floor(totalMinutes / (24 * 60));
+    const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+    const mins = totalMinutes % 60;
+    
+    let displayText = '';
+    if (days > 0) {
+      displayText = `${month}/${date} ${hoursStr}:${minutesStr}截止`;
+    } else if (hours > 0) {
+      displayText = `今天 ${hoursStr}:${minutesStr}截止（${hours}小时${mins > 0 ? mins + '分钟' : ''}后）`;
+    } else {
+      displayText = `今天 ${hoursStr}:${minutesStr}截止（${mins}分钟后）`;
+    }
+    
+    this.setData({
+      orderExpiredAtDisplay: displayText
     });
   },
 
@@ -369,6 +386,11 @@ Page({
       missingFields.push('送达位置');
     }
 
+    // 如果选择了宿舍楼，必须填写寝室号
+    if (this.data.deliveryLocation === '宿舍楼' && (!this.data.dormitoryNumber || !this.data.dormitoryNumber.trim())) {
+      missingFields.push('寝室号');
+    }
+
     const hasSelectedItems = this.data.packageSizes.some(item => item.selected);
     if (!hasSelectedItems) {
       missingFields.push('包裹类型');
@@ -417,6 +439,7 @@ Page({
         orderType: 'express', // 订单类型：代拿快递
         pickupLocation: this.data.pickupLocation,
         deliveryLocation: this.data.deliveryLocation,
+        dormitoryNumber: this.data.deliveryLocation === '宿舍楼' ? this.data.dormitoryNumber.trim() : '', // 寝室号（仅当送达位置为宿舍楼时）
         packageSizes: selectedPackages.map(pkg => ({
           id: pkg.id,
           name: pkg.name,

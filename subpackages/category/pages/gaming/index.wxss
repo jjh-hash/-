@@ -390,7 +390,22 @@
 
 /* 地址选择样式 */
 .address-icon {
-  background: #4a90e2;
+  background: transparent;
+}
+
+.section-icon-img {
+  width: 24px;
+  height: 24px;
+}
+
+/* 联系信息区域可点击 */
+.contact-section {
+  cursor: pointer;
+  position: relative;
+}
+
+.contact-section:active {
+  opacity: 0.7;
 }
 
 .section-content {

@@ -111,6 +111,33 @@
       />
     </view>
 
+    <!-- 联系方式 -->
+    <view class="section">
+      <view class="section-title">联系方式</view>
+      <view class="contact-row">
+        <picker 
+          bindchange="onContactTypeChange" 
+          value="{{contactTypeIndex}}" 
+          range="{{contactTypes}}"
+          class="contact-type-picker"
+        >
+          <view class="picker contact-picker">
+            <text class="picker-text">
+              {{contactTypes[contactTypeIndex]}}
+            </text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+        <input 
+          class="input contact-input" 
+          placeholder="请输入{{contactTypes[contactTypeIndex]}}"
+          value="{{contactInfo}}"
+          bindinput="onContactInfoInput"
+        />
+      </view>
+      <view class="tip">方便买家联系您，建议填写真实联系方式</view>
+    </view>
+
     <view class="safe-area-bottom"></view>
   </scroll-view>
 

@@ -162,24 +162,32 @@
  <block wx:elif="{{!loading && orders.length > 0}}">
       <block wx:for="{{orders}}" wx:key="id">
         <view class="order-card" bindtap="onOpenDetail" data-id="{{item.id}}">
-          <!-- 订单类型标签 -->
-          <view class="order-type-tag {{item.orderType}}">
-            <text>{{item.orderTypeText}}</text>
-          </view>
-          
-          <view class="order-top">
-            <text class="order-no">订单号：{{item.orderNo}}</text>
-            <view class="order-top-right">
-              <!-- 截止时间显示 -->
+          <!-- 订单头部：头像、类型、截止时间、状态 -->
+          <view class="order-header">
+            <view class="order-header-left">
+              <!-- 用户头像 -->
+              <image class="order-avatar" src="{{item.userInfo && item.userInfo.avatarUrl ? item.userInfo.avatarUrl : (item.address && item.address.avatar ? item.address.avatar : '/pages/小标/默认头像.png')}}" mode="aspectFill"></image>
+              <!-- 订单类型标签 -->
+              <view class="order-type-tag {{item.orderType}}">
+                <text>{{item.orderTypeText}}</text>
+              </view>
+            </view>
+            <view class="order-header-right">
+              <!-- 截止时间 -->
               <view class="expired-time" wx:if="{{item.expiredAtDisplay}}">
-                <text class="expired-time-icon">🕐</text>
+                <text class="expired-time-icon">⏰</text>
                 <text class="expired-time-text">{{item.expiredAtDisplay}}</text>
               </view>
-              <text class="status {{item.statusClass}}">{{item.statusText}}</text>
+              <!-- 订单状态标签 -->
+              <view class="status-badge {{item.statusClass}}">
+                <text>{{item.statusText}}</text>
+              </view>
             </view>
           </view>
-
-          <!-- 游戏陪玩订单特殊显示 -->
+          
+          <!-- 订单内容区域 -->
+          <view class="order-content">
+            <!-- 游戏陪玩订单特殊显示 -->
           <view wx:if="{{item.orderType === 'gaming'}}" class="special-order-info">
             <view class="special-info-item">
               <text class="special-label">游戏类型：</text>
@@ -187,7 +195,7 @@
             </view>
             <view class="special-info-item">
               <text class="special-label">时长：</text>
-              <text class="special-value">{{item.sessionDuration}}小时</text>
+              <text class="special-value">{{item.taskDuration || item.sessionDuration}}{{item.taskDurationUnit === 'minute' ? '分钟' : '小时'}}</text>
             </view>
             <view class="special-info-item" wx:if="{{item.requirements || item.selectedRequirements}}">
               <text class="special-label">要求：</text>
@@ -224,27 +232,34 @@
 
           <!-- 代拿快递订单特殊显示 -->
           <view wx:elif="{{item.orderType === 'express'}}" class="special-order-info">
-            <view class="special-info-item" wx:if="{{item.pickupLocation}}">
-              <text class="special-label">取件位置：</text>
-              <text class="special-value">{{item.pickupLocation}}</text>
+            <!-- 未接单前显示隐藏提示 -->
+            <view wx:if="{{item.orderStatus === 'pending'}}" class="hidden-info-tip">
+              <text class="hidden-tip-text">[相关信息已隐藏]</text>
             </view>
-            <view class="special-info-item" wx:if="{{item.deliveryLocation}}">
-              <text class="special-label">送达位置：</text>
-              <text class="special-value">{{item.deliveryLocation}}</text>
-            </view>
-            <view class="special-info-item" wx:if="{{item.pickupCode}}">
-              <text class="special-label">取件码：</text>
-              <text class="special-value code">{{item.pickupCode}}</text>
-            </view>
-            <view class="special-info-item" wx:if="{{item.packageSizes && item.packageSizes.length > 0}}">
-              <text class="special-label">包裹信息：</text>
-              <text class="special-value">
-                <text wx:for="{{item.packageSizes}}" wx:key="id" wx:for-item="pkg" wx:for-index="pkgIndex">{{pkg.name}}{{pkg.description ? '(' + pkg.description + ')' : ''}} x{{pkg.quantity}}<text wx:if="{{pkgIndex < item.packageSizes.length - 1}}">、</text></text>
-              </text>
-            </view>
-            <view class="special-images" wx:if="{{item.images && item.images.length > 0}}">
-              <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="special-image" src="{{img}}" mode="aspectFill" />
-            </view>
+            <!-- 接单后显示详细信息 -->
+            <block wx:else>
+              <view class="special-info-item" wx:if="{{item.pickupLocation}}">
+                <text class="special-label">取件位置：</text>
+                <text class="special-value">{{item.pickupLocation}}</text>
+              </view>
+              <view class="special-info-item" wx:if="{{item.deliveryLocation}}">
+                <text class="special-label">送达位置：</text>
+                <text class="special-value">{{item.deliveryLocation}}</text>
+              </view>
+              <view class="special-info-item" wx:if="{{item.pickupCode}}">
+                <text class="special-label">取件码：</text>
+                <text class="special-value code">{{item.pickupCode}}</text>
+              </view>
+              <view class="special-info-item" wx:if="{{item.packageSizes && item.packageSizes.length > 0}}">
+                <text class="special-label">包裹信息：</text>
+                <text class="special-value">
+                  <text wx:for="{{item.packageSizes}}" wx:key="id" wx:for-item="pkg" wx:for-index="pkgIndex">{{pkg.name}}{{pkg.description ? '(' + pkg.description + ')' : ''}} x{{pkg.quantity}}<text wx:if="{{pkgIndex < item.packageSizes.length - 1}}">、</text></text>
+                </text>
+              </view>
+              <view class="special-images" wx:if="{{item.images && item.images.length > 0}}">
+                <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="special-image" src="{{img}}" mode="aspectFill" />
+              </view>
+            </block>
           </view>
 
           <!-- 普通订单显示商品列表 -->
@@ -264,8 +279,8 @@
 
           <view class="remark" wx:if="{{item.remark}}">备注：{{item.remark}}</view>
           
-          <!-- 地址信息（游戏陪玩订单不显示地址，且未接单前不显示联系人和电话） -->
-          <view class="address-info" wx:if="{{item.address && item.orderType !== 'gaming'}}">
+          <!-- 地址信息（游戏陪玩订单不显示地址，代拿快递订单未接单前不显示，且未接单前不显示联系人和电话） -->
+          <view class="address-info" wx:if="{{item.address && item.orderType !== 'gaming' && !(item.orderType === 'express' && item.orderStatus === 'pending')}}">
             <view class="address-line">
               <text class="address-label">联系人：</text>
               <text>{{item.address.name}}</text>
@@ -300,8 +315,8 @@
             </view>
           </view>
 
-          <!-- 用户信息（无店铺订单，非游戏陪玩） -->
-          <view class="address-info" wx:if="{{!item.address && item.userInfo && item.orderType !== 'gaming'}}">
+          <!-- 用户信息（无店铺订单，非游戏陪玩，代拿快递订单未接单前不显示） -->
+          <view class="address-info" wx:if="{{!item.address && item.userInfo && item.orderType !== 'gaming' && !(item.orderType === 'express' && item.orderStatus === 'pending')}}">
             <view class="address-line">
               <text class="address-label">用户：</text>
               <text>{{item.userInfo.nickname || item.userInfo.userName || '用户'}}</text>
@@ -311,22 +326,31 @@
               <text>{{item.userInfo.phone}}</text>
             </view>
           </view>
-
-          <view class="total-info">
-            <text>合计：¥{{item.amountTotal}}</text>
           </view>
-          <view class="actions">
-            <!-- 接单后才能联系用户 -->
-            <view class="btn ghost" bindtap="onContactUser" data-id="{{item.id}}" wx:if="{{item.orderStatus !== 'pending' && item.orderStatus !== 'cancelled'}}" catchtap="stopPropagation">联系用户</view>
-            <!-- 待接单：只有别人发的订单才显示接单按钮，不能接自己的订单 -->
-            <view class="btn primary" bindtap="onConfirmOrder" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'pending' && item.userOpenid && item.userOpenid !== currentUserOpenid && currentUserOpenid}}" catchtap="stopPropagation">
-              <text>接单</text>
-              <text class="btn-time" wx:if="{{currentTime}}">{{currentTime}}</text>
+          
+          <!-- 订单底部：赏金和接单按钮 -->
+          <view class="order-footer">
+            <view class="reward-box">
+              <text class="reward-label">赏</text>
+              <text class="reward-amount">¥{{item.bounty || item.amountTotal}}</text>
             </view>
-            <!-- 已完成 -->
-            <view class="btn completed" wx:if="{{item.orderStatus === 'completed'}}">已完成</view>
-            <!-- 已取消 -->
-            <view class="btn cancelled" wx:if="{{item.orderStatus === 'cancelled'}}">订单已取消</view>
+            <view class="order-actions">
+              <!-- 接单后才能联系用户 -->
+              <view class="action-btn ghost" bindtap="onContactUser" data-id="{{item.id}}" wx:if="{{item.orderStatus !== 'pending' && item.orderStatus !== 'cancelled'}}" catchtap="stopPropagation">联系用户</view>
+              <!-- 接单者完成订单按钮：接单后且订单进行中时显示 -->
+              <view class="action-btn success" bindtap="onCompleteOrder" data-id="{{item.id}}" wx:if="{{(item.orderStatus === 'confirmed_by_receiver' || item.orderStatus === 'in_progress') && item.receiverOpenid === currentUserOpenid && currentUserOpenid}}" catchtap="stopPropagation">完成订单</view>
+              <!-- 待接单：只有别人发的订单才显示接单按钮，不能接自己的订单 -->
+              <view class="action-btn primary" bindtap="onConfirmOrder" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'pending' && item.userOpenid && item.userOpenid !== currentUserOpenid && currentUserOpenid}}" catchtap="stopPropagation">
+                <text>接单</text>
+                <text class="btn-time" wx:if="{{currentTime}}">{{currentTime}}</text>
+              </view>
+              <!-- 等待用户确认 -->
+              <view class="action-btn waiting" wx:if="{{item.orderStatus === 'waiting_user_confirm'}}">等待确认</view>
+              <!-- 已完成 -->
+              <view class="action-btn completed" wx:if="{{item.orderStatus === 'completed'}}">已完成</view>
+              <!-- 已取消 -->
+              <view class="action-btn cancelled" wx:if="{{item.orderStatus === 'cancelled'}}">订单已取消</view>
+            </view>
           </view>
         </view>
       </block>
@@ -371,8 +395,8 @@
           <text class="receiver-name">{{detail.receiverInfo.nickname || '用户'}}</text>
         </view>
       </view>
-      <!-- 配送信息（游戏陪玩订单不显示地址，且未接单前不显示联系人和电话） -->
-      <view class="i-row address-row" wx:if="{{(detail.address || detail.userInfo) && detail.orderType !== 'gaming'}}" catchtap="onAddressTap">
+      <!-- 配送信息（游戏陪玩订单不显示地址，代拿快递订单未接单前不显示，且未接单前不显示联系人和电话） -->
+      <view class="i-row address-row" wx:if="{{(detail.address || detail.userInfo) && detail.orderType !== 'gaming' && !(detail.orderType === 'express' && detail.orderStatus === 'pending')}}" catchtap="onAddressTap">
         <text class="i-label">配送信息</text>
         <text class="i-value address-clickable" wx:if="{{detail.address}}">
           {{detail.address.name || '用户'}} {{detail.address.phone || ''}}\n{{detail.address.fullAddress || (detail.address.buildingName || '') + (detail.address.houseNumber || '') + (detail.address.addressDetail || detail.address.address || '未设置地址')}}
@@ -393,14 +417,6 @@
       </view>
       <view class="i-row"><text class="i-label">订单号码</text><text class="i-value">{{detail.orderNo}}</text></view>
       <view class="i-row"><text class="i-label">下单时间</text><text class="i-value">{{detail.createdAt}}</text></view>
-      <view class="i-row" wx:if="{{detail.expiredAt && detail.orderStatus !== 'completed' && detail.orderStatus !== 'cancelled'}}">
-        <text class="i-label">订单超时</text>
-        <text class="i-value {{detail.expiredMinutes < 0 ? 'expired' : ''}}">
-          <text wx:if="{{detail.expiredMinutes === null}}">{{detail.expiredAt}}</text>
-          <text wx:elif="{{detail.expiredMinutes < 0}}">已超时</text>
-          <text wx:else>剩余{{detail.expiredMinutes}}分钟</text>
-        </text>
-      </view>
       <view class="i-row" wx:if="{{detail.readyAt}}">
         <text class="i-label">出餐时间</text>
         <text class="i-value">{{detail.readyAt}}</text>
@@ -410,8 +426,12 @@
     <view class="sheet-actions">
       <!-- 接单后才能联系用户 -->
       <view class="btn ghost" bindtap="onContactUser" data-id="{{detail.id}}" wx:if="{{detail.orderStatus !== 'pending' && detail.orderStatus !== 'cancelled'}}">联系用户</view>
+      <!-- 接单者完成订单按钮：接单后且订单进行中时显示 -->
+      <view class="btn success" bindtap="onCompleteOrder" data-id="{{detail.id}}" wx:if="{{(detail.orderStatus === 'confirmed_by_receiver' || detail.orderStatus === 'in_progress') && detail.receiverOpenid === currentUserOpenid && currentUserOpenid}}">完成订单</view>
       <!-- 待接单：只有别人发的订单才显示接单按钮，不能接自己的订单 -->
       <view class="btn primary" bindtap="onConfirmOrder" wx:if="{{detail.orderStatus === 'pending' && detail.userOpenid && detail.userOpenid !== currentUserOpenid && currentUserOpenid}}">接单</view>
+      <!-- 等待用户确认 -->
+      <view class="btn waiting" wx:if="{{detail.orderStatus === 'waiting_user_confirm'}}">等待确认</view>
       <!-- 已完成 -->
       <view class="btn completed" wx:if="{{detail.orderStatus === 'completed'}}">已完成</view>
       <!-- 已取消 -->
@@ -422,6 +442,58 @@
   <!-- 我的订单浮动按钮 -->
   <view class="my-order-float-btn" bindtap="onMyOrderTap">
     <image class="my-order-icon" src="/pages/小标/dingdan.png" mode="aspectFit" />
+  </view>
+
+  <!-- 联系信息弹窗 -->
+  <view class="contact-mask {{showContactInfo ? 'show' : ''}}" catchtouchmove="preventTouchMove" bindtap="onCloseContactInfo"></view>
+  <view class="contact-popup {{showContactInfo ? 'show' : ''}}" catchtouchmove="preventTouchMove">
+    <view class="contact-popup-header">
+      <text class="contact-popup-title">联系用户</text>
+      <text class="contact-popup-close" bindtap="onCloseContactInfo">×</text>
+    </view>
+    <view class="contact-popup-content">
+      <view class="contact-user-name">
+        <text>{{contactInfo.userName}}</text>
+      </view>
+      
+      <!-- 微信号 -->
+      <view class="contact-item" wx:if="{{contactInfo.wechat}}">
+        <view class="contact-item-label">
+          <text class="contact-icon">💬</text>
+          <text>微信号</text>
+        </view>
+        <view class="contact-item-value">
+          <text class="contact-value-text">{{contactInfo.wechat}}</text>
+          <view class="contact-action-btn" bindtap="onCopyWechat">
+            <text>复制</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 电话号 -->
+      <view class="contact-item" wx:if="{{contactInfo.phone}}">
+        <view class="contact-item-label">
+          <text class="contact-icon">📞</text>
+          <text>电话号</text>
+        </view>
+        <view class="contact-item-value">
+          <text class="contact-value-text">{{contactInfo.phone}}</text>
+          <view class="contact-action-btn-group">
+            <view class="contact-action-btn" bindtap="onCopyPhone">
+              <text>复制</text>
+            </view>
+            <view class="contact-action-btn primary" bindtap="onCallPhone">
+              <text>拨打</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 无联系方式提示 -->
+      <view class="contact-empty" wx:if="{{!contactInfo.wechat && !contactInfo.phone}}">
+        <text>用户未设置联系方式</text>
+      </view>
+    </view>
   </view>
 
   <!-- 底部导航 -->

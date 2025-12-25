@@ -6,7 +6,10 @@ Page({
     product: null,
     loading: true,
     currentImageIndex: 0,
-    showAllImages: false
+    showAllImages: false,
+    showContactModal: false,
+    contactType: '',
+    contactInfo: ''
   },
 
   onLoad(options) {
@@ -54,7 +57,9 @@ Page({
           },
           discount: product.discount || (product.originalPrice 
             ? Math.round((1 - product.price / product.originalPrice) * 100)
-            : 0)
+            : 0),
+          contactType: product.contactType || '',
+          contactInfo: product.contactInfo || ''
         };
 
         this.setData({
@@ -127,101 +132,71 @@ Page({
   },
 
   // 联系卖家
-  async onContactSeller() {
-    if (!this.data.product || !this.data.product.seller || !this.data.product.seller.id) {
+  onContactSeller() {
+    if (!this.data.product) {
       wx.showToast({
-        title: '卖家信息不存在',
+        title: '商品信息不存在',
         icon: 'none'
       });
       return;
     }
 
-    const sellerId = this.data.product.seller.id;
-    
-    wx.showLoading({ title: '获取联系方式...' });
+    // 从商品数据中获取联系方式
+    const contactType = this.data.product.contactType || '';
+    const contactInfo = this.data.product.contactInfo || '';
 
-    try {
-      // 通过 sellerId (openid) 查询用户信息
-      // sellerId 可能是 openid，云函数已支持通过 openid 查询
-      const res = await wx.cloud.callFunction({
-        name: 'userManage',
-        data: {
-          action: 'getUserDetail',
-          data: {
-            userId: sellerId, // 云函数会尝试作为 _id 或 openid 查询
-            openid: sellerId // 明确指定通过 openid 查询
-          }
-        }
-      });
-
-      wx.hideLoading();
-
-      if (res.result && res.result.code === 200) {
-        const sellerUserInfo = res.result.data.user || res.result.data;
-        const phone = sellerUserInfo.phone;
-
-        if (phone && phone !== '未绑定' && phone.trim() !== '') {
-          // 直接跳转到聊天页面
-          wx.navigateTo({
-            url: `/subpackages/common/pages/chat/index?toUserId=${sellerId}&toUserName=${encodeURIComponent(sellerUserInfo.nickname || sellerUserInfo.userName || '卖家')}&messageType=secondhand&relatedId=${this.data.productId}&relatedTitle=${encodeURIComponent(this.data.product ? this.data.product.title : '闲置商品')}`
-          });
-        } else {
-          // 没有电话号码，显示提示
-          wx.showModal({
-            title: '联系卖家',
-            content: '卖家未设置有效的电话号码，请通过其他方式联系。',
-            showCancel: false,
-            confirmText: '知道了'
-          });
-        }
-      } else {
-        // 查询失败，可能是 sellerId 是 openid 而不是 _id
-        // 尝试通过 openid 查询用户信息
-        try {
-          const userRes = await wx.cloud.callFunction({
-            name: 'loginUser',
-            data: {
-              action: 'getUserInfo',
-              data: {
-                openid: sellerId
-              }
-            }
-          });
-
-          if (userRes.result && userRes.result.code === 200) {
-            const sellerUserInfo = userRes.result.data.user || userRes.result.data;
-            const phone = sellerUserInfo.phone;
-
-            if (phone && phone !== '未绑定' && phone.trim() !== '') {
-              // 直接跳转到聊天页面
-              wx.navigateTo({
-                url: `/subpackages/common/pages/chat/index?toUserId=${sellerId}&toUserName=${encodeURIComponent(sellerUserInfo.nickname || sellerUserInfo.userName || '卖家')}&messageType=secondhand&relatedId=${this.data.productId}&relatedTitle=${encodeURIComponent(this.data.product ? this.data.product.title : '闲置商品')}`
-              });
-              return;
-            }
-          }
-        } catch (err) {
-          console.error('【闲置出售详情】通过openid查询用户信息失败:', err);
-        }
-
-        // 如果都查询失败，显示提示
-        wx.showModal({
-          title: '联系卖家',
-          content: '无法获取卖家联系方式。您可以通过以下方式联系：\n1. 在商品详情中查看是否有其他联系方式\n2. 通过微信小程序客服功能联系',
-          showCancel: false,
-          confirmText: '知道了'
-        });
-      }
-    } catch (err) {
-      wx.hideLoading();
-      console.error('【闲置出售详情】获取卖家信息失败:', err);
+    if (!contactInfo || contactInfo.trim() === '') {
       wx.showModal({
         title: '联系卖家',
-        content: '无法获取卖家联系方式。您可以通过以下方式联系：\n1. 在商品详情中查看是否有其他联系方式\n2. 通过微信小程序客服功能联系',
+        content: '卖家未填写联系方式，请通过其他方式联系。',
         showCancel: false,
         confirmText: '知道了'
       });
+      return;
     }
+
+    // 显示联系方式弹窗
+    this.setData({
+      showContactModal: true,
+      contactType: contactType || '联系方式',
+      contactInfo: contactInfo
+    });
+  },
+
+  // 关闭联系方式弹窗
+  onCloseContactModal() {
+    this.setData({
+      showContactModal: false
+    });
+  },
+
+  // 复制联系方式
+  onCopyContact() {
+    const contactInfo = this.data.contactInfo;
+    if (!contactInfo) {
+      return;
+    }
+
+    wx.setClipboardData({
+      data: contactInfo,
+      success: () => {
+        wx.showToast({
+          title: '已复制到剪贴板',
+          icon: 'success'
+        });
+      },
+      fail: () => {
+        wx.showToast({
+          title: '复制失败',
+          icon: 'none'
+        });
+      }
+    });
+  },
+
+  // 阻止事件冒泡
+  stopPropagation() {
+    // 空函数，用于阻止事件冒泡
   },
 
   // 返回

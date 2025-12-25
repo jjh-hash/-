@@ -120,5 +120,27 @@
       <text class="action-text">联系卖家</text>
     </view>
   </view>
+
+  <!-- 联系方式弹窗 -->
+  <view class="modal-mask" wx:if="{{showContactModal}}" bindtap="onCloseContactModal">
+    <view class="modal-content" catchtap="stopPropagation">
+      <view class="modal-header">
+        <text class="modal-title">联系方式</text>
+        <view class="modal-close" bindtap="onCloseContactModal">×</view>
+      </view>
+      <view class="modal-body">
+        <view class="contact-type-label">{{contactType}}</view>
+        <view class="contact-info-display">{{contactInfo}}</view>
+      </view>
+      <view class="modal-footer">
+        <view class="modal-btn copy-btn" bindtap="onCopyContact">
+          <text class="modal-btn-text">复制</text>
+        </view>
+        <view class="modal-btn confirm-btn" bindtap="onCloseContactModal">
+          <text class="modal-btn-text">知道了</text>
+        </view>
+      </view>
+    </view>
+  </view>
 </view>
 

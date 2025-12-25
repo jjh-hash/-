@@ -72,11 +72,8 @@
             <text class="refund-amount" wx:if="{{item.refundInfo && item.refundInfo.refundAmount}}">退款金额：¥{{item.refundInfo.refundAmount}}</text>
           </view>
 
-          <!-- 订单超时和预计送达时间 -->
-          <view class="order-time-info" wx:if="{{item.expiredAt || item.estimatedDeliveryTime || item.estimatedDeliveryTimeRange}}">
-            <!-- 只有订单还在进行中（未完成/未取消）且超时时，才显示超时提示 -->
-            <text class="time-text expired" wx:if="{{item.expiredMinutes !== null && item.expiredMinutes < 0 && item.orderStatus !== 'completed' && item.orderStatus !== 'cancelled'}}">订单已超时</text>
-            <text class="time-text" wx:elif="{{item.expiredMinutes !== null && item.expiredMinutes > 0 && item.orderStatus !== 'completed' && item.orderStatus !== 'cancelled'}}">订单剩余{{item.expiredMinutes}}分钟</text>
+          <!-- 预计送达时间 -->
+          <view class="order-time-info" wx:if="{{item.estimatedDeliveryTime || item.estimatedDeliveryTimeRange}}">
             <text class="time-text delivery" wx:if="{{item.estimatedDeliveryTimeRange}}">预计到达时间：{{item.estimatedDeliveryTimeRange}}</text>
             <text class="time-text delivery" wx:elif="{{item.estimatedDeliveryTime}}">预计送达：{{item.estimatedDeliveryTime}}</text>
           </view>

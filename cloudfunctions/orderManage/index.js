@@ -128,6 +128,9 @@ exports.main = async (event, context) => {
       case 'getMyPublishedOrders':
         result = await getMyPublishedOrders(OPENID, data);
         break;
+      case 'getMyReceivedOrders':
+        result = await getMyReceivedOrders(OPENID, data);
+        break;
       default:
         console.warn('【订单管理】无效的操作类型:', action);
         result = {
@@ -2319,7 +2322,7 @@ function getStatusText(payStatus, orderStatus) {
  */
 async function createExpressOrder(openid, data) {
   try {
-    const { pickupLocation, deliveryLocation, packageSizes, images, pickupCode, address, totalPrice, orderDuration, orderDurationUnit } = data;
+    const { pickupLocation, deliveryLocation, dormitoryNumber, packageSizes, images, pickupCode, address, totalPrice, orderDuration, orderDurationUnit } = data;
     
     console.log('【创建代拿快递订单】接收到的参数:', data);
     
@@ -2389,6 +2392,7 @@ async function createExpressOrder(openid, data) {
       // 代拿快递特有信息
       pickupLocation: pickupLocation, // 取件位置
       deliveryLocation: deliveryLocation, // 送达位置
+      dormitoryNumber: dormitoryNumber || '', // 寝室号（仅当送达位置为宿舍楼时）
       pickupCode: pickupCode.trim(), // 取件码
       images: images || [], // 图片（云存储fileID数组）
       
@@ -2437,15 +2441,23 @@ async function createExpressOrder(openid, data) {
         phone: userInfo.phone || ''
       },
       
-      // 订单截止时间（如果超时未接单，自动取消）
+      // 订单截止时间（如果超时未接单，自动取消）- 使用中国时区（UTC+8）
       expiredAt: (() => {
         // 根据用户设置的时长计算截止时间
         let totalMinutes = orderDuration || 30;
         if (orderDurationUnit === 'hour') {
           totalMinutes = (orderDuration || 30) * 60;
         }
+        // 获取当前UTC时间
         const now = new Date();
-        return new Date(now.getTime() + totalMinutes * 60 * 1000);
+        // 计算中国时区偏移（UTC+8，即比UTC快8小时）
+        const chinaTimeOffset = 8 * 60 * 60 * 1000;
+        // 获取当前中国时区时间
+        const nowChinaTime = new Date(now.getTime() + chinaTimeOffset);
+        // 计算截止时间（中国时区），然后转回UTC存储
+        const expiredAtChinaTime = new Date(nowChinaTime.getTime() + totalMinutes * 60 * 1000);
+        // 转回UTC时间存储（减去8小时）
+        return new Date(expiredAtChinaTime.getTime() - chinaTimeOffset);
       })(),
       
       // 时间戳
@@ -2487,7 +2499,7 @@ async function createExpressOrder(openid, data) {
  */
 async function createGamingOrder(openid, data) {
   try {
-    const { gameType, sessionDuration, requirements, selectedRequirements, bounty, pricePerHour, address, totalPrice, orderDuration, orderDurationUnit } = data;
+    const { gameType, sessionDuration, requirements, selectedRequirements, bounty, pricePerHour, address, totalPrice, taskDuration, taskDurationUnit, orderDuration, orderDurationUnit } = data;
     
     console.log('【创建游戏陪玩订单】接收到的参数:', data);
     
@@ -2551,6 +2563,8 @@ async function createGamingOrder(openid, data) {
       // 游戏陪玩特有信息
       gameType: gameType, // 游戏类型
       sessionDuration: sessionDuration, // 开黑时长（小时）
+      taskDuration: taskDuration || sessionDuration, // 任务大约需要的时间（默认与开黑时长一致）
+      taskDurationUnit: taskDurationUnit || 'hour', // 任务时长单位
       requirements: requirements.trim(), // 开黑要求文本
       selectedRequirements: selectedRequirements || [], // 选中的要求标签
       bounty: bountyFen, // 赏金（分）
@@ -2592,15 +2606,23 @@ async function createGamingOrder(openid, data) {
         phone: userInfo.phone || ''
       },
       
-      // 订单截止时间（如果超时未接单，自动取消）
+      // 订单截止时间（如果超时未接单，自动取消）- 使用中国时区（UTC+8）
       expiredAt: (() => {
         // 根据用户设置的时长计算截止时间
         let totalMinutes = orderDuration || 30;
         if (orderDurationUnit === 'hour') {
           totalMinutes = (orderDuration || 30) * 60;
         }
+        // 获取当前UTC时间
         const now = new Date();
-        return new Date(now.getTime() + totalMinutes * 60 * 1000);
+        // 计算中国时区偏移（UTC+8，即比UTC快8小时）
+        const chinaTimeOffset = 8 * 60 * 60 * 1000;
+        // 获取当前中国时区时间
+        const nowChinaTime = new Date(now.getTime() + chinaTimeOffset);
+        // 计算截止时间（中国时区），然后转回UTC存储
+        const expiredAtChinaTime = new Date(nowChinaTime.getTime() + totalMinutes * 60 * 1000);
+        // 转回UTC时间存储（减去8小时）
+        return new Date(expiredAtChinaTime.getTime() - chinaTimeOffset);
       })(),
       
       // 时间戳
@@ -2747,15 +2769,23 @@ async function createRewardOrder(openid, data) {
         phone: userInfo.phone || ''
       },
       
-      // 订单截止时间（如果超时未接单，自动取消）
+      // 订单截止时间（如果超时未接单，自动取消）- 使用中国时区（UTC+8）
       expiredAt: (() => {
         // 根据用户设置的时长计算截止时间
         let totalMinutes = orderDuration || 30;
         if (orderDurationUnit === 'hour') {
           totalMinutes = (orderDuration || 30) * 60;
         }
+        // 获取当前UTC时间
         const now = new Date();
-        return new Date(now.getTime() + totalMinutes * 60 * 1000);
+        // 计算中国时区偏移（UTC+8，即比UTC快8小时）
+        const chinaTimeOffset = 8 * 60 * 60 * 1000;
+        // 获取当前中国时区时间
+        const nowChinaTime = new Date(now.getTime() + chinaTimeOffset);
+        // 计算截止时间（中国时区），然后转回UTC存储
+        const expiredAtChinaTime = new Date(nowChinaTime.getTime() + totalMinutes * 60 * 1000);
+        // 转回UTC时间存储（减去8小时）
+        return new Date(expiredAtChinaTime.getTime() - chinaTimeOffset);
       })(),
       
       // 时间戳
@@ -4570,18 +4600,81 @@ async function acceptOrder(openid, data) {
     }
     
     // 检查订单状态和接单者信息
-    // 如果订单状态是 received 且接单者是当前用户，说明用户之前接单后取消了但没有成功回退状态
-    // 这种情况下，允许用户重新接单（实际上订单已经是 received 状态，直接返回成功，让前端弹出确认弹窗）
+    // 如果订单状态是 received 且接单者是当前用户，但 receiverInfo 是 null
+    // 说明之前接单时第一步更新完成了，但第二步更新 receiverInfo 失败了
+    // 这种情况下，需要完成第二步更新，然后返回成功
     if (order.orderStatus === 'received' && order.receiverOpenid === openid) {
-      console.log('【接单】订单已被当前用户接单，返回成功以弹出确认弹窗');
-      return {
-        code: 200,
-        message: '接单成功',
-        data: {
-          orderId: orderId,
-          orderNo: order.orderNo
+      if (!order.receiverInfo || order.receiverInfo === null) {
+        console.log('【接单】检测到订单状态是received但receiverInfo是null，完成接单流程');
+        // 查询接单者信息
+        let receiverUser = await db.collection('users')
+          .where({ openid })
+          .get();
+        
+        let receiverInfo;
+        if (!receiverUser.data || receiverUser.data.length === 0) {
+          // 用户不存在，自动创建用户记录
+          const createResult = await db.collection('users').add({
+            data: {
+              openid: openid,
+              nickname: '微信用户',
+              avatar: '',
+              avatarUrl: '',
+              phone: '',
+              role: 'user',
+              status: 'active',
+              createdAt: db.serverDate(),
+              updatedAt: db.serverDate()
+            }
+          });
+          
+          receiverInfo = {
+            _id: createResult._id,
+            openid: openid,
+            nickname: '微信用户',
+            avatar: '',
+            avatarUrl: '',
+            phone: ''
+          };
+        } else {
+          receiverInfo = receiverUser.data[0];
         }
-      };
+        
+        // 完成第二步：更新 receiverInfo
+        const newReceiverInfo = {
+          nickname: receiverInfo.nickname || '用户',
+          avatarUrl: receiverInfo.avatarUrl || receiverInfo.avatar || '',
+          phone: receiverInfo.phone || ''
+        };
+        
+        await db.collection('orders').doc(orderId).update({
+          data: {
+            receiverId: receiverInfo._id,
+            receiverInfo: newReceiverInfo
+          }
+        });
+        
+        console.log('【接单】完成接单流程，receiverInfo已更新');
+        return {
+          code: 200,
+          message: '接单成功',
+          data: {
+            orderId: orderId,
+            orderNo: order.orderNo
+          }
+        };
+      } else {
+        // receiverInfo 存在，说明已经接单成功，直接返回成功
+        console.log('【接单】订单已被当前用户接单，返回成功以弹出确认弹窗');
+        return {
+          code: 200,
+          message: '接单成功',
+          data: {
+            orderId: orderId,
+            orderNo: order.orderNo
+          }
+        };
+      }
     }
     
     // 检查订单状态
@@ -4606,14 +4699,30 @@ async function acceptOrder(openid, data) {
     // 清除残留的接单者信息，然后继续接单流程
     if (order.receiverOpenid === openid && order.orderStatus === 'pending') {
       console.log('【接单】检测到残留的接单者信息，清除后重新接单');
-      await db.collection('orders').doc(orderId).update({
-        data: {
-          receiverOpenid: null,
-          receiverId: null,
-          receiverInfo: null,
-          receiverConfirmedAt: null,
-          receiverCompletedAt: null
+      // 清除残留数据，receiverInfo 设置为空对象而不是 null
+      const clearData = {
+        receiverOpenid: null,
+        receiverId: null,
+        receiverConfirmedAt: null,
+        receiverCompletedAt: null
+      };
+      
+      // 如果 receiverInfo 存在，先删除它
+      if (order.receiverInfo !== null && order.receiverInfo !== undefined) {
+        try {
+          await db.collection('orders').doc(orderId).update({
+            data: {
+              receiverInfo: db.command.remove()
+            }
+          });
+        } catch (removeErr) {
+          // 如果 remove 不支持，设置为空对象
+          clearData.receiverInfo = {};
         }
+      }
+      
+      await db.collection('orders').doc(orderId).update({
+        data: clearData
       });
     }
     
@@ -4668,35 +4777,79 @@ async function acceptOrder(openid, data) {
       phone: receiverInfo.phone || ''
     };
     
-    // 如果订单中 receiverInfo 是 null，需要先删除字段再设置新值
+    // 如果订单中 receiverInfo 是 null，需要特殊处理
     // 微信云开发中，如果字段是 null，不能直接在其中创建子字段
-    // 解决方案：先删除字段（设置为 undefined），然后再设置新值
-    if (order.receiverInfo === null || order.receiverInfo === undefined) {
+    // 解决方案：先删除字段，然后再设置新值
+    const needSpecialHandle = order.receiverInfo === null || order.receiverInfo === undefined;
+    
+    if (needSpecialHandle) {
       try {
-        // 先删除 receiverInfo 字段（设置为 undefined 会删除字段）
+        console.log('【接单】receiverInfo 是 null，使用特殊处理方式');
+        
+        // 第一步：先删除 receiverInfo 字段（如果存在）
+        try {
+          await db.collection('orders').doc(orderId).update({
+            data: {
+              receiverInfo: db.command.remove()
+            }
+          });
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (removeErr) {
+          console.log('【接单】remove 操作可能不支持，尝试设置为空对象:', removeErr.message);
+          // 如果 remove 不支持，尝试设置为空对象
+          try {
+            await db.collection('orders').doc(orderId).update({
+              data: {
+                receiverInfo: {}
+              }
+            });
+            await new Promise(resolve => setTimeout(resolve, 300));
+          } catch (emptyErr) {
+            console.log('【接单】设置为空对象也失败，继续尝试直接设置:', emptyErr.message);
+          }
+        }
+        
+        // 第二步：更新所有字段，包括 receiverInfo
         await db.collection('orders').doc(orderId).update({
           data: {
-            receiverInfo: undefined
+            receiverOpenid: openid,
+            receiverId: receiverInfo._id,
+            receiverInfo: newReceiverInfo,
+            orderStatus: 'received',
+            updatedAt: db.serverDate()
           }
         });
-        // 等待一下确保删除完成
-        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        console.log('【接单】特殊处理成功，receiverInfo 已设置');
       } catch (err) {
-        console.log('【接单】删除 receiverInfo 字段时出错（可能字段不存在）:', err);
-        // 继续执行，尝试直接设置新值
+        console.error('【接单】特殊处理失败:', err);
+        // 回滚订单状态
+        try {
+          await db.collection('orders').doc(orderId).update({
+            data: {
+              receiverOpenid: null,
+              receiverId: null,
+              orderStatus: 'pending',
+              updatedAt: db.serverDate()
+            }
+          });
+        } catch (rollbackErr) {
+          console.error('【接单】回滚失败:', rollbackErr);
+        }
+        throw new Error('更新接单者信息失败: ' + err.message);
       }
+    } else {
+      // 如果 receiverInfo 不是 null，可以一次性更新所有字段
+      await db.collection('orders').doc(orderId).update({
+        data: {
+          receiverOpenid: openid,
+          receiverId: receiverInfo._id,
+          receiverInfo: newReceiverInfo,
+          orderStatus: 'received',
+          updatedAt: db.serverDate()
+        }
+      });
     }
-    
-    // 设置新的 receiverInfo 和其他字段
-    await db.collection('orders').doc(orderId).update({
-      data: {
-        receiverOpenid: openid,
-        receiverId: receiverInfo._id,
-        receiverInfo: newReceiverInfo,
-        orderStatus: 'received',
-        updatedAt: db.serverDate()
-      }
-    });
     
     console.log('【接单】接单成功');
     
@@ -5045,15 +5198,31 @@ async function cancelReceiverOrderByReceiver(openid, data) {
       console.log('【接单者取消接单】检测到pending状态但仍有接单者信息，清除残留数据');
       // 如果接单者是当前用户，清除残留数据
       if (order.receiverOpenid === openid) {
-        await db.collection('orders').doc(orderId).update({
-          data: {
-            receiverOpenid: null,
-            receiverId: null,
-            receiverInfo: null,
-            receiverConfirmedAt: null,
-            receiverCompletedAt: null,
-            updatedAt: db.serverDate()
+        // 清除残留数据，receiverInfo 设置为空对象而不是 null
+        const clearData = {
+          receiverOpenid: null,
+          receiverId: null,
+          receiverConfirmedAt: null,
+          receiverCompletedAt: null,
+          updatedAt: db.serverDate()
+        };
+        
+        // 如果 receiverInfo 存在，先删除它
+        if (order.receiverInfo !== null && order.receiverInfo !== undefined) {
+          try {
+            await db.collection('orders').doc(orderId).update({
+              data: {
+                receiverInfo: db.command.remove()
+              }
+            });
+          } catch (removeErr) {
+            // 如果 remove 不支持，设置为空对象
+            clearData.receiverInfo = {};
           }
+        }
+        
+        await db.collection('orders').doc(orderId).update({
+          data: clearData
         });
         return {
           code: 200,
@@ -5070,15 +5239,30 @@ async function cancelReceiverOrderByReceiver(openid, data) {
         // 但如果还有接单者信息，需要清除
         if (order.receiverOpenid && order.receiverOpenid === openid) {
           console.log('【接单者取消接单】订单状态是pending但仍有接单者信息，清除残留数据');
-          await db.collection('orders').doc(orderId).update({
-            data: {
-              receiverOpenid: null,
-              receiverId: null,
-              receiverInfo: null,
-              receiverConfirmedAt: null,
-              receiverCompletedAt: null,
-              updatedAt: db.serverDate()
+          const clearData = {
+            receiverOpenid: null,
+            receiverId: null,
+            receiverConfirmedAt: null,
+            receiverCompletedAt: null,
+            updatedAt: db.serverDate()
+          };
+          
+          // 如果 receiverInfo 存在，先删除它
+          if (order.receiverInfo !== null && order.receiverInfo !== undefined) {
+            try {
+              await db.collection('orders').doc(orderId).update({
+                data: {
+                  receiverInfo: db.command.remove()
+                }
+              });
+            } catch (removeErr) {
+              // 如果 remove 不支持，设置为空对象
+              clearData.receiverInfo = {};
             }
+          }
+          
+          await db.collection('orders').doc(orderId).update({
+            data: clearData
           });
           return {
             code: 200,
@@ -5106,16 +5290,33 @@ async function cancelReceiverOrderByReceiver(openid, data) {
     }
     
     // 清除接单者信息，状态改回 pending
-    await db.collection('orders').doc(orderId).update({
-      data: {
-        receiverOpenid: null,
-        receiverId: null,
-        receiverInfo: null,
-        receiverConfirmedAt: null,
-        receiverCompletedAt: null,
-        orderStatus: 'pending',
-        updatedAt: db.serverDate()
+    // 注意：不要将 receiverInfo 设置为 null，而是删除字段或设置为空对象
+    const updateData = {
+      receiverOpenid: null,
+      receiverId: null,
+      receiverConfirmedAt: null,
+      receiverCompletedAt: null,
+      orderStatus: 'pending',
+      updatedAt: db.serverDate()
+    };
+    
+    // 如果 receiverInfo 存在，先删除它（设置为空对象，而不是 null）
+    if (order.receiverInfo !== null && order.receiverInfo !== undefined) {
+      try {
+        await db.collection('orders').doc(orderId).update({
+          data: {
+            receiverInfo: db.command.remove()
+          }
+        });
+      } catch (removeErr) {
+        // 如果 remove 不支持，设置为空对象（而不是 null）
+        updateData.receiverInfo = {};
       }
+    }
+    
+    // 更新其他字段
+    await db.collection('orders').doc(orderId).update({
+      data: updateData
     });
     
     console.log('【接单者取消接单】取消成功，订单状态已改回pending，orderId:', orderId);
@@ -5207,16 +5408,33 @@ async function cancelReceiverOrder(openid, data) {
     const receiverInfo = order.receiverInfo;
     
     // 清除接单者信息，状态改回 pending
-    await db.collection('orders').doc(orderId).update({
-      data: {
-        receiverOpenid: null,
-        receiverId: null,
-        receiverInfo: null,
-        receiverConfirmedAt: null,
-        receiverCompletedAt: null,
-        orderStatus: 'pending',
-        updatedAt: db.serverDate()
+    // 注意：不要将 receiverInfo 设置为 null，而是删除字段或设置为空对象
+    const updateData = {
+      receiverOpenid: null,
+      receiverId: null,
+      receiverConfirmedAt: null,
+      receiverCompletedAt: null,
+      orderStatus: 'pending',
+      updatedAt: db.serverDate()
+    };
+    
+    // 如果 receiverInfo 存在，先删除它
+    if (order.receiverInfo !== null && order.receiverInfo !== undefined) {
+      try {
+        await db.collection('orders').doc(orderId).update({
+          data: {
+            receiverInfo: db.command.remove()
+          }
+        });
+      } catch (removeErr) {
+        // 如果 remove 不支持，设置为空对象
+        updateData.receiverInfo = {};
       }
+    }
+    
+    // 更新其他字段
+    await db.collection('orders').doc(orderId).update({
+      data: updateData
     });
     
     console.log('【取消接单】取消成功，订单重回大厅');
@@ -5264,14 +5482,21 @@ async function autoCancelExpiredOrders(openid, data) {
   try {
     console.log('【自动取消超时订单】开始检查');
     
+    // 获取当前UTC时间
     const now = new Date();
+    // 计算中国时区偏移（UTC+8，即比UTC快8小时）
+    const chinaTimeOffset = 8 * 60 * 60 * 1000;
+    // 获取当前中国时区时间
+    const nowChinaTime = new Date(now.getTime() + chinaTimeOffset);
+    // 转回UTC时间用于数据库查询（因为数据库中存储的是UTC时间）
+    const nowUTC = new Date(nowChinaTime.getTime() - chinaTimeOffset);
     
     // 查询所有待接单的特殊订单（游戏陪玩、悬赏、代拿快递），且已过期的订单
     const expiredOrders = await db.collection('orders')
       .where({
         orderType: db.command.in(['gaming', 'reward', 'express']),
         orderStatus: 'pending', // 只处理待接单的订单
-        expiredAt: db.command.lte(now) // 过期时间小于等于当前时间
+        expiredAt: db.command.lte(nowUTC) // 过期时间小于等于当前UTC时间
       })
       .get();
     
@@ -5419,6 +5644,105 @@ async function getMyPublishedOrders(openid, data) {
     
   } catch (error) {
     console.error('【获取我发布的订单列表】异常:', error);
+    return {
+      code: 500,
+      message: '获取订单列表失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 获取我接取的订单列表
+ * 查询当前用户接取的订单（通过 receiverOpenid）
+ */
+async function getMyReceivedOrders(openid, data) {
+  try {
+    const { page = 1, pageSize = 50, orderType } = data || {};
+    
+    console.log('【获取我接取的订单列表】参数:', { page, pageSize, orderType, receiverOpenid: openid });
+    
+    // 构建查询条件：查询当前用户接取的订单
+    const whereCondition = {
+      receiverOpenid: openid
+    };
+    
+    // 如果指定了订单类型，则筛选
+    if (orderType) {
+      whereCondition.orderType = orderType;
+    } else {
+      // 默认只查询特殊订单类型（游戏陪玩、悬赏、代拿快递）
+      whereCondition.orderType = db.command.in(['gaming', 'reward', 'express']);
+    }
+    
+    // 查询订单
+    const result = await db.collection('orders')
+      .where(whereCondition)
+      .orderBy('createdAt', 'desc')
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .get();
+    
+    // 获取总数
+    const countResult = await db.collection('orders')
+      .where(whereCondition)
+      .count();
+    
+    // 格式化订单数据
+    const formattedList = result.data.map(order => {
+      // 处理金额（从分转换为元）
+      let amountGoods = order.amountGoods || 0;
+      if (typeof amountGoods === 'number') {
+        amountGoods = amountGoods >= 100 ? amountGoods / 100 : amountGoods;
+      }
+      
+      let amountDelivery = order.amountDelivery || 0;
+      if (typeof amountDelivery === 'number') {
+        amountDelivery = amountDelivery >= 100 ? amountDelivery / 100 : amountDelivery;
+      }
+      
+      let platformFee = order.platformFee || 0;
+      if (typeof platformFee === 'number') {
+        platformFee = platformFee >= 100 ? platformFee / 100 : platformFee;
+      }
+      
+      let amountTotal = order.amountTotal || order.amountPayable || 0;
+      if (typeof amountTotal === 'number') {
+        amountTotal = amountTotal >= 100 ? amountTotal / 100 : amountTotal;
+      }
+      
+      let bounty = order.bounty || 0;
+      if (typeof bounty === 'number') {
+        bounty = bounty >= 100 ? bounty / 100 : bounty;
+      }
+      
+      // 计算订单超时倒计时
+      const expiredMinutes = calculateExpiredMinutes(order.expiredAt, order.createdAt, order.completedAt);
+      
+      return {
+        ...order,
+        amountGoods: amountGoods.toFixed(2),
+        amountDelivery: amountDelivery.toFixed(2),
+        platformFee: platformFee.toFixed(2),
+        amountTotal: amountTotal.toFixed(2),
+        bounty: bounty ? bounty.toFixed(2) : null,
+        expiredMinutes: expiredMinutes
+      };
+    });
+    
+    return {
+      code: 200,
+      message: 'ok',
+      data: {
+        list: formattedList,
+        total: countResult.total,
+        page,
+        pageSize
+      }
+    };
+    
+  } catch (error) {
+    console.error('【获取我接取的订单列表】异常:', error);
     return {
       code: 500,
       message: '获取订单列表失败',

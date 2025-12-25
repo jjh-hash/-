@@ -4,7 +4,8 @@ Page({
     orders: [],
     loading: false,
     refreshing: false,
-    currentUserOpenid: null
+    currentUserOpenid: null,
+    currentTab: 'published', // 'published' 我的订单, 'received' 我的接单
   },
 
   onLoad() {
@@ -49,6 +50,19 @@ Page({
     });
   },
 
+  // 切换分类
+  onTabChange(e) {
+    const tab = e.currentTarget.dataset.tab;
+    if (tab === this.data.currentTab) {
+      return;
+    }
+    this.setData({
+      currentTab: tab,
+      orders: []
+    });
+    this.loadOrders();
+  },
+
   // 加载订单列表
   async loadOrders(isPullRefresh = false) {
     if (this.data.loading) {
@@ -62,10 +76,13 @@ Page({
         wx.showLoading({ title: '加载中...' });
       }
 
+      // 根据当前选中的分类调用不同的云函数
+      const action = this.data.currentTab === 'published' ? 'getMyPublishedOrders' : 'getMyReceivedOrders';
+      
       const res = await wx.cloud.callFunction({
         name: 'orderManage',
         data: {
-          action: 'getMyPublishedOrders',
+          action: action,
           data: {
             page: 1,
             pageSize: 50
@@ -98,6 +115,8 @@ Page({
           // 游戏陪玩订单信息
           gameType: order.gameType || null,
           sessionDuration: order.sessionDuration || null,
+          taskDuration: order.taskDuration || null,
+          taskDurationUnit: order.taskDurationUnit || 'hour',
           requirements: order.requirements || null,
           selectedRequirements: order.selectedRequirements || null,
           // 悬赏订单信息
@@ -111,7 +130,11 @@ Page({
           pickupCode: order.pickupCode || null,
           packageSizes: order.packageSizes || null,
           bounty: order.bounty || null,
-          // 接单者信息
+          // 发布者信息（用于我的接单）
+          userOpenid: order.userOpenid || null,
+          userId: order.userId || null,
+          userInfo: order.userInfo || null,
+          // 接单者信息（用于我的订单）
           receiverOpenid: order.receiverOpenid || null,
           receiverId: order.receiverId || null,
           receiverInfo: order.receiverInfo || null,
@@ -265,9 +288,10 @@ Page({
       
       const diff = expiredChinaTime.getTime() - nowChinaTime.getTime();
       
-      if (diff < 0) {
-        return '已过期';
-      }
+      // 不再显示已过期，订单不会过期
+      // if (diff < 0) {
+      //   return '已过期';
+      // }
       
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const month = expiredChinaTime.getMonth() + 1;
@@ -339,58 +363,391 @@ Page({
     }
   },
 
-  // 联系接单者
-  async onContactReceiver(e) {
+  // 联系发布者（我的接单中）
+  async onContactPublisher(e) {
+    console.log('【我接取的订单页面】点击联系发布者', e);
     const orderId = e.currentTarget.dataset.id;
+    console.log('【我接取的订单页面】订单ID:', orderId);
+    
     const order = this.data.orders.find(o => o.id === orderId);
+    console.log('【我接取的订单页面】找到订单:', order);
     
-    if (!order || !order.receiverInfo) {
+    if (!order) {
       wx.showToast({
-        title: '暂无接单者信息',
-        icon: 'none'
+        title: '订单不存在',
+        icon: 'none',
+        duration: 2000
       });
       return;
     }
-
-    const toUserId = order.receiverId;
-    const toUserName = order.receiverInfo.nickname || '接单者';
     
-    if (!toUserId) {
+    if (!order.userInfo) {
       wx.showToast({
-        title: '暂无联系方式',
-        icon: 'none'
+        title: '暂无发布者信息',
+        icon: 'none',
+        duration: 2000
       });
       return;
     }
-
-    // 确定消息类型
-    const messageType = order.orderType === 'express' ? 'express' : 
-                       order.orderType === 'gaming' ? 'gaming' : 
-                       order.orderType === 'reward' ? 'reward' : 'order';
     
-    // 创建消息记录
-    try {
-      await wx.cloud.callFunction({
-        name: 'messageManage',
-        data: {
-          action: 'createMessage',
-          data: {
-            toUserId: toUserId,
-            toUserName: toUserName,
-            messageType: messageType,
-            relatedId: orderId,
-            relatedTitle: `订单 ${order.orderNo || orderId}`,
-            contactAction: 'message'
+    console.log('【我接取的订单页面】发布者信息:', order.userInfo);
+
+    // 从 userInfo 中获取联系方式
+    let phone = order.userInfo.phone || '';
+    let wechat = order.userInfo.wechat || '';
+    let qq = order.userInfo.qq || '';
+    
+    // 如果 userInfo 中没有完整的联系方式，尝试从用户信息中获取
+    if ((!phone && !wechat && !qq) && (order.userId || order.userOpenid)) {
+      try {
+        wx.showLoading({ title: '获取联系方式...' });
+        let userRes;
+        
+        if (order.userId) {
+          userRes = await wx.cloud.callFunction({
+            name: 'userManage',
+            data: {
+              action: 'getDetail',
+              data: {
+                userId: order.userId
+              }
+            }
+          });
+        } else if (order.userOpenid) {
+          userRes = await wx.cloud.callFunction({
+            name: 'userManage',
+            data: {
+              action: 'getDetail',
+              data: {
+                openid: order.userOpenid
+              }
+            }
+          });
+        }
+        
+        wx.hideLoading();
+        
+        if (userRes && userRes.result && userRes.result.code === 200 && userRes.result.data && userRes.result.data.user) {
+          const user = userRes.result.data.user;
+          // 如果 userInfo 中没有，则使用用户信息中的
+          if (!phone && user.phone) {
+            phone = user.phone;
+          }
+          if (!wechat && user.wechat) {
+            wechat = user.wechat;
+          }
+          if (!qq && user.qq) {
+            qq = user.qq;
           }
         }
-      });
-    } catch (err) {
-      console.error('【我发布的订单页面】创建消息记录失败:', err);
+      } catch (err) {
+        wx.hideLoading();
+        console.error('【我接取的订单页面】获取发布者信息失败:', err);
+        // 即使获取失败，也继续显示已有的信息
+      }
     }
     
-    // 跳转到聊天页面
-    wx.navigateTo({
-      url: `/pages/chat/index?toUserId=${toUserId}&toUserName=${encodeURIComponent(toUserName)}&messageType=${messageType}&relatedId=${orderId}&relatedTitle=${encodeURIComponent(`订单 ${order.orderNo || orderId}`)}`
+    // 构建联系方式列表
+    const contactOptions = [];
+    const contactActions = [];
+    
+    if (phone && phone.trim() !== '') {
+      contactOptions.push(`📞 电话：${phone}`);
+      contactActions.push({ type: 'phone', value: phone });
+    }
+    
+    if (wechat && wechat.trim() !== '') {
+      contactOptions.push(`💬 微信号：${wechat}`);
+      contactActions.push({ type: 'wechat', value: wechat });
+    }
+    
+    if (qq && qq.trim() !== '') {
+      contactOptions.push(`💬 QQ号：${qq}`);
+      contactActions.push({ type: 'qq', value: qq });
+    }
+    
+    if (contactOptions.length === 0) {
+      wx.showModal({
+        title: '提示',
+        content: '发布者未设置联系方式，无法联系',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      return;
+    }
+    
+    // 显示联系方式选择菜单
+    wx.showActionSheet({
+      itemList: contactOptions,
+      success: (res) => {
+        const selectedAction = contactActions[res.tapIndex];
+        if (selectedAction.type === 'phone') {
+          // 电话相关操作
+          wx.showActionSheet({
+            itemList: ['复制电话', '拨打电话'],
+            success: (phoneRes) => {
+              if (phoneRes.tapIndex === 0) {
+                // 复制电话
+                wx.setClipboardData({
+                  data: selectedAction.value,
+                  success: () => {
+                    wx.showToast({
+                      title: '电话已复制',
+                      icon: 'success'
+                    });
+                  }
+                });
+              } else if (phoneRes.tapIndex === 1) {
+                // 拨打电话
+                wx.makePhoneCall({
+                  phoneNumber: selectedAction.value,
+                  fail: () => {
+                    wx.showToast({
+                      title: '拨打失败',
+                      icon: 'none'
+                    });
+                  }
+                });
+              }
+            }
+          });
+        } else if (selectedAction.type === 'wechat') {
+          // 微信号相关操作
+          wx.showActionSheet({
+            itemList: ['复制微信号'],
+            success: (wechatRes) => {
+              if (wechatRes.tapIndex === 0) {
+                // 复制微信号
+                wx.setClipboardData({
+                  data: selectedAction.value,
+                  success: () => {
+                    wx.showToast({
+                      title: '微信号已复制',
+                      icon: 'success'
+                    });
+                  }
+                });
+              }
+            }
+          });
+        } else if (selectedAction.type === 'qq') {
+          // QQ号相关操作
+          wx.showActionSheet({
+            itemList: ['复制QQ号'],
+            success: (qqRes) => {
+              if (qqRes.tapIndex === 0) {
+                // 复制QQ号
+                wx.setClipboardData({
+                  data: selectedAction.value,
+                  success: () => {
+                    wx.showToast({
+                      title: 'QQ号已复制',
+                      icon: 'success'
+                    });
+                  }
+                });
+              }
+            }
+          });
+        }
+      },
+      fail: (err) => {
+        console.error('【我接取的订单页面】显示联系方式菜单失败:', err);
+      }
+    });
+  },
+
+  // 联系接单者
+  async onContactReceiver(e) {
+    console.log('【我发布的订单页面】点击联系接单者', e);
+    const orderId = e.currentTarget.dataset.id;
+    console.log('【我发布的订单页面】订单ID:', orderId);
+    
+    const order = this.data.orders.find(o => o.id === orderId);
+    console.log('【我发布的订单页面】找到订单:', order);
+    
+    if (!order) {
+      wx.showToast({
+        title: '订单不存在',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    
+    if (!order.receiverInfo) {
+      wx.showToast({
+        title: '暂无接单者信息',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    
+    console.log('【我发布的订单页面】接单者信息:', order.receiverInfo);
+
+    // 从 receiverInfo 中获取联系方式（优先使用 receiverInfo 中的信息）
+    let phone = order.receiverInfo.phone || '';
+    let wechat = order.receiverInfo.wechat || '';
+    let qq = order.receiverInfo.qq || '';
+    
+    // 如果 receiverInfo 中没有完整的联系方式，尝试从用户信息中获取
+    if ((!phone && !wechat && !qq) && (order.receiverId || order.receiverOpenid)) {
+      try {
+        wx.showLoading({ title: '获取联系方式...' });
+        let userRes;
+        
+        if (order.receiverId) {
+          userRes = await wx.cloud.callFunction({
+            name: 'userManage',
+            data: {
+              action: 'getDetail',
+              data: {
+                userId: order.receiverId
+              }
+            }
+          });
+        } else if (order.receiverOpenid) {
+          userRes = await wx.cloud.callFunction({
+            name: 'userManage',
+            data: {
+              action: 'getDetail',
+              data: {
+                openid: order.receiverOpenid
+              }
+            }
+          });
+        }
+        
+        wx.hideLoading();
+        
+        if (userRes && userRes.result && userRes.result.code === 200 && userRes.result.data && userRes.result.data.user) {
+          const user = userRes.result.data.user;
+          // 如果 receiverInfo 中没有，则使用用户信息中的
+          if (!phone && user.phone) {
+            phone = user.phone;
+          }
+          if (!wechat && user.wechat) {
+            wechat = user.wechat;
+          }
+          if (!qq && user.qq) {
+            qq = user.qq;
+          }
+        }
+      } catch (err) {
+        wx.hideLoading();
+        console.error('【我发布的订单页面】获取接单者信息失败:', err);
+        // 即使获取失败，也继续显示已有的信息
+      }
+    }
+    
+    // 构建联系方式列表
+    const contactOptions = [];
+    const contactActions = [];
+    
+    if (phone && phone.trim() !== '') {
+      contactOptions.push(`📞 电话：${phone}`);
+      contactActions.push({ type: 'phone', value: phone });
+    }
+    
+    if (wechat && wechat.trim() !== '') {
+      contactOptions.push(`💬 微信号：${wechat}`);
+      contactActions.push({ type: 'wechat', value: wechat });
+    }
+    
+    if (qq && qq.trim() !== '') {
+      contactOptions.push(`💬 QQ号：${qq}`);
+      contactActions.push({ type: 'qq', value: qq });
+    }
+    
+    if (contactOptions.length === 0) {
+      wx.showModal({
+        title: '提示',
+        content: '接单者未设置联系方式，无法联系',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      return;
+    }
+    
+    // 显示联系方式选择菜单
+    wx.showActionSheet({
+      itemList: contactOptions,
+      success: (res) => {
+        const selectedAction = contactActions[res.tapIndex];
+        if (selectedAction.type === 'phone') {
+          // 电话相关操作
+          wx.showActionSheet({
+            itemList: ['复制电话', '拨打电话'],
+            success: (phoneRes) => {
+              if (phoneRes.tapIndex === 0) {
+                // 复制电话
+                wx.setClipboardData({
+                  data: selectedAction.value,
+                  success: () => {
+                    wx.showToast({
+                      title: '电话已复制',
+                      icon: 'success'
+                    });
+                  }
+                });
+              } else if (phoneRes.tapIndex === 1) {
+                // 拨打电话
+                wx.makePhoneCall({
+                  phoneNumber: selectedAction.value,
+                  fail: () => {
+                    wx.showToast({
+                      title: '拨打失败',
+                      icon: 'none'
+                    });
+                  }
+                });
+              }
+            }
+          });
+        } else if (selectedAction.type === 'wechat') {
+          // 微信号相关操作
+          wx.showActionSheet({
+            itemList: ['复制微信号'],
+            success: (wechatRes) => {
+              if (wechatRes.tapIndex === 0) {
+                // 复制微信号
+                wx.setClipboardData({
+                  data: selectedAction.value,
+                  success: () => {
+                    wx.showToast({
+                      title: '微信号已复制',
+                      icon: 'success'
+                    });
+                  }
+                });
+              }
+            }
+          });
+        } else if (selectedAction.type === 'qq') {
+          // QQ号相关操作
+          wx.showActionSheet({
+            itemList: ['复制QQ号'],
+            success: (qqRes) => {
+              if (qqRes.tapIndex === 0) {
+                // 复制QQ号
+                wx.setClipboardData({
+                  data: selectedAction.value,
+                  success: () => {
+                    wx.showToast({
+                      title: 'QQ号已复制',
+                      icon: 'success'
+                    });
+                  }
+                });
+              }
+            }
+          });
+        }
+      },
+      fail: (err) => {
+        console.error('【我发布的订单页面】显示联系方式菜单失败:', err);
+      }
     });
   },
 

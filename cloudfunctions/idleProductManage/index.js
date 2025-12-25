@@ -51,12 +51,22 @@ async function publishProduct(openid, data) {
     originalPrice,
     category,
     location,
+    contactType,
+    contactInfo,
     tags,
     images,
     sellerId,
     sellerName,
     sellerAvatar
   } = data;
+
+  console.log('【发布闲置商品】接收到的数据:', {
+    title,
+    contactType,
+    contactInfo,
+    hasContactType: !!contactType,
+    hasContactInfo: !!contactInfo
+  });
 
   // 参数验证
   if (!title || !price || !category || !images || images.length === 0) {
@@ -67,28 +77,43 @@ async function publishProduct(openid, data) {
   }
 
   try {
-    // 创建商品记录
-    const result = await db.collection('idle_products').add({
-      data: {
-        title: title,
-        description: description || '',
-        price: price,
-        originalPrice: originalPrice || null,
-        category: category,
-        location: location || '未填写',
-        tags: tags || [],
-        images: images,
-        sellerId: sellerId || openid,
-        sellerName: sellerName || '匿名用户',
-        sellerAvatar: sellerAvatar || '',
-        status: 'active', // active: 在售, sold: 已售出, deleted: 已删除
-        viewCount: 0,
-        createdAt: db.serverDate(),
-        updatedAt: db.serverDate()
-      }
+    // 准备保存的数据
+    const productData = {
+      title: title,
+      description: description || '',
+      price: price,
+      originalPrice: originalPrice || null,
+      category: category,
+      location: location || '未填写',
+      contactType: contactType || '微信号',
+      contactInfo: contactInfo || '',
+      tags: tags || [],
+      images: images,
+      sellerId: sellerId || openid,
+      sellerName: sellerName || '匿名用户',
+      sellerAvatar: sellerAvatar || '',
+      status: 'active', // active: 在售, sold: 已售出, deleted: 已删除
+      viewCount: 0,
+      createdAt: db.serverDate(),
+      updatedAt: db.serverDate()
+    };
+
+    console.log('【发布闲置商品】准备保存的数据:', {
+      ...productData,
+      images: images.length + '张图片',
+      contactType: productData.contactType,
+      contactInfo: productData.contactInfo
     });
 
-    console.log('【发布闲置商品】成功:', result._id);
+    // 创建商品记录
+    const result = await db.collection('idle_products').add({
+      data: productData
+    });
+
+    console.log('【发布闲置商品】成功:', result._id, '联系方式:', {
+      contactType: productData.contactType,
+      contactInfo: productData.contactInfo
+    });
 
     return {
       code: 200,

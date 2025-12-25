@@ -19,7 +19,13 @@ Page({
     genderOptions: ['全部性别', '男生', '女生'],
     currentUserOpenid: null, // 当前用户的openid
     currentTime: '', // 当前时间显示
-    timeTimer: null // 定时器
+    timeTimer: null, // 定时器
+    showContactInfo: false, // 显示联系信息弹窗
+    contactInfo: { // 联系信息
+      wechat: '', // 微信号
+      phone: '', // 电话号
+      userName: '' // 用户名称
+    }
   },
 
   onLoad() {
@@ -229,6 +235,8 @@ Page({
           userOpenid: order.userOpenid || null, // 下单者的openid
           gameType: order.gameType || null,
           sessionDuration: order.sessionDuration || null,
+          taskDuration: order.taskDuration || null,
+          taskDurationUnit: order.taskDurationUnit || 'hour',
           requirements: order.requirements || null,
           selectedRequirements: order.selectedRequirements || null,
           helpLocation: order.helpLocation || null,
@@ -543,23 +551,27 @@ Page({
         }
       }
       
+      // 获取当前UTC时间
       const now = new Date();
-      // 处理时区偏移（云数据库通常返回UTC时间）
+      // 计算中国时区偏移（UTC+8，即比UTC快8小时）
       const chinaTimeOffset = 8 * 60 * 60 * 1000;
+      // 将UTC时间转换为中国时区时间
       const expiredChinaTime = new Date(expiredDate.getTime() + chinaTimeOffset);
-      const nowChinaTime = new Date(now.getTime());
+      const nowChinaTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) + chinaTimeOffset);
       
       const diff = expiredChinaTime.getTime() - nowChinaTime.getTime();
       
-      if (diff < 0) {
-        return '已过期';
-      }
+      // 不再显示已过期，订单不会过期
+      // if (diff < 0) {
+      //   return '已过期';
+      // }
       
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const month = expiredChinaTime.getMonth() + 1;
-      const date = expiredChinaTime.getDate();
-      const hoursStr = String(expiredChinaTime.getHours()).padStart(2, '0');
-      const minutesStr = String(expiredChinaTime.getMinutes()).padStart(2, '0');
+      // 使用UTC方法获取中国时区的日期时间（因为已经加上了偏移）
+      const month = expiredChinaTime.getUTCMonth() + 1;
+      const date = expiredChinaTime.getUTCDate();
+      const hoursStr = String(expiredChinaTime.getUTCHours()).padStart(2, '0');
+      const minutesStr = String(expiredChinaTime.getUTCMinutes()).padStart(2, '0');
       
       if (days === 0) {
         return `今天 ${hoursStr}:${minutesStr}截止`;
@@ -574,11 +586,15 @@ Page({
     }
   },
 
-  // 获取当前时间显示（用于接单按钮旁）
+  // 获取当前时间显示（用于接单按钮旁）- 使用中国时区
   getCurrentTimeDisplay() {
     const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
+    // 计算中国时区偏移（UTC+8，即比UTC快8小时）
+    const chinaTimeOffset = 8 * 60 * 60 * 1000;
+    // 获取当前中国时区时间
+    const nowChinaTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) + chinaTimeOffset);
+    const hours = String(nowChinaTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(nowChinaTime.getUTCMinutes()).padStart(2, '0');
     return `${hours}:${minutes}`;
   },
 
@@ -687,11 +703,10 @@ Page({
       return;
     }
 
-    const toUserId = order.userId || order.address?.userId;
-    const toUserName = order.userName || order.address?.name || '用户';
-    const contactPhone = order.address?.phone || '';
+    // 获取下单者的openid
+    const userOpenid = order.userOpenid;
     
-    if (!toUserId) {
+    if (!userOpenid) {
       wx.showToast({
         title: '暂无联系方式',
         icon: 'none'
@@ -699,36 +714,147 @@ Page({
       return;
     }
 
-    // 确定消息类型
-    const messageType = order.orderType === 'express' ? 'express' : 
-                       order.orderType === 'gaming' ? 'gaming' : 
-                       order.orderType === 'reward' ? 'reward' : 'order';
-    
-    // 创建消息记录
     try {
-      await wx.cloud.callFunction({
-        name: 'messageManage',
-        data: {
-          action: 'createMessage',
-          data: {
-            toUserId: toUserId,
-            toUserName: toUserName,
-            messageType: messageType,
-            relatedId: orderId,
-            relatedTitle: `订单 ${order.orderNo || orderId}`,
-            contactPhone: contactPhone,
-            contactAction: 'message'
-          }
+      wx.showLoading({ title: '加载中...' });
+
+      // 直接查询数据库获取用户的完整信息（包括微信号和电话号）
+      const db = wx.cloud.database();
+      const userQuery = await db.collection('users')
+        .where({
+          openid: userOpenid
+        })
+        .get();
+
+      wx.hideLoading();
+
+      let wechat = '';
+      let phone = '';
+      let userName = '';
+
+      if (userQuery.data && userQuery.data.length > 0) {
+        const userData = userQuery.data[0];
+        wechat = userData.wechat || '';
+        phone = userData.phone || order.address?.phone || order.userInfo?.phone || '';
+        userName = userData.nickname || order.address?.name || order.userInfo?.nickname || order.userInfo?.userName || '用户';
+      } else {
+        // 如果查询失败，尝试使用订单中的信息
+        phone = order.address?.phone || order.userInfo?.phone || '';
+        userName = order.address?.name || order.userInfo?.nickname || order.userInfo?.userName || '用户';
+      }
+
+      // 如果既没有微信号也没有电话号，提示用户
+      if (!wechat && !phone) {
+        wx.showToast({
+          title: '用户未设置联系方式',
+          icon: 'none'
+        });
+        return;
+      }
+
+      // 显示联系信息弹窗
+      this.setData({
+        showContactInfo: true,
+        contactInfo: {
+          wechat: wechat,
+          phone: phone,
+          userName: userName
         }
       });
-    } catch (err) {
-      console.error('【接单页面】创建消息记录失败:', err);
-      // 即使创建失败也继续跳转
+    } catch (error) {
+      wx.hideLoading();
+      console.error('【接单页面】获取用户信息失败:', error);
+      
+      // 如果获取失败，尝试使用订单中的信息
+      const phone = order.address?.phone || order.userInfo?.phone || '';
+      const userName = order.address?.name || order.userInfo?.nickname || order.userInfo?.userName || '用户';
+
+      if (!phone) {
+        wx.showToast({
+          title: '获取联系方式失败',
+          icon: 'none'
+        });
+        return;
+      }
+
+      this.setData({
+        showContactInfo: true,
+        contactInfo: {
+          wechat: '',
+          phone: phone,
+          userName: userName
+        }
+      });
     }
-    
-    // 跳转到聊天页面
-    wx.navigateTo({
-      url: `/pages/chat/index?toUserId=${toUserId}&toUserName=${encodeURIComponent(toUserName)}&messageType=${messageType}&relatedId=${orderId}&relatedTitle=${encodeURIComponent(`订单 ${order.orderNo || orderId}`)}`
+  },
+
+  // 关闭联系信息弹窗
+  onCloseContactInfo() {
+    this.setData({
+      showContactInfo: false
+    });
+  },
+
+  // 复制微信号
+  onCopyWechat() {
+    const wechat = this.data.contactInfo.wechat;
+    if (!wechat) {
+      wx.showToast({
+        title: '微信号为空',
+        icon: 'none'
+      });
+      return;
+    }
+    wx.setClipboardData({
+      data: wechat,
+      success: () => {
+        wx.showToast({
+          title: '微信号已复制',
+          icon: 'success'
+        });
+      }
+    });
+  },
+
+  // 复制电话号
+  onCopyPhone() {
+    const phone = this.data.contactInfo.phone;
+    if (!phone) {
+      wx.showToast({
+        title: '电话号为空',
+        icon: 'none'
+      });
+      return;
+    }
+    wx.setClipboardData({
+      data: phone,
+      success: () => {
+        wx.showToast({
+          title: '电话号已复制',
+          icon: 'success'
+        });
+      }
+    });
+  },
+
+  // 拨打电话
+  onCallPhone() {
+    const phone = this.data.contactInfo.phone;
+    if (!phone) {
+      wx.showToast({
+        title: '电话号为空',
+        icon: 'none'
+      });
+      return;
+    }
+    wx.makePhoneCall({
+      phoneNumber: phone,
+      fail: (err) => {
+        console.error('拨打电话失败:', err);
+        wx.showToast({
+          title: '拨打电话失败',
+          icon: 'none'
+        });
+      }
     });
   },
 
@@ -832,6 +958,94 @@ Page({
         icon: 'none'
       });
     }
+  },
+
+  // 接单者完成订单
+  async onCompleteOrder(e) {
+    let orderId = e.currentTarget.dataset.id;
+    
+    // 如果从事件中获取不到，尝试从详情中获取
+    if (!orderId && this.data.detail && this.data.detail.id) {
+      orderId = this.data.detail.id;
+    }
+    
+    if (!orderId && this.data.detail && this.data.detail.orderNo) {
+      const order = this.data.orders.find(o => o.orderNo === this.data.detail.orderNo);
+      if (order) {
+        orderId = order.id;
+      }
+    }
+    
+    console.log('【接单页面】点击完成订单，orderId:', orderId);
+    
+    if (!orderId) {
+      wx.showToast({
+        title: '缺少订单ID',
+        icon: 'none'
+      });
+      console.error('【接单页面】无法获取订单ID');
+      return;
+    }
+    
+    // 确认操作
+    wx.showModal({
+      title: '确认完成',
+      content: '确认已完成订单？完成后将等待用户确认。',
+      confirmText: '确认完成',
+      cancelText: '取消',
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            wx.showLoading({ title: '处理中...' });
+
+            // 调用云函数：接单者完成订单
+            const result = await wx.cloud.callFunction({
+              name: 'orderManage',
+              data: {
+                action: 'receiverCompleteOrder',
+                data: {
+                  orderId: orderId
+                }
+              }
+            });
+
+            wx.hideLoading();
+
+            console.log('【接单页面】完成订单云函数返回:', result.result);
+
+            if (result.result && result.result.code === 200) {
+              wx.showToast({
+                title: '完成成功，等待用户确认',
+                icon: 'success',
+                duration: 2000
+              });
+              
+              // 关闭详情弹层
+              this.setData({ showDetail: false });
+              
+              // 重新加载订单列表
+              setTimeout(() => {
+                this.loadOrders();
+              }, 500);
+            } else {
+              wx.showToast({
+                title: result.result?.message || '操作失败',
+                icon: 'none',
+                duration: 2000
+              });
+            }
+
+          } catch (error) {
+            wx.hideLoading();
+            console.error('【接单页面】完成订单异常:', error);
+            wx.showToast({
+              title: '操作失败',
+              icon: 'none'
+            });
+          }
+        }
+      }
+    });
   },
 
   // 接单后确认接单（received -> confirmed_by_receiver）
@@ -992,6 +1206,8 @@ Page({
       orderType: order.orderType,
       gameType: order.gameType,
       sessionDuration: order.sessionDuration,
+      taskDuration: order.taskDuration,
+      taskDurationUnit: order.taskDurationUnit || 'hour',
       requirements: order.requirements,
       selectedRequirements: order.selectedRequirements,
       helpLocation: order.helpLocation,
