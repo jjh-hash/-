@@ -1,6 +1,21 @@
 // 店铺照片管理云函数
 const cloud = require('wx-server-sdk');
 
+// 兼容性辅助函数：padStart的替代方案
+function padStart(str, targetLength, padString) {
+  str = String(str);
+  padString = padString || ' ';
+  if (str.length >= targetLength) {
+    return str;
+  }
+  const padLength = targetLength - str.length;
+  let padding = '';
+  for (let i = 0; i < padLength; i++) {
+    padding += padString;
+  }
+  return padding + str;
+}
+
 cloud.init({
   env: 'cloud1-7g0bpzkg04df43f9' // 指定云环境ID
 });
@@ -404,10 +419,10 @@ function formatDate(date) {
   
   // 使用UTC方法获取时间组件（因为我们已经手动加上了时区偏移）
   const year = chinaTime.getUTCFullYear();
-  const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(chinaTime.getUTCDate()).padStart(2, '0');
-  const hour = String(chinaTime.getUTCHours()).padStart(2, '0');
-  const minute = String(chinaTime.getUTCMinutes()).padStart(2, '0');
+  const month = padStart(chinaTime.getUTCMonth() + 1, 2, '0');
+  const day = padStart(chinaTime.getUTCDate(), 2, '0');
+  const hour = padStart(chinaTime.getUTCHours(), 2, '0');
+  const minute = padStart(chinaTime.getUTCMinutes(), 2, '0');
   
   return `${year}-${month}-${day} ${hour}:${minute}`;
 }

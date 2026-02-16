@@ -9,9 +9,6 @@
       <text class="back-icon">←</text>
     </view>
     <text class="title">商品详情</text>
-    <view class="share-btn" bindtap="onShareAppMessage">
-      <text class="share-icon">分享</text>
-    </view>
   </view>
 
   <scroll-view scroll-y class="content" wx:if="{{!loading && product}}">

@@ -1,6 +1,21 @@
 // 统计数据云函数
 const cloud = require('wx-server-sdk');
 
+// 兼容性辅助函数：padStart的替代方案
+function padStart(str, targetLength, padString) {
+  str = String(str);
+  padString = padString || ' ';
+  if (str.length >= targetLength) {
+    return str;
+  }
+  const padLength = targetLength - str.length;
+  let padding = '';
+  for (let i = 0; i < padLength; i++) {
+    padding += padString;
+  }
+  return padding + str;
+}
+
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
@@ -423,8 +438,8 @@ async function getSalesChart(openid, data) {
       
       if (type === 'day') {
         // 按天统计：MM/DD
-        const month = String(orderDate.getMonth() + 1).padStart(2, '0');
-        const day = String(orderDate.getDate()).padStart(2, '0');
+        const month = padStart(orderDate.getMonth() + 1, 2, '0');
+        const day = padStart(orderDate.getDate(), 2, '0');
         dateKey = `${day}/${month}`;
       } else if (type === 'week') {
         // 按周统计：第几周
@@ -433,7 +448,7 @@ async function getSalesChart(openid, data) {
       } else if (type === 'month') {
         // 按月统计：YYYY-MM
         const year = orderDate.getFullYear();
-        const month = String(orderDate.getMonth() + 1).padStart(2, '0');
+        const month = padStart(orderDate.getMonth() + 1, 2, '0');
         dateKey = `${year}-${month}`;
       }
       
@@ -457,8 +472,8 @@ async function getSalesChart(openid, data) {
       // 生成连续日期
       const currentDate = new Date(start);
       while (currentDate <= end) {
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const day = String(currentDate.getDate()).padStart(2, '0');
+        const month = padStart(currentDate.getMonth() + 1, 2, '0');
+        const day = padStart(currentDate.getDate(), 2, '0');
         const dateKey = `${day}/${month}`;
         
         dates.push(dateKey);
@@ -575,8 +590,8 @@ async function getSalesTrend(openid, data) {
     
     orders.forEach(order => {
       const orderDate = new Date(order.createdAt);
-      const month = String(orderDate.getMonth() + 1).padStart(2, '0');
-      const day = String(orderDate.getDate()).padStart(2, '0');
+      const month = padStart(orderDate.getMonth() + 1, 2, '0');
+      const day = padStart(orderDate.getDate(), 2, '0');
       const dateKey = `${day}/${month}`;
       
       if (!dailyStats[dateKey]) {
@@ -592,8 +607,8 @@ async function getSalesTrend(openid, data) {
     
     const currentDate = new Date(start);
     while (currentDate <= end) {
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const day = String(currentDate.getDate()).padStart(2, '0');
+      const month = padStart(currentDate.getMonth() + 1, 2, '0');
+      const day = padStart(currentDate.getDate(), 2, '0');
       const dateKey = `${day}/${month}`;
       
       dates.push(dateKey);

@@ -45,6 +45,21 @@ Page({
       if (res.result && res.result.code === 200) {
         const product = res.result.data;
         
+        // 计算折扣的辅助函数
+        const calculateDiscount = (price, originalPrice) => {
+          // 转换为数字
+          const priceNum = parseFloat(price);
+          const originalPriceNum = parseFloat(originalPrice);
+          
+          // 验证条件：原价必须存在且大于0，现价必须有效且小于等于原价
+          if (!originalPriceNum || originalPriceNum <= 0 || isNaN(priceNum) || priceNum < 0 || priceNum > originalPriceNum) {
+            return 0;
+          }
+          
+          // 计算折扣百分比（例如：8折 = 80）
+          return Math.round((1 - priceNum / originalPriceNum) * 100);
+        };
+
         // 格式化商品数据
         const formattedProduct = {
           ...product,
@@ -55,9 +70,9 @@ Page({
             avatar: product.sellerAvatar || '/pages/小标/商家.png',
             id: product.sellerId
           },
-          discount: product.discount || (product.originalPrice 
-            ? Math.round((1 - product.price / product.originalPrice) * 100)
-            : 0),
+          discount: product.discount !== undefined && product.discount !== null 
+            ? product.discount 
+            : calculateDiscount(product.price, product.originalPrice),
           contactType: product.contactType || '',
           contactInfo: product.contactInfo || ''
         };
@@ -202,17 +217,6 @@ Page({
   // 返回
   onBackTap() {
     wx.navigateBack();
-  },
-
-  // 分享
-  onShareAppMessage() {
-    return {
-      title: this.data.product ? `${this.data.product.title} - 校园闲置出售` : '校园闲置出售',
-      path: `/pages/secondhand-detail/index?id=${this.data.productId}`,
-      imageUrl: this.data.product && this.data.product.images && this.data.product.images[0] 
-        ? this.data.product.images[0] 
-        : ''
-    };
   }
 });
 

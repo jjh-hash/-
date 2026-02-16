@@ -19,9 +19,7 @@ Page({
     cutleryQuantity: 1, // 餐具数量，默认1份
     estimatedDeliveryTimeRange: '30~45分钟', // 预计到达时间范围，默认值
     announcementExpanded: false, // 公告是否展开
-    announcementNeedExpand: false, // 是否需要展开按钮（文字超过一定长度时）
-    showPaymentQRCode: false, // 是否显示支付二维码弹窗
-    paymentOrderInfo: null // 支付订单信息
+    announcementNeedExpand: false // 是否需要展开按钮（文字超过一定长度时）
   },
 
   onLoad(options) {
@@ -220,8 +218,8 @@ Page({
     }
   },
 
-  // 提交订单（显示支付二维码）
-  onSubmitOrder() {
+  // 提交订单并支付
+  async onSubmitOrder() {
     if (this.data.cartItems.length === 0) {
       wx.showToast({
         title: '购物车为空',
@@ -240,58 +238,19 @@ Page({
       return;
     }
 
-    // 准备订单信息用于显示支付二维码
-    const orderInfo = {
-      merchantName: this.data.storeInfo.name || '商家',
-      orderNo: '待生成',
-      amountTotal: this.data.totalAmount.toFixed(2)
-    };
-
-    // 显示支付二维码弹窗
-    this.setData({
-      showPaymentQRCode: true,
-      paymentOrderInfo: orderInfo
-    });
+    // 先创建订单，然后调用支付
+    await this.createOrderAndPay();
   },
 
-  // 关闭支付二维码弹窗
-  onClosePaymentQRCode() {
-    this.setData({
-      showPaymentQRCode: false
-    });
-  },
-
-  // 确认支付（用户点击确认支付按钮后）
-  onPaymentConfirmed(e) {
-    const { paymentProofFileId } = e.detail || {};
-    console.log('【结算页面】收到确认支付事件，支付凭证fileID:', paymentProofFileId);
-    // 提交订单（订单创建成功后会自动传递给商家）
-    this.placeOrder(paymentProofFileId);
-  },
-
-  // 下单
-  async placeOrder(paymentProofFileId) {
+  // 创建订单并支付
+  async createOrderAndPay() {
     wx.showLoading({
-      title: '正在下单...'
+      title: '正在创建订单...'
     });
 
     try {
       // 验证必要参数
       const storeId = this.data.storeInfo.storeId || this.data.storeInfo._id;
-      
-      console.log('【下单】准备下单的数据:', {
-        storeId: storeId,
-        cartItems: this.data.cartItems,
-        cartTotal: this.data.cartTotal,
-        storeInfo: this.data.storeInfo,
-        userInfo: this.data.userInfo,
-        remark: this.data.remark,
-        deliveryFee: this.data.deliveryFee,
-        deliveryType: this.data.deliveryType,
-        needCutlery: this.data.needCutlery,
-        cutleryQuantity: this.data.cutleryQuantity,
-        paymentProofFileId: paymentProofFileId
-      });
       
       if (!storeId) {
         wx.hideLoading();
@@ -313,22 +272,21 @@ Page({
       
       // 准备订单数据
       const orderData = {
-            storeId: storeId,
-            cartItems: this.data.cartItems,
-            cartTotal: this.data.cartTotal,
-            storeInfo: this.data.storeInfo,
-            address: this.data.userInfo,
-            remark: this.data.remark,
-            deliveryFee: this.data.deliveryFee,
-            deliveryType: this.data.deliveryType || 'delivery',
-            needCutlery: this.data.needCutlery,
-            cutleryQuantity: this.data.needCutlery ? this.data.cutleryQuantity : 0,
-            payStatus: 'unpaid', // 设置为未支付状态，需要商家确认支付
-            paymentProof: paymentProofFileId || '' // 支付凭证的云存储fileID
+        storeId: storeId,
+        cartItems: this.data.cartItems,
+        cartTotal: this.data.cartTotal,
+        storeInfo: this.data.storeInfo,
+        address: this.data.userInfo,
+        remark: this.data.remark,
+        deliveryFee: this.data.deliveryFee,
+        deliveryType: this.data.deliveryType || 'delivery',
+        needCutlery: this.data.needCutlery,
+        cutleryQuantity: this.data.needCutlery ? this.data.cutleryQuantity : 0,
+        payStatus: 'unpaid' // 初始状态为未支付
       };
 
-      // 调用云函数创建订单
-      const res = await wx.cloud.callFunction({
+      // 1. 先创建订单
+      const createOrderRes = await wx.cloud.callFunction({
         name: 'orderManage',
         data: {
           action: 'createOrder',
@@ -336,65 +294,128 @@ Page({
         }
       });
 
+      console.log('【创建订单】云函数返回结果:', createOrderRes.result);
+
+      if (createOrderRes.result && createOrderRes.result.code !== 200) {
+        wx.hideLoading();
+        if (createOrderRes.result.code === 403) {
+          wx.showToast({
+            title: createOrderRes.result.message || '店铺当前休息中，暂不接收订单',
+            icon: 'none',
+            duration: 3000
+          });
+        } else {
+          wx.showToast({
+            title: createOrderRes.result?.message || '创建订单失败',
+            icon: 'none',
+            duration: 2000
+          });
+        }
+        return;
+      }
+
+      const orderInfo = createOrderRes.result.data;
+      const orderId = orderInfo.orderId;
+      const totalFee = this.data.totalAmount * 100; // 转换为分
+
+      console.log('【创建订单】订单创建成功，订单号:', orderInfo?.orderNo, '订单ID:', orderId);
+
+      // 2. 调用统一下单，获取支付参数
+      wx.showLoading({
+        title: '正在调起支付...'
+      });
+
+      const paymentRes = await wx.cloud.callFunction({
+        name: 'paymentManage',
+        data: {
+          action: 'unifiedOrder',
+          data: {
+            orderId: orderId,
+            totalFee: totalFee,
+            description: `订单支付-${orderInfo.orderNo}`
+          }
+        }
+      });
+
       wx.hideLoading();
 
-      console.log('【下单】云函数返回结果:', res.result);
+      console.log('【统一下单】云函数返回结果:', paymentRes.result);
 
-      if (res.result && res.result.code === 200) {
-        const orderData = res.result.data;
-        console.log('【下单】订单创建成功，订单号:', orderData?.orderNo, '订单ID:', orderData?.orderId);
-        
-        // 关闭支付二维码弹窗
-        this.setData({
-          showPaymentQRCode: false
-        });
-
+      if (paymentRes.result && paymentRes.result.code !== 200) {
         wx.showToast({
-          title: '订单已提交，等待商家确认',
-          icon: 'success',
-          duration: 2000
-        });
-
-        // 延迟跳转到订单页面
-        setTimeout(() => {
-          wx.redirectTo({
-            url: '/subpackages/order/pages/order/index',
-            fail: (err) => {
-              console.error('跳转到订单页面失败:', err);
-              // 如果redirectTo失败，尝试使用reLaunch
-              wx.reLaunch({
-                url: '/subpackages/order/pages/order/index'
-              });
-            }
-          });
-        }, 2000);
-      } else if (res.result && res.result.code === 403) {
-        // 店铺休息中
-        wx.showToast({
-          title: res.result.message || '店铺当前休息中，暂不接收订单',
-          icon: 'none',
-          duration: 3000
-        });
-      } else {
-        wx.showToast({
-          title: res.result?.message || '下单失败',
+          title: paymentRes.result?.message || '获取支付参数失败',
           icon: 'none',
           duration: 2000
         });
+        return;
       }
+
+      const paymentParams = paymentRes.result.data;
+
+      // 3. 调起微信支付
+      wx.requestPayment({
+        timeStamp: paymentParams.timeStamp,
+        nonceStr: paymentParams.nonceStr,
+        package: paymentParams.package,
+        signType: paymentParams.signType,
+        paySign: paymentParams.paySign,
+        success: async (res) => {
+          console.log('【支付成功】', res);
+          
+          // 支付成功后，更新订单状态为已支付
+          try {
+            await wx.cloud.callFunction({
+              name: 'orderManage',
+              data: {
+                action: 'updateOrderPayStatus',
+                data: {
+                  orderId: orderId,
+                  payStatus: 'paid'
+                }
+              }
+            });
+            console.log('【支付成功】订单状态已更新为已支付');
+          } catch (error) {
+            console.error('【支付成功】更新订单状态失败:', error);
+            // 即使更新失败，也继续流程，因为支付回调会处理
+          }
+          
+          wx.showToast({
+            title: '支付成功',
+            icon: 'success',
+            duration: 2000
+          });
+
+          // 延迟跳转到订单页面
+          setTimeout(() => {
+            wx.redirectTo({
+              url: '/subpackages/order/pages/order/index',
+              fail: (err) => {
+                console.error('跳转到订单页面失败:', err);
+                wx.reLaunch({
+                  url: '/subpackages/order/pages/order/index'
+                });
+              }
+            });
+          }, 2000);
+        },
+        fail: (err) => {
+          console.error('【支付失败】', err);
+          if (err.errMsg && !err.errMsg.includes('cancel')) {
+            wx.showToast({
+              title: '支付失败，请重试',
+              icon: 'none',
+              duration: 2000
+            });
+          }
+        }
+      });
 
     } catch (error) {
       wx.hideLoading();
-      console.error('【下单】异常:', error);
-      console.error('【下单】错误详情:', {
-        message: error.message,
-        stack: error.stack,
-        error: error
-      });
-      
-      // 如果订单创建失败，保持弹窗打开，让用户可以重试
+      console.error('【创建订单并支付】异常:', error);
       wx.showToast({
-        title: '下单失败，请重试',
+        title: '操作失败，请重试',
         icon: 'none',
         duration: 2000
       });

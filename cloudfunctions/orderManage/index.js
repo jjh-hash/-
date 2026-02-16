@@ -1,6 +1,21 @@
 // 订单管理云函数
 const cloud = require('wx-server-sdk');
 
+// 兼容性辅助函数：padStart的替代方案
+function padStart(str, targetLength, padString) {
+  str = String(str);
+  padString = padString || ' ';
+  if (str.length >= targetLength) {
+    return str;
+  }
+  const padLength = targetLength - str.length;
+  let padding = '';
+  for (let i = 0; i < padLength; i++) {
+    padding += padString;
+  }
+  return padding + str;
+}
+
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
@@ -159,7 +174,7 @@ exports.main = async (event, context) => {
  */
 async function createOrder(openid, data) {
   try {
-    const { storeId, cartItems, cartTotal, storeInfo, address, remark, deliveryFee, deliveryType, needCutlery, cutleryQuantity, payStatus, paymentProof } = data;
+    const { storeId, cartItems, cartTotal, storeInfo, address, remark, deliveryFee, deliveryType, needCutlery, cutleryQuantity, payStatus } = data;
     
     console.log('【创建订单】接收到的参数:', data);
     console.log('【创建订单】参数详情:', {
@@ -395,8 +410,7 @@ async function createOrder(openid, data) {
       
       // 订单状态：根据自动接单设置决定初始状态
       orderStatus: initialOrderStatus, // pending-待确认, confirmed-已确认, preparing-制作中, ready-待配送, delivering-配送中, completed-已完成, cancelled-已取消
-      payStatus: payStatus || 'unpaid', // 支付状态：使用客户端传递的值，默认为未支付（需要商家确认收到款项后更新为paid）
-      paymentProof: paymentProof || '', // 支付凭证的云存储fileID
+      payStatus: payStatus || 'unpaid' // 支付状态：使用客户端传递的值，默认为未支付
       
       // 时间戳
       createdAt: db.serverDate(),
@@ -498,7 +512,7 @@ async function getOrderList(openid, data) {
     } catch (err) {
       console.warn('【获取订单列表】获取平台配置失败:', err);
     }
-    const estimatedDeliveryMinutes = platformConfig?.estimatedDeliveryMinutes || 30;
+    const estimatedDeliveryMinutes = (platformConfig && platformConfig.estimatedDeliveryMinutes) || 30;
     
     // 查询订单
     const result = await db.collection('orders')
@@ -1034,10 +1048,10 @@ async function updateSalesStatistics(order) {
     const now = new Date();
     const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
     const chinaTime = new Date(now.getTime() + chinaTimeOffset);
-    const dateStr = `${chinaTime.getUTCFullYear()}-${String(chinaTime.getUTCMonth() + 1).padStart(2, '0')}-${String(chinaTime.getUTCDate()).padStart(2, '0')}`;
+    const dateStr = `${chinaTime.getUTCFullYear()}-${padStart(chinaTime.getUTCMonth() + 1, 2, '0')}-${padStart(chinaTime.getUTCDate(), 2, '0')}`;
     
     // 获取当前月份（YYYY-MM格式），用于月售统计
-    const monthStr = `${chinaTime.getUTCFullYear()}-${String(chinaTime.getUTCMonth() + 1).padStart(2, '0')}`;
+    const monthStr = `${chinaTime.getUTCFullYear()}-${padStart(chinaTime.getUTCMonth() + 1, 2, '0')}`;
     
     // 1. 更新日销售统计（如果sales_statistics集合存在）
     try {
@@ -1434,10 +1448,10 @@ function formatDate(date) {
   
   // 使用UTC方法获取时间组件（因为我们已经手动加上了时区偏移）
   const year = chinaTime.getUTCFullYear();
-  const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(chinaTime.getUTCDate()).padStart(2, '0');
-  const hours = String(chinaTime.getUTCHours()).padStart(2, '0');
-  const minutes = String(chinaTime.getUTCMinutes()).padStart(2, '0');
+  const month = padStart(chinaTime.getUTCMonth() + 1, 2, '0');
+  const day = padStart(chinaTime.getUTCDate(), 2, '0');
+  const hours = padStart(chinaTime.getUTCHours(), 2, '0');
+  const minutes = padStart(chinaTime.getUTCMinutes(), 2, '0');
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
@@ -1789,9 +1803,9 @@ async function getAdminOrderList(openid, data) {
           statusText: getStatusText(order.payStatus, order.orderStatus),
           isNonStoreOrder: order.orderType === 'gaming' || order.orderType === 'reward' || order.orderType === 'express',
           orderType: order.orderType || 'normal',
-          storeLogo: storeInfo?.logoUrl || '/pages/小标/商家.png',
-          storeName: storeInfo?.name || order.storeName || '未知店铺',
-          storeAddress: storeInfo?.address || (order.address && (order.address.address || order.address.addressDetail)) || '未知地址',
+          storeLogo: (storeInfo && storeInfo.logoUrl) || '/pages/小标/商家.png',
+          storeName: (storeInfo && storeInfo.name) || order.storeName || '未知店铺',
+          storeAddress: (storeInfo && storeInfo.address) || (order.address && (order.address.address || order.address.addressDetail)) || '未知地址',
           userInfo: order.userInfo || (order.userId ? userMap.get(order.userId) : null),
           userNickname: userNickname,
           userAvatar: userAvatarUrl,
@@ -2189,9 +2203,9 @@ async function getAdminOrderList(openid, data) {
         isNonStoreOrder: order.orderType === 'gaming' || order.orderType === 'reward' || order.orderType === 'express',
         orderType: order.orderType || 'normal',
         // 店铺信息（有店铺订单）
-        storeLogo: storeInfo?.logoUrl || '/pages/小标/商家.png',
-        storeName: storeInfo?.name || order.storeName || '未知店铺',
-        storeAddress: storeInfo?.address || (order.address && (order.address.address || order.address.addressDetail)) || '未知地址',
+        storeLogo: (storeInfo && storeInfo.logoUrl) || '/pages/小标/商家.png',
+        storeName: (storeInfo && storeInfo.name) || order.storeName || '未知店铺',
+        storeAddress: (storeInfo && storeInfo.address) || (order.address && (order.address.address || order.address.addressDetail)) || '未知地址',
         // 用户信息（无店铺订单）- 优先使用订单中保存的，否则从用户表查询
         userInfo: order.userInfo || (order.userId ? userMap.get(order.userId) : null),
         userNickname: userNickname,
@@ -3656,8 +3670,8 @@ async function updateRiderTodayStats(riderOpenid) {
     const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
     const chinaTime = new Date(now.getTime() + chinaTimeOffset);
     const year = chinaTime.getUTCFullYear();
-    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
+    const month = padStart(chinaTime.getUTCMonth() + 1, 2, '0');
+    const day = padStart(chinaTime.getUTCDate(), 2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
     console.log('【更新骑手统计】日期字符串:', dateStr, '骑手openid:', riderOpenid);
@@ -3760,8 +3774,8 @@ async function getRiderTodayStats(riderOpenid, data) {
     const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
     const chinaTime = new Date(now.getTime() + chinaTimeOffset);
     const year = chinaTime.getUTCFullYear();
-    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
+    const month = padStart(chinaTime.getUTCMonth() + 1, 2, '0');
+    const day = padStart(chinaTime.getUTCDate(), 2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
     // 获取今天的日期范围（开始和结束时间）- 使用中国时区
@@ -3799,7 +3813,7 @@ async function getRiderTodayStats(riderOpenid, data) {
       }
     }
     
-    console.log('【获取骑手统计】查询结果:', statsResult?.data);
+    console.log('【获取骑手统计】查询结果:', statsResult && statsResult.data);
     
     // 如果统计数据存在，直接返回
     if (hasStatsData && statsResult.data && statsResult.data.length > 0) {
@@ -4164,10 +4178,10 @@ function formatRiderOrder(order) {
     const chinaTimeOffset = 8 * 60 * 60 * 1000;
     const chinaTime = new Date(d.getTime() + chinaTimeOffset);
     const year = chinaTime.getUTCFullYear();
-    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
-    const hour = String(chinaTime.getUTCHours()).padStart(2, '0');
-    const minute = String(chinaTime.getUTCMinutes()).padStart(2, '0');
+    const month = padStart(chinaTime.getUTCMonth() + 1, 2, '0');
+    const day = padStart(chinaTime.getUTCDate(), 2, '0');
+    const hour = padStart(chinaTime.getUTCHours(), 2, '0');
+    const minute = padStart(chinaTime.getUTCMinutes(), 2, '0');
     return `${year}-${month}-${day} ${hour}:${minute}`;
   };
   
@@ -4861,7 +4875,7 @@ async function acceptOrder(openid, data) {
           action: 'createMessage',
           data: {
             toUserId: order.userOpenid,
-            toUserName: order.userInfo?.nickname || '用户',
+            toUserName: (order.userInfo && order.userInfo.nickname) || '用户',
             messageType: order.orderType, // gaming/express/reward
             relatedId: orderId,
             relatedTitle: `订单 ${order.orderNo || orderId} 已被接单`
@@ -4954,7 +4968,7 @@ async function receiverConfirmOrder(openid, data) {
           action: 'createMessage',
           data: {
             toUserId: order.userOpenid,
-            toUserName: order.userInfo?.nickname || '用户',
+            toUserName: (order.userInfo && order.userInfo.nickname) || '用户',
             messageType: order.orderType,
             relatedId: orderId,
             relatedTitle: `订单 ${order.orderNo || orderId} 接单者已确认`
@@ -5042,7 +5056,7 @@ async function receiverCompleteOrder(openid, data) {
           action: 'createMessage',
           data: {
             toUserId: order.userOpenid,
-            toUserName: order.userInfo?.nickname || '用户',
+            toUserName: (order.userInfo && order.userInfo.nickname) || '用户',
             messageType: order.orderType,
             relatedId: orderId,
             relatedTitle: `订单 ${order.orderNo || orderId} 接单者已完成，请确认`
@@ -5131,7 +5145,7 @@ async function userConfirmComplete(openid, data) {
           action: 'createMessage',
           data: {
             toUserId: order.receiverOpenid,
-            toUserName: order.receiverInfo?.nickname || '用户',
+            toUserName: (order.receiverInfo && order.receiverInfo.nickname) || '用户',
             messageType: order.orderType,
             relatedId: orderId,
             relatedTitle: `订单 ${order.orderNo || orderId} 用户已确认完成`
@@ -5332,7 +5346,7 @@ async function cancelReceiverOrderByReceiver(openid, data) {
             action: 'createMessage',
             data: {
               toUserId: order.userOpenid,
-              toUserName: order.userInfo?.nickname || '用户',
+              toUserName: (order.userInfo && order.userInfo.nickname) || '用户',
               messageType: order.orderType,
               relatedId: orderId,
               relatedTitle: `订单 ${order.orderNo || orderId} 接单者已取消接单`
@@ -5448,7 +5462,7 @@ async function cancelReceiverOrder(openid, data) {
             action: 'createMessage',
             data: {
               toUserId: receiverOpenid,
-              toUserName: receiverInfo?.nickname || '用户',
+              toUserName: (receiverInfo && receiverInfo.nickname) || '用户',
               messageType: order.orderType,
               relatedId: orderId,
               relatedTitle: `订单 ${order.orderNo || orderId} 已被取消接单`

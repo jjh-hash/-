@@ -16,7 +16,10 @@ Page({
     contactInfo: '',
     images: [],
     maxImages: 9,
-    uploading: false
+    uploading: false,
+    isAnonymous: false, // 是否匿名发布
+    realNickName: '', // 用户真实昵称
+    realAvatarUrl: '' // 用户真实头像
   },
 
   onLoad() {
@@ -28,10 +31,29 @@ Page({
   async getUserInfo() {
     try {
       const userInfo = wx.getStorageSync('userInfo');
-      if (userInfo && userInfo.location) {
+      console.log('【发布页面】获取到的用户信息:', userInfo);
+      
+      if (userInfo) {
+        // 保存用户真实信息（注意字段名：nickname 和 avatar）
+        const nickname = userInfo.nickname || userInfo.nickName || '';
+        const avatar = userInfo.avatar || userInfo.avatarUrl || '/pages/小标/商家.png';
+        
+        console.log('【发布页面】用户昵称:', nickname);
+        console.log('【发布页面】用户头像:', avatar);
+        
         this.setData({
-          location: userInfo.location
+          realNickName: nickname,
+          realAvatarUrl: avatar
         });
+        
+        // 如果有位置信息，设置位置
+        if (userInfo.location) {
+          this.setData({
+            location: userInfo.location
+          });
+        }
+      } else {
+        console.warn('【发布页面】未找到用户信息');
       }
     } catch (err) {
       console.error('获取用户信息失败:', err);
@@ -96,6 +118,14 @@ Page({
   onContactInfoInput(e) {
     this.setData({
       contactInfo: e.detail.value
+    });
+  },
+
+  // 切换匿名状态
+  onAnonymousChange(e) {
+    const isAnonymous = e.detail.value;
+    this.setData({
+      isAnonymous: isAnonymous
     });
   },
 
@@ -238,6 +268,24 @@ Page({
       const userInfo = wx.getStorageSync('userInfo') || {};
       const openid = userInfo.openid || '';
 
+      // 根据匿名选项决定使用真实信息还是匿名信息
+      // 注意：用户信息字段名是 nickname 和 avatar，不是 nickName 和 avatarUrl
+      const realNickname = this.data.realNickName || userInfo.nickname || userInfo.nickName || '';
+      const realAvatar = this.data.realAvatarUrl || userInfo.avatar || userInfo.avatarUrl || '/pages/小标/商家.png';
+      
+      const sellerName = this.data.isAnonymous 
+        ? '匿名用户' 
+        : (realNickname || '微信用户');
+      const sellerAvatar = this.data.isAnonymous 
+        ? '/pages/小标/商家.png' 
+        : (realAvatar || '/pages/小标/商家.png');
+      
+      console.log('【发布页面】匿名状态:', this.data.isAnonymous);
+      console.log('【发布页面】真实昵称:', realNickname);
+      console.log('【发布页面】真实头像:', realAvatar);
+      console.log('【发布页面】最终卖家名称:', sellerName);
+      console.log('【发布页面】最终卖家头像:', sellerAvatar);
+
       // 准备发布数据
       const publishData = {
         title: this.data.title.trim(),
@@ -250,8 +298,8 @@ Page({
         contactInfo: this.data.contactInfo.trim() || '',
         images: this.data.images,
         sellerId: openid,
-        sellerName: userInfo.nickName || '匿名用户',
-        sellerAvatar: userInfo.avatarUrl || ''
+        sellerName: sellerName,
+        sellerAvatar: sellerAvatar
       };
 
       console.log('【发布闲置商品】提交数据:', publishData);
@@ -273,6 +321,9 @@ Page({
           duration: 2000
         });
 
+        // 刷新列表页面
+        this.refreshListPage();
+
         setTimeout(() => {
           wx.navigateBack();
         }, 2000);
@@ -289,6 +340,57 @@ Page({
         title: '发布失败，请重试',
         icon: 'none'
       });
+    }
+  },
+
+  // 刷新列表页面
+  refreshListPage() {
+    try {
+      // 方法1：通过页面栈直接刷新
+      const pages = getCurrentPages();
+      
+      // 查找列表页面（可能是分包页面或主包页面）
+      for (let i = pages.length - 2; i >= 0; i--) {
+        const page = pages[i];
+        const route = page.route;
+        
+        // 检查是否是闲置出售列表页面
+        if (route === 'subpackages/secondhand/pages/secondhand/index' || 
+            route === 'pages/secondhand/index') {
+          // 重置页码并刷新列表
+          if (page.setData) {
+            page.setData({
+              page: 1,
+              products: []
+            });
+          }
+          // 调用刷新方法
+          if (typeof page.loadProducts === 'function') {
+            page.loadProducts();
+          }
+          console.log('【发布页面】已刷新列表页面:', route);
+          return;
+        }
+      }
+      
+      // 方法2：如果页面栈中没有列表页面，设置全局标记
+      // 列表页面的 onShow 会检查这个标记并刷新
+      const app = getApp();
+      if (app.globalData) {
+        app.globalData.needRefreshSecondhandList = true;
+        console.log('【发布页面】已设置刷新标记，列表页面显示时会自动刷新');
+      }
+    } catch (err) {
+      console.error('【发布页面】刷新列表页面失败:', err);
+      // 出错时也设置全局标记作为备用方案
+      try {
+        const app = getApp();
+        if (app.globalData) {
+          app.globalData.needRefreshSecondhandList = true;
+        }
+      } catch (e) {
+        console.error('【发布页面】设置刷新标记失败:', e);
+      }
     }
   },
 

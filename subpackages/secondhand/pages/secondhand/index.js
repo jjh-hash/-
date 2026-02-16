@@ -19,6 +19,21 @@ Page({
     this.loadProducts();
   },
 
+  onShow() {
+    // 页面显示时检查是否需要刷新
+    // 如果从发布页面返回，需要刷新列表
+    const app = getApp();
+    if (app.globalData && app.globalData.needRefreshSecondhandList) {
+      app.globalData.needRefreshSecondhandList = false;
+      // 重置页码并刷新
+      this.setData({
+        page: 1,
+        products: []
+      });
+      this.loadProducts();
+    }
+  },
+
   // 搜索输入
   onSearchInput(e) {
     this.setData({

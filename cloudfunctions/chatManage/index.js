@@ -70,7 +70,7 @@ async function sendMessage(openid, data) {
     const fromUserName = fromUserData 
       ? (fromUserData.nickname || '匿名用户')
       : '匿名用户';
-    const fromUserAvatar = fromUserData?.avatar || '';
+    const fromUserAvatar = (fromUserData && fromUserData.avatar) || '';
 
     // 生成会话ID（确保两个用户之间的会话ID唯一且一致）
     const chatId = generateChatId(openid, toUserId);

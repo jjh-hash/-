@@ -262,7 +262,7 @@ exports.main = async (event, context) => {
         month: store.monthlySales || store.sales || 0,
         start: store.minOrderAmount || 20,
         delivery: store.deliveryFee || 3,
-        merchantName: merchant?.merchantName || '',
+        merchantName: (merchant && merchant.merchantName) || '',
         productCount: productCount
       };
     });

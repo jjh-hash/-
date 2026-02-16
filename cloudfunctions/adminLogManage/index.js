@@ -1,6 +1,21 @@
 // 管理员操作日志管理云函数
 const cloud = require('wx-server-sdk');
 
+// 兼容性辅助函数：padStart的替代方案
+function padStart(str, targetLength, padString) {
+  str = String(str);
+  padString = padString || ' ';
+  if (str.length >= targetLength) {
+    return str;
+  }
+  const padLength = targetLength - str.length;
+  let padding = '';
+  for (let i = 0; i < padLength; i++) {
+    padding += padString;
+  }
+  return padding + str;
+}
+
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
@@ -93,10 +108,10 @@ function formatTime(date) {
   if (!date) return '';
   const d = new Date(date);
   const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const hour = String(d.getHours()).padStart(2, '0');
-  const minute = String(d.getMinutes()).padStart(2, '0');
+  const month = padStart(d.getMonth() + 1, 2, '0');
+  const day = padStart(d.getDate(), 2, '0');
+  const hour = padStart(d.getHours(), 2, '0');
+  const minute = padStart(d.getMinutes(), 2, '0');
   return `${year}-${month}-${day} ${hour}:${minute}`;
 }
 

@@ -200,6 +200,20 @@ async function getProductList(openid, data) {
       .where(whereCondition)
       .count();
 
+    // 计算折扣的辅助函数
+    const calculateDiscount = (price, originalPrice) => {
+      const priceNum = parseFloat(price);
+      const originalPriceNum = parseFloat(originalPrice);
+      
+      // 验证条件：原价必须存在且大于0，现价必须有效且小于等于原价
+      if (!originalPriceNum || originalPriceNum <= 0 || isNaN(priceNum) || priceNum < 0 || priceNum > originalPriceNum) {
+        return 0;
+      }
+      
+      // 计算折扣百分比（例如：8折 = 80）
+      return Math.round((1 - priceNum / originalPriceNum) * 100);
+    };
+
     // 格式化数据
     const products = result.data.map(product => {
       // 计算发布时间
@@ -225,9 +239,7 @@ async function getProductList(openid, data) {
         ...product,
         id: product._id,
         publishTime: publishTime,
-        discount: product.originalPrice 
-          ? Math.round((product.originalPrice - product.price) / product.originalPrice * 100)
-          : 0
+        discount: calculateDiscount(product.price, product.originalPrice)
       };
     });
 
@@ -280,6 +292,20 @@ async function getProductDetail(openid, data) {
       }
     });
 
+    // 计算折扣的辅助函数
+    const calculateDiscount = (price, originalPrice) => {
+      const priceNum = parseFloat(price);
+      const originalPriceNum = parseFloat(originalPrice);
+      
+      // 验证条件：原价必须存在且大于0，现价必须有效且小于等于原价
+      if (!originalPriceNum || originalPriceNum <= 0 || isNaN(priceNum) || priceNum < 0 || priceNum > originalPriceNum) {
+        return 0;
+      }
+      
+      // 计算折扣百分比（例如：8折 = 80）
+      return Math.round((1 - priceNum / originalPriceNum) * 100);
+    };
+
     // 格式化数据
     const productData = product.data;
     const createdAt = productData.createdAt ? new Date(productData.createdAt) : new Date();
@@ -307,9 +333,7 @@ async function getProductDetail(openid, data) {
         ...productData,
         id: productData._id,
         publishTime: publishTime,
-        discount: productData.originalPrice 
-          ? Math.round((productData.originalPrice - productData.price) / productData.originalPrice * 100)
-          : 0
+        discount: calculateDiscount(productData.price, productData.originalPrice)
       }
     };
   } catch (error) {
