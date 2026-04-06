@@ -54,6 +54,29 @@ App({
     setTimeout(() => {
       this.checkAnnouncement();
     }, 2000);
+    
+    // 购物车 Tab 角标、订阅消息预拉：延后执行，避免同步 Storage 阻塞启动
+    setTimeout(() => {
+      try {
+        const cartUtil = require('./utils/cart.js');
+        if (cartUtil && cartUtil.updateTabBarBadge) cartUtil.updateTabBarBadge();
+      } catch (e) {}
+      try {
+        const subscribeMessage = require('./utils/subscribeMessage.js');
+        if (subscribeMessage && subscribeMessage.preloadOrderStatusTemplateId) {
+          subscribeMessage.preloadOrderStatusTemplateId();
+        }
+      } catch (e) {}
+    }, 100);
+
+    // 内存告警：释放非必要资源，降低闪退风险
+    wx.onMemoryWarning && wx.onMemoryWarning((res) => {
+      console.warn('【内存告警】level:', res.level, 'lastResidentSize:', res.lastResidentSize);
+      // 可在此释放非关键缓存，如首页列表缓存（用户重新进入会再拉）
+      try {
+        wx.removeStorage({ key: 'home_products_cache' });
+      } catch (e) {}
+    });
   },
 
   globalData: {

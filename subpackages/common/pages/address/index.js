@@ -185,15 +185,19 @@ Page({
 
   // 选择地址（从express页面或结算页面跳转过来时使用）
   onSelectAddress(e) {
-    // 如果是从express页面或结算页面跳转过来的，才执行选择地址逻辑
-    // 否则不做任何处理，保持原有的地址管理功能不变
-    if (!this.data.fromExpress && !this.data.fromCheckout) {
-      return;
-    }
-    
     const addressId = e.currentTarget.dataset.id;
     const selectedAddress = this.data.addresses.find(addr => addr._id === addressId);
-    
+    if (!selectedAddress) return;
+
+    // 普通地址管理场景：点击地址进入编辑页
+    if (!this.data.fromExpress && !this.data.fromCheckout) {
+      wx.navigateTo({
+        url: `/subpackages/common/pages/add-address/index?mode=edit&addressId=${encodeURIComponent(addressId)}`
+      });
+      return;
+    }
+
+    // 地址选择场景：回传给来源页面
     if (selectedAddress) {
       const pages = getCurrentPages();
       if (pages.length >= 2) {
@@ -213,7 +217,10 @@ Page({
             userInfo: {
               name: selectedAddress.name,
               phone: selectedAddress.phone,
-              address: addressText
+              address: addressText,
+              addressDetail: selectedAddress.addressDetail || '',
+              buildingName: selectedAddress.buildingName || '',
+              houseNumber: selectedAddress.houseNumber || ''
             },
             hasAddress: true,
             addressSelected: true // 标记已选择地址，防止onShow时覆盖
