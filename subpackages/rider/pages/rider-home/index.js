@@ -658,7 +658,7 @@ Page({
                 // 显示统计更新提示
               setTimeout(() => {
                 wx.showToast({
-                  title: '📊 今日接单+1，收入+2元',
+                  title: '📊 今日接单+1，收入按楼层结算',
                   icon: 'none',
                   duration: 2000
                 });

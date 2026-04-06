@@ -70,6 +70,10 @@
         <text class="delivery-label">预计送达</text>
         <text class="delivery-value">{{estimatedDeliveryTimeRange}}</text>
       </view>
+      <view class="delivery-item">
+        <text class="delivery-label">支付说明</text>
+        <text class="delivery-value">餐费骑手垫付，送达后线下转给骑手</text>
+      </view>
     </view>
 
     <!-- 餐具选择 -->
@@ -110,7 +114,7 @@
   <!-- 底部结算栏 -->
   <view class="checkout-footer">
     <view class="total-info">
-      <text class="total-label">合计</text>
+      <text class="total-label">在线支付（仅配送费）</text>
       <text class="total-amount">¥{{totalAmount}}</text>
     </view>
     <view class="submit-btn {{submitting ? 'disabled' : ''}}" bindtap="onSubmitOrder">

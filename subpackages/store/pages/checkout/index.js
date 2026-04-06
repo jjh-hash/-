@@ -26,6 +26,41 @@ Page({
     submitting: false // 提交订单防重复
   },
 
+  // 从地址文本中提取楼层（仅支持 1~6 楼）
+  extractFloorFromAddress(addressObj) {
+    const text = [
+      addressObj?.buildingName,
+      addressObj?.houseNumber,
+      addressObj?.addressDetail,
+      addressObj?.address
+    ].filter(Boolean).join(' ');
+    if (!text) return null;
+
+    const floorMatch = text.match(/([1-6])\s*楼/);
+    if (floorMatch) return parseInt(floorMatch[1], 10);
+
+    const roomMatch = text.match(/\b([1-6])\d{2,3}\b/);
+    if (roomMatch) return parseInt(roomMatch[1], 10);
+    return null;
+  },
+
+  // 根据楼层计算配送费：1-3楼 1.5 元；4-6楼 2 元；无法识别默认 2 元
+  getDeliveryFeeByAddress(addressObj) {
+    const floor = this.extractFloorFromAddress(addressObj);
+    if (floor >= 1 && floor <= 3) return 1.5;
+    if (floor >= 4 && floor <= 6) return 2;
+    return 2;
+  },
+
+  // 当前业务仅收配送费，餐费由骑手垫付后线下转给骑手
+  updateSettlementAmountByAddress(addressObj) {
+    const deliveryFee = this.getDeliveryFeeByAddress(addressObj);
+    this.setData({
+      deliveryFee,
+      totalAmount: deliveryFee
+    });
+  },
+
   onLoad(options) {
     if (!getApp().globalData.isLoggedIn) {
       wx.showToast({ title: '请先登录后再下单', icon: 'none' });
@@ -41,25 +76,17 @@ Page({
         
         log.log('【结算页面】解析购物车数据:', cartData);
         
-        // 从storeInfo中获取配送费
-        const deliveryFee = cartData.storeInfo?.deliveryFee || 2;
-        
         this.setData({
           cartItems: cartData.cartItems || [],
           cartTotal: cartData.cartTotal || 0,
           storeInfo: cartData.storeInfo || {},
-          deliveryFee: deliveryFee,
+          deliveryFee: 2,
           deliveryType: cartData.deliveryType || 'delivery' // 保存配送方式
         }, () => {
           // 检查公告是否需要展开按钮
           this.checkAnnouncementLength();
         });
-        
-        // 计算总金额（商品金额 + 配送费）
-        const totalAmount = this.data.cartTotal + deliveryFee;
-        this.setData({
-          totalAmount: totalAmount
-        });
+        this.updateSettlementAmountByAddress(this.data.userInfo);
         
         log.log('【结算页面】设置完成:', {
           cartItems: this.data.cartItems,
@@ -149,10 +176,14 @@ Page({
           userInfo: {
             name: defaultAddress.name,
             phone: defaultAddress.phone,
-            address: `${defaultAddress.addressDetail}${defaultAddress.buildingName ? defaultAddress.buildingName : ''}${defaultAddress.houseNumber ? defaultAddress.houseNumber : ''}`
+            address: `${defaultAddress.addressDetail}${defaultAddress.buildingName ? defaultAddress.buildingName : ''}${defaultAddress.houseNumber ? defaultAddress.houseNumber : ''}`,
+            addressDetail: defaultAddress.addressDetail || '',
+            buildingName: defaultAddress.buildingName || '',
+            houseNumber: defaultAddress.houseNumber || ''
           },
           hasAddress: true
         });
+        this.updateSettlementAmountByAddress(defaultAddress);
         
         log.log('【结算页面】设置默认地址:', this.data.userInfo);
       } else {
@@ -525,6 +556,8 @@ Page({
     // 从添加地址页面返回时，需要刷新地址列表
     if (!this.data.addressSelected) {
       this.loadUserAddress();
+      return;
     }
+    this.updateSettlementAmountByAddress(this.data.userInfo);
   }
 });

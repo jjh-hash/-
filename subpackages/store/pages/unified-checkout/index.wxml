@@ -30,8 +30,8 @@
             <text class="item-price">¥{{(it.finalPrice || it.price) * it.quantity}}</text>
           </view>
           <view class="store-footer">
-            <text class="store-total">小计 ¥{{item.cartTotal}}</text>
-            <text class="store-fee">配送费 ¥{{item.storeInfo.deliveryFee || 0}}</text>
+            <text class="store-total">餐费（线下转骑手）¥{{item.cartTotal}}</text>
+            <text class="store-fee">配送费 ¥{{item.calculatedDeliveryFee || 2}}</text>
           </view>
         </view>
       </block>
@@ -42,7 +42,7 @@
 
   <view class="footer">
     <view class="total-row">
-      <text class="total-label">合计</text>
+      <text class="total-label">在线支付（仅配送费）</text>
       <text class="total-value" wx:if="{{totalFeeFen > 0}}">{{totalFeeText}}</text>
       <text class="total-value" wx:else>¥0.00</text>
     </view>

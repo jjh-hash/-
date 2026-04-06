@@ -14,6 +14,44 @@ Page({
     submitting: false
   },
 
+  extractFloorFromAddress(addressObj) {
+    const text = [
+      addressObj?.buildingName,
+      addressObj?.houseNumber,
+      addressObj?.addressDetail,
+      addressObj?.address
+    ].filter(Boolean).join(' ');
+    if (!text) return null;
+    const floorMatch = text.match(/([1-6])\s*楼/);
+    if (floorMatch) return parseInt(floorMatch[1], 10);
+    const roomMatch = text.match(/\b([1-6])\d{2,3}\b/);
+    if (roomMatch) return parseInt(roomMatch[1], 10);
+    return null;
+  },
+
+  getDeliveryFeeByAddress(addressObj) {
+    const floor = this.extractFloorFromAddress(addressObj);
+    if (floor >= 1 && floor <= 3) return 1.5;
+    if (floor >= 4 && floor <= 6) return 2;
+    return 2;
+  },
+
+  recomputeFeeForAddress(addressObj) {
+    const deliveryFee = this.getDeliveryFeeByAddress(addressObj);
+    let totalFeeFen = 0;
+    const nextStoreList = (this.data.storeList || []).map(s => {
+      totalFeeFen += Math.round(deliveryFee * 100);
+      return Object.assign({}, s, { calculatedDeliveryFee: deliveryFee });
+    });
+    const totalFeeYuan = (totalFeeFen / 100).toFixed(2);
+    this.setData({
+      storeList: nextStoreList,
+      totalFeeFen,
+      totalFeeYuan,
+      totalFeeText: '¥' + totalFeeYuan
+    });
+  },
+
   onLoad() {
     if (!getApp().globalData.isLoggedIn) {
       wx.showToast({ title: '请先登录后再下单', icon: 'none' });
@@ -28,10 +66,8 @@ Page({
       return;
     }
     let totalFeeFen = 0;
-    storeList.forEach(s => {
-      const deliveryFee = (s.storeInfo && s.storeInfo.deliveryFee) != null ? s.storeInfo.deliveryFee : 2;
-      const orderTotal = (s.cartTotal || 0) + Number(deliveryFee);
-      totalFeeFen += Math.round(orderTotal * 100);
+    storeList.forEach(() => {
+      totalFeeFen += 200;
     });
     const totalFeeYuan = (totalFeeFen / 100).toFixed(2);
     const totalFeeText = '¥' + totalFeeYuan;
@@ -57,6 +93,7 @@ Page({
           houseNumber: defaultAddr.houseNumber || ''
         };
         this.setData({ address, hasAddress: true });
+        this.recomputeFeeForAddress(address);
       }
     } catch (e) {
       this.setData({ hasAddress: false });
@@ -69,6 +106,7 @@ Page({
     if (from) this.setData({ fromAddressPage: false });
     this.loadUserAddress();
     subscribeMessage.preloadOrderStatusTemplateId();
+    if (this.data.address) this.recomputeFeeForAddress(this.data.address);
   },
 
   onSelectAddress() {

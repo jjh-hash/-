@@ -52,7 +52,7 @@ async function createDefaultConfig() {
     minOrderAmountLimit: 2000, // 最低订单金额下限（分）20元
     estimatedDeliveryMinutes: 30, // 预计送达时间（分钟）
     orderTimeoutMinutes: 20, // 订单超时时间（分钟）
-    depositAmount: 10000, // 校园兼职保证金（分）100 元
+    depositAmount: 2500, // 校园兼职保证金（分）25 元
     createdAt: db.serverDate(),
     updatedAt: db.serverDate()
   };
@@ -111,7 +111,7 @@ async function getConfig() {
             minOrderAmountLimit: defaultConfig.minOrderAmountLimit || 2000,
             estimatedDeliveryMinutes: defaultConfig.estimatedDeliveryMinutes || 30,
             orderTimeoutMinutes: defaultConfig.orderTimeoutMinutes || 15,
-            depositAmount: defaultConfig.depositAmount !== undefined ? defaultConfig.depositAmount : 10000,
+            depositAmount: defaultConfig.depositAmount !== undefined ? defaultConfig.depositAmount : 2500,
             systemStartTime: systemStartTime || null,
             deploymentTime: systemStartTime || null
           }
@@ -152,7 +152,7 @@ async function getConfig() {
           minOrderAmountLimit: defaultConfig.minOrderAmountLimit || 2000,
           estimatedDeliveryMinutes: defaultConfig.estimatedDeliveryMinutes || 30,
           orderTimeoutMinutes: defaultConfig.orderTimeoutMinutes || 15,
-          depositAmount: defaultConfig.depositAmount !== undefined ? defaultConfig.depositAmount : 10000,
+          depositAmount: defaultConfig.depositAmount !== undefined ? defaultConfig.depositAmount : 2500,
           systemStartTime: systemStartTime || null,
           deploymentTime: systemStartTime || null
         }
@@ -196,7 +196,7 @@ async function getConfig() {
         minOrderAmountLimit: config.minOrderAmountLimit || 2000,
         estimatedDeliveryMinutes: config.estimatedDeliveryMinutes || 30,
         orderTimeoutMinutes: config.orderTimeoutMinutes || 15,
-        depositAmount: config.depositAmount !== undefined ? config.depositAmount : 10000,
+        depositAmount: config.depositAmount !== undefined ? config.depositAmount : 2500,
         systemStartTime: systemStartTime || config.deploymentTime || null,
         deploymentTime: deploymentTime || config.deploymentTime || null,
         subscribeMessageOrderStatusTemplateId: config.subscribeMsgOrderTplId || config.subscribeMessageOrderStatusTemplateId || '',
@@ -326,7 +326,7 @@ async function updateConfig(data) {
         minOrderAmountLimit: 2000,
         estimatedDeliveryMinutes: 30,
         orderTimeoutMinutes: 15,
-        depositAmount: 10000,
+        depositAmount: 2500,
         createdAt: db.serverDate()
       }, updateData);
       
