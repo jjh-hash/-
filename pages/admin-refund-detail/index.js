@@ -1,4 +1,6 @@
 // pages/admin-refund-detail/index.js
+const { verifyAdminPage } = require('../../utils/verifyAdminPage.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -9,6 +11,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!verifyAdminPage()) return;
     console.log('【管理端退款详情】接收参数:', options);
     
     if (options.refundId) {

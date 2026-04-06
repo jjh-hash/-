@@ -1,6 +1,5 @@
 <!--pages/admin-user-list/index.wxml-->
 <view class="page">
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
   <view class="nav-bar">
     <view class="back-btn" bindtap="onBack">◀</view>

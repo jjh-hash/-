@@ -333,10 +333,9 @@ async function markAsRead(openid, data) {
         
         if (Object.keys(updateData).length > 0) {
           await db.collection('chat_list').doc(chatData._id).update({
-            data: {
-              ...updateData,
+            data: Object.assign({}, updateData, {
               updatedAt: db.serverDate()
-            }
+            })
           });
         }
       }

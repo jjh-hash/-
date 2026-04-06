@@ -1,18 +1,7 @@
 <!--pages/secondhand-detail/index.wxml-->
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <view class="back-btn" bindtap="onBackTap">
-      <text class="back-icon">←</text>
-    </view>
-    <text class="title">商品详情</text>
-    <view class="share-btn" bindtap="onShareAppMessage">
-      <text class="share-icon">分享</text>
-    </view>
-  </view>
 
   <scroll-view scroll-y class="content" wx:if="{{!loading && product}}">
     <!-- 商品图片轮播 -->

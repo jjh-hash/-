@@ -1,17 +1,18 @@
+/* 商家设置 - 设计系统 */
 .page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .status-bar {
   width: 100%;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .nav-bar {
   height: 44px;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -28,13 +29,13 @@
 
 .back-icon {
   font-size: 24px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 300;
 }
 
 .nav-title {
   font-size: 18px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 600;
 }
 
@@ -43,31 +44,32 @@
 }
 
 .content {
-  padding: 16px;
+  padding: var(--space-page);
 }
 
 .section {
-  background: #fff;
-  border-radius: 12px;
-  margin-bottom: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  margin-bottom: var(--space-block);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .section-title {
   font-size: 16px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 600;
-  padding: 16px 16px 8px 16px;
-  background: #fafafa;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--space-block) var(--space-block) 8px;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .setting-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #f2f3f5;
+  padding: var(--space-block);
+  border-bottom: 1px solid var(--color-border);
   transition: background-color 0.2s ease;
 }
 
@@ -76,7 +78,7 @@
 }
 
 .setting-item:active {
-  background-color: #f8f9fa;
+  background: var(--color-bg-page);
 }
 
 .item-left {
@@ -98,22 +100,22 @@
   flex-shrink: 0;
 }
 
-.item-icon.store { background: #e6f7ff; }
-.item-icon.time { background: #fff7e6; }
-.item-icon.delivery { background: #f6ffed; }
-.item-icon.money { background: #fff2e8; }
-.item-icon.order { background: #f0f5ff; }
-.item-icon.bell { background: #fff1f0; }
-.item-icon.print { background: #f9f0ff; }
-.item-icon.payment { background: #e6fffb; }
-.item-icon.settlement { background: #f0f9ff; }
-.item-icon.notification { background: #f0f5ff; }
-.item-icon.sound { background: #fff7e6; }
-.item-icon.security { background: #fff1f0; }
-.item-icon.verify { background: #f6ffed; }
-.item-icon.cache { background: #f5f5f5; }
-.item-icon.about { background: #f0f9ff; }
-.item-icon.logout { background: #fff1f0; }
+.item-icon.store { background: var(--color-primary-light); }
+.item-icon.time { background: rgba(255, 152, 0, 0.12); }
+.item-icon.delivery { background: rgba(76, 175, 80, 0.12); }
+.item-icon.money { background: rgba(255, 87, 34, 0.12); }
+.item-icon.order { background: var(--color-primary-light); }
+.item-icon.bell { background: rgba(244, 67, 54, 0.1); }
+.item-icon.print { background: rgba(156, 39, 176, 0.1); }
+.item-icon.payment { background: rgba(0, 188, 212, 0.12); }
+.item-icon.settlement { background: var(--color-primary-light); }
+.item-icon.notification { background: var(--color-primary-light); }
+.item-icon.sound { background: rgba(255, 152, 0, 0.12); }
+.item-icon.security { background: rgba(244, 67, 54, 0.1); }
+.item-icon.verify { background: rgba(76, 175, 80, 0.12); }
+.item-icon.cache { background: var(--color-bg-page); }
+.item-icon.about { background: var(--color-primary-light); }
+.item-icon.logout { background: rgba(244, 67, 54, 0.1); }
 
 .item-content {
   flex: 1;
@@ -123,25 +125,25 @@
 .item-title {
   display: block;
   font-size: 16px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 500;
   margin-bottom: 4px;
 }
 
 .logout-text {
-  color: #ff4d4f;
+  color: var(--color-danger);
 }
 
 .item-desc {
   display: block;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   line-height: 1.4;
 }
 
 .arrow {
   font-size: 16px;
-  color: #c0c4cc;
+  color: var(--color-text-placeholder);
   font-weight: 300;
   margin-left: 8px;
 }

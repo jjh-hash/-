@@ -1,3 +1,6 @@
+const log = require('../../../../utils/logger.js');
+const subscribeMessage = require('../../../../utils/subscribeMessage.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -19,18 +22,24 @@ Page({
     cutleryQuantity: 1, // 餐具数量，默认1份
     estimatedDeliveryTimeRange: '30~45分钟', // 预计到达时间范围，默认值
     announcementExpanded: false, // 公告是否展开
-    announcementNeedExpand: false // 是否需要展开按钮（文字超过一定长度时）
+    announcementNeedExpand: false, // 是否需要展开按钮（文字超过一定长度时）
+    submitting: false // 提交订单防重复
   },
 
   onLoad(options) {
-    console.log('【结算页面】接收参数:', options);
+    if (!getApp().globalData.isLoggedIn) {
+      wx.showToast({ title: '请先登录后再下单', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 1500);
+      return;
+    }
+    log.log('【结算页面】接收参数:', options);
     
     // 获取传递的购物车数据
     if (options.cartData) {
       try {
         const cartData = JSON.parse(decodeURIComponent(options.cartData));
         
-        console.log('【结算页面】解析购物车数据:', cartData);
+        log.log('【结算页面】解析购物车数据:', cartData);
         
         // 从storeInfo中获取配送费
         const deliveryFee = cartData.storeInfo?.deliveryFee || 2;
@@ -52,7 +61,7 @@ Page({
           totalAmount: totalAmount
         });
         
-        console.log('【结算页面】设置完成:', {
+        log.log('【结算页面】设置完成:', {
           cartItems: this.data.cartItems,
           cartTotal: this.data.cartTotal,
           storeInfo: this.data.storeInfo,
@@ -60,14 +69,14 @@ Page({
           totalAmount: this.data.totalAmount
         });
       } catch (error) {
-        console.error('【结算页面】解析购物车数据失败:', error);
+        log.error('【结算页面】解析购物车数据失败:', error);
         wx.showToast({
           title: '数据加载失败',
           icon: 'none'
         });
       }
     } else {
-      console.error('【结算页面】未接收到购物车数据');
+      log.error('【结算页面】未接收到购物车数据');
       wx.showToast({
         title: '数据加载失败',
         icon: 'none'
@@ -76,7 +85,8 @@ Page({
     
     // 加载用户地址
     this.loadUserAddress();
-    
+    // 预拉订阅模板 ID，支付点击时同步弹窗（真机要求同一次点击链路）
+    subscribeMessage.preloadOrderStatusTemplateId();
     // 加载平台配置，获取预计配送时间
     this.loadPlatformConfig();
   },
@@ -91,10 +101,14 @@ Page({
         }
       });
       
-      console.log('【结算页面】平台配置:', res.result);
+      log.log('【结算页面】平台配置:', res.result);
       
       if (res.result && res.result.code === 200) {
         const config = res.result.data;
+        const g = getApp().globalData;
+        if (config.subscribeMessageOrderStatusTemplateId) g.subscribeMessageOrderStatusTemplateId = config.subscribeMessageOrderStatusTemplateId;
+        if (config.subscribeMessageRefundTemplateId !== undefined) g.subscribeMessageRefundTemplateId = config.subscribeMessageRefundTemplateId || '';
+        if (config.subscribeMessageReviewTemplateId !== undefined) g.subscribeMessageReviewTemplateId = config.subscribeMessageReviewTemplateId || '';
         const estimatedDeliveryMinutes = config.estimatedDeliveryMinutes || 30;
         
         // 计算预计到达时间范围（配置值 ~ 配置值+15分钟）
@@ -106,10 +120,10 @@ Page({
           estimatedDeliveryTimeRange: estimatedDeliveryTimeRange
         });
         
-        console.log('【结算页面】预计到达时间范围:', estimatedDeliveryTimeRange);
+        log.log('【结算页面】预计到达时间范围:', estimatedDeliveryTimeRange);
       }
     } catch (error) {
-      console.error('【结算页面】加载平台配置失败:', error);
+      log.error('【结算页面】加载平台配置失败:', error);
       // 如果加载失败，使用默认值
     }
   },
@@ -125,7 +139,7 @@ Page({
         }
       });
 
-      console.log('【结算页面】地址列表:', res.result);
+      log.log('【结算页面】地址列表:', res.result);
 
       if (res.result && res.result.code === 200 && res.result.data.list.length > 0) {
         // 获取默认地址或第一个地址
@@ -140,7 +154,7 @@ Page({
           hasAddress: true
         });
         
-        console.log('【结算页面】设置默认地址:', this.data.userInfo);
+        log.log('【结算页面】设置默认地址:', this.data.userInfo);
       } else {
         // 没有地址，设置为空
         this.setData({
@@ -151,10 +165,10 @@ Page({
           },
           hasAddress: false
         });
-        console.log('【结算页面】用户没有地址');
+        log.log('【结算页面】用户没有地址');
       }
     } catch (error) {
-      console.error('【结算页面】加载地址失败:', error);
+      log.error('【结算页面】加载地址失败:', error);
       // 如果加载失败，设置为没有地址
       this.setData({
         userInfo: {
@@ -170,14 +184,6 @@ Page({
   // 返回
   onBack() {
     wx.navigateBack();
-  },
-
-  // 选择支付方式
-  onSelectPayment(e) {
-    const method = e.currentTarget.dataset.method;
-    this.setData({
-      paymentMethod: method
-    });
   },
 
   // 输入备注
@@ -218,42 +224,61 @@ Page({
     }
   },
 
-  // 提交订单并支付
-  async onSubmitOrder() {
+  // 提交订单（直接创建订单并支付）
+  onSubmitOrder() {
+    if (this.data.submitting) return;
     if (this.data.cartItems.length === 0) {
-      wx.showToast({
-        title: '购物车为空',
-        icon: 'none'
-      });
+      wx.showToast({ title: '购物车为空', icon: 'none' });
       return;
     }
-
-    // 检查是否有地址
     if (!this.data.hasAddress) {
-      wx.showToast({
-        title: '请先添加收货地址',
-        icon: 'none',
-        duration: 2000
-      });
+      wx.showToast({ title: '请先添加收货地址', icon: 'none', duration: 2000 });
       return;
     }
 
-    // 先创建订单，然后调用支付
-    await this.createOrderAndPay();
+    const tmplIds = subscribeMessage.getCheckoutTemplateIds();
+    if (tmplIds.length === 0) {
+      wx.showToast({ title: '加载中，请稍后再试', icon: 'none' });
+      subscribeMessage.preloadOrderStatusTemplateId();
+      return;
+    }
+
+    this.setData({ submitting: true });
+    subscribeMessage.triggerSubscribeSync(tmplIds)
+      .then(() => this.createOrderAndPay())
+      .catch(() => this.createOrderAndPay());
   },
 
   // 创建订单并支付
   async createOrderAndPay() {
+    if (!getApp().globalData.isLoggedIn) {
+      getApp().showLoginModal();
+      return;
+    }
     wx.showLoading({
-      title: '正在创建订单...'
+      title: '正在下单...'
     });
 
     try {
       // 验证必要参数
       const storeId = this.data.storeInfo.storeId || this.data.storeInfo._id;
       
+      log.log('【下单】准备下单的数据:', {
+        storeId: storeId,
+        cartItems: this.data.cartItems,
+        cartTotal: this.data.cartTotal,
+        storeInfo: this.data.storeInfo,
+        userInfo: this.data.userInfo,
+        remark: this.data.remark,
+        deliveryFee: this.data.deliveryFee,
+        deliveryType: this.data.deliveryType,
+        needCutlery: this.data.needCutlery,
+        cutleryQuantity: this.data.cutleryQuantity
+      });
+      
       if (!storeId) {
         wx.hideLoading();
+        this.setData({ submitting: false });
         wx.showToast({
           title: '店铺信息缺失',
           icon: 'none'
@@ -263,6 +288,7 @@ Page({
       
       if (!this.data.cartItems || this.data.cartItems.length === 0) {
         wx.hideLoading();
+        this.setData({ submitting: false });
         wx.showToast({
           title: '购物车为空',
           icon: 'none'
@@ -272,21 +298,20 @@ Page({
       
       // 准备订单数据
       const orderData = {
-        storeId: storeId,
-        cartItems: this.data.cartItems,
-        cartTotal: this.data.cartTotal,
-        storeInfo: this.data.storeInfo,
-        address: this.data.userInfo,
-        remark: this.data.remark,
-        deliveryFee: this.data.deliveryFee,
-        deliveryType: this.data.deliveryType || 'delivery',
-        needCutlery: this.data.needCutlery,
-        cutleryQuantity: this.data.needCutlery ? this.data.cutleryQuantity : 0,
-        payStatus: 'unpaid' // 初始状态为未支付
+            storeId: storeId,
+            cartItems: this.data.cartItems,
+            cartTotal: this.data.cartTotal,
+            storeInfo: this.data.storeInfo,
+            address: this.data.userInfo,
+            remark: this.data.remark,
+            deliveryFee: this.data.deliveryFee,
+            deliveryType: this.data.deliveryType || 'delivery',
+            needCutlery: this.data.needCutlery,
+            cutleryQuantity: this.data.needCutlery ? this.data.cutleryQuantity : 0
       };
 
-      // 1. 先创建订单
-      const createOrderRes = await wx.cloud.callFunction({
+      // 调用云函数创建订单
+      const res = await wx.cloud.callFunction({
         name: 'orderManage',
         data: {
           action: 'createOrder',
@@ -294,131 +319,170 @@ Page({
         }
       });
 
-      console.log('【创建订单】云函数返回结果:', createOrderRes.result);
+      wx.hideLoading();
 
-      if (createOrderRes.result && createOrderRes.result.code !== 200) {
+      log.log('【下单】云函数返回结果:', res.result);
+
+      if (res.result && res.result.code === 200) {
+        const orderData = res.result.data;
+        const orderId = orderData?.orderId;
+        const orderNo = orderData?.orderNo;
+        // 使用页面计算的金额转换为分（更可靠）
+        const totalAmountFen = Math.round(this.data.totalAmount * 100);
+        
+        log.log('【下单】订单创建成功，订单号:', orderNo, '订单ID:', orderId, '支付金额（分）:', totalAmountFen);
+        
         wx.hideLoading();
-        if (createOrderRes.result.code === 403) {
-          wx.showToast({
-            title: createOrderRes.result.message || '店铺当前休息中，暂不接收订单',
-            icon: 'none',
-            duration: 3000
-          });
-        } else {
-          wx.showToast({
-            title: createOrderRes.result?.message || '创建订单失败',
-            icon: 'none',
-            duration: 2000
-          });
-        }
-        return;
+        await this.payOrder(orderId, orderNo, totalAmountFen);
+      } else if (res.result && res.result.code === 403) {
+        // 店铺休息中
+        this.setData({ submitting: false });
+        wx.showToast({
+          title: res.result.message || '店铺当前休息中，暂不接收订单',
+          icon: 'none',
+          duration: 3000
+        });
+      } else {
+        this.setData({ submitting: false });
+        wx.showToast({
+          title: res.result?.message || '下单失败',
+          icon: 'none',
+          duration: 2000
+        });
       }
 
-      const orderInfo = createOrderRes.result.data;
-      const orderId = orderInfo.orderId;
-      const totalFee = this.data.totalAmount * 100; // 转换为分
-
-      console.log('【创建订单】订单创建成功，订单号:', orderInfo?.orderNo, '订单ID:', orderId);
-
-      // 2. 调用统一下单，获取支付参数
-      wx.showLoading({
-        title: '正在调起支付...'
+    } catch (error) {
+      wx.hideLoading();
+      this.setData({ submitting: false });
+      log.error('【下单】异常:', error);
+      log.error('【下单】错误详情:', {
+        message: error.message,
+        stack: error.stack,
+        error: error
       });
+      
+      wx.showToast({
+        title: '下单失败，请重试',
+        icon: 'none',
+        duration: 2000
+      });
+    }
+  },
 
-      const paymentRes = await wx.cloud.callFunction({
+  // 支付订单（由 createOrderAndPay 在订单创建后调用，不再在此处请求订阅）
+  async payOrder(orderId, orderNo, totalAmount) {
+    wx.showLoading({ title: '正在支付...' });
+
+    try {
+      // 调用统一下单接口
+      const res = await wx.cloud.callFunction({
         name: 'paymentManage',
         data: {
           action: 'unifiedOrder',
           data: {
             orderId: orderId,
-            totalFee: totalFee,
-            description: `订单支付-${orderInfo.orderNo}`
+            totalFee: totalAmount, // 金额（分）
+            description: `订单支付-${orderNo}`
           }
         }
       });
 
       wx.hideLoading();
 
-      console.log('【统一下单】云函数返回结果:', paymentRes.result);
+      log.log('【支付】统一下单返回:', res.result);
 
-      if (paymentRes.result && paymentRes.result.code !== 200) {
-        wx.showToast({
-          title: paymentRes.result?.message || '获取支付参数失败',
-          icon: 'none',
-          duration: 2000
-        });
-        return;
-      }
+      if (res.result && res.result.code === 200) {
+        const paymentParams = res.result.data;
 
-      const paymentParams = paymentRes.result.data;
+        // 调用微信支付
+        wx.requestPayment({
+          timeStamp: paymentParams.timeStamp,
+          nonceStr: paymentParams.nonceStr,
+          package: paymentParams.package,
+          signType: paymentParams.signType,
+          paySign: paymentParams.paySign,
+          success: async (payRes) => {
+            log.log('【支付】成功:', payRes);
 
-      // 3. 调起微信支付
-      wx.requestPayment({
-        timeStamp: paymentParams.timeStamp,
-        nonceStr: paymentParams.nonceStr,
-        package: paymentParams.package,
-        signType: paymentParams.signType,
-        paySign: paymentParams.paySign,
-        success: async (res) => {
-          console.log('【支付成功】', res);
-          
-          // 支付成功后，更新订单状态为已支付
-          try {
-            await wx.cloud.callFunction({
-              name: 'orderManage',
-              data: {
-                action: 'updateOrderPayStatus',
+            // 支付成功后主动更新订单状态
+            try {
+              const updateRes = await wx.cloud.callFunction({
+                name: 'orderManage',
                 data: {
-                  orderId: orderId,
-                  payStatus: 'paid'
+                  action: 'updateOrderPayStatus',
+                  data: {
+                    orderId: orderId,
+                    payStatus: 'paid'
+                  }
                 }
-              }
-            });
-            console.log('【支付成功】订单状态已更新为已支付');
-          } catch (error) {
-            console.error('【支付成功】更新订单状态失败:', error);
-            // 即使更新失败，也继续流程，因为支付回调会处理
-          }
-          
-          wx.showToast({
-            title: '支付成功',
-            icon: 'success',
-            duration: 2000
-          });
-
-          // 延迟跳转到订单页面
-          setTimeout(() => {
-            wx.redirectTo({
-              url: '/subpackages/order/pages/order/index',
-              fail: (err) => {
-                console.error('跳转到订单页面失败:', err);
-                wx.reLaunch({
-                  url: '/subpackages/order/pages/order/index'
-                });
-              }
-            });
-          }, 2000);
-        },
-        fail: (err) => {
-          console.error('【支付失败】', err);
-          if (err.errMsg && !err.errMsg.includes('cancel')) {
+              });
+            } catch (updateError) {
+              log.warn('【支付】更新订单状态失败:', updateError);
+              // 不影响支付成功提示
+            }
             wx.showToast({
-              title: '支付失败，请重试',
+              title: '支付成功',
+              icon: 'success',
+              duration: 2000
+            });
+
+            // 跳转到订单页面（带 from=pay 与 orderId 便于订单页高亮/提示）
+            const orderListUrl = `/subpackages/order/pages/order/index?from=pay&orderId=${encodeURIComponent(orderId)}`;
+            setTimeout(() => {
+              wx.redirectTo({
+                url: orderListUrl,
+                fail: (err) => {
+                  log.error('跳转到订单页面失败:', err);
+                  wx.reLaunch({ url: orderListUrl });
+                }
+              });
+            }, 2000);
+          },
+          fail: (payErr) => {
+            this.setData({ submitting: false });
+            log.error('【支付】失败:', payErr);
+            wx.showToast({
+              title: '支付失败',
               icon: 'none',
               duration: 2000
             });
+            // 支付失败后，跳转到订单页面，用户可以重新支付
+            setTimeout(() => {
+              wx.redirectTo({
+                url: '/subpackages/order/pages/order/index'
+              });
+            }, 2000);
           }
-        }
-      });
-
+        });
+      } else {
+        this.setData({ submitting: false });
+        wx.showToast({
+          title: res.result?.message || '统一下单失败',
+          icon: 'none',
+          duration: 2000
+        });
+        // 统一下单失败，跳转到订单页面
+        setTimeout(() => {
+          wx.redirectTo({
+            url: '/subpackages/order/pages/order/index'
+          });
+        }, 2000);
+      }
     } catch (error) {
       wx.hideLoading();
-      console.error('【创建订单并支付】异常:', error);
+      this.setData({ submitting: false });
+      log.error('【支付】异常:', error);
       wx.showToast({
-        title: '操作失败，请重试',
+        title: '支付异常，请重试',
         icon: 'none',
         duration: 2000
       });
+      // 支付异常，跳转到订单页面
+      setTimeout(() => {
+        wx.redirectTo({
+          url: '/subpackages/order/pages/order/index'
+        });
+      }, 2000);
     }
   },
 

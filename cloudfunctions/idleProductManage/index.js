@@ -98,12 +98,11 @@ async function publishProduct(openid, data) {
       updatedAt: db.serverDate()
     };
 
-    console.log('【发布闲置商品】准备保存的数据:', {
-      ...productData,
+    console.log('【发布闲置商品】准备保存的数据:', Object.assign({}, productData, {
       images: images.length + '张图片',
       contactType: productData.contactType,
       contactInfo: productData.contactInfo
-    });
+    }));
 
     // 创建商品记录
     const result = await db.collection('idle_products').add({
@@ -236,7 +235,18 @@ async function getProductList(openid, data) {
       }
 
       return {
-        ...product,
+        _id: product._id,
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        description: product.description,
+        images: product.images,
+        status: product.status,
+        contactType: product.contactType,
+        contactInfo: product.contactInfo,
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
         id: product._id,
         publishTime: publishTime,
         discount: calculateDiscount(product.price, product.originalPrice)
@@ -330,7 +340,18 @@ async function getProductDetail(openid, data) {
       code: 200,
       message: '获取成功',
       data: {
-        ...productData,
+        _id: productData._id,
+        name: productData.name,
+        category: productData.category,
+        price: productData.price,
+        originalPrice: productData.originalPrice,
+        description: productData.description,
+        images: productData.images,
+        status: productData.status,
+        contactType: productData.contactType,
+        contactInfo: productData.contactInfo,
+        createdAt: productData.createdAt,
+        updatedAt: productData.updatedAt,
         id: productData._id,
         publishTime: publishTime,
         discount: calculateDiscount(productData.price, productData.originalPrice)

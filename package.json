@@ -1,0 +1,12 @@
+{
+  "name": "campus-delivery",
+  "version": "1.0.0",
+  "description": "校园外卖小程序",
+  "dependencies": {
+    "@babel/runtime": "^7.23.0",
+    "@vant/weapp": "^1.11.6"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
+  }
+}

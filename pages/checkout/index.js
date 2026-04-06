@@ -167,14 +167,6 @@ Page({
     wx.navigateBack();
   },
 
-  // 选择支付方式
-  onSelectPayment(e) {
-    const method = e.currentTarget.dataset.method;
-    this.setData({
-      paymentMethod: method
-    });
-  },
-
   // 输入备注
   onRemarkInput(e) {
     this.setData({

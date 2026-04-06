@@ -1,19 +1,6 @@
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px">
-  </view>
 
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <view class="back-btn" bindtap="onBackTap">
-      <text class="back-icon">←</text>
-    </view>
-    <text class="title">取快递</text>
-    <view class="nav-actions">
-      <text class="more-btn">⋯</text>
-      <text class="target-btn">🎯</text>
-    </view>
-  </view>
 
   <scroll-view scroll-y class="content">
     <!-- 横幅 -->
@@ -36,6 +23,13 @@
           </view>
         </view>
       </view>
+    </view>
+
+    <!-- 去任务大厅入口 -->
+    <view class="task-hall-entry" bindtap="onGoTaskHall">
+      <text class="task-hall-label">去任务大厅</text>
+      <text class="task-hall-desc">接代拿快递等任务赚零花钱</text>
+      <text class="task-hall-arrow">></text>
     </view>
 
     <!-- 取件位置 -->
@@ -160,7 +154,7 @@
         </view>
         <block wx:for="{{uploadedImages}}" wx:key="index">
           <view class="uploaded-image">
-            <image class="image" src="{{item}}" mode="aspectFill" />
+            <image class="image" src="{{item}}" mode="aspectFill" lazy-load />
             <view class="delete-btn" bindtap="onDeleteImage" data-index="{{index}}">
               <text class="delete-icon">×</text>
             </view>

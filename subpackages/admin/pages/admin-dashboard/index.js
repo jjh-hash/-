@@ -1,4 +1,6 @@
 // pages/admin-dashboard/index.js
+const { verifyAdminPage } = require('../../utils/verifyAdminPage.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -42,6 +44,7 @@ Page({
   },
 
   onLoad() {
+    if (!verifyAdminPage()) return;
     console.log('数据概况页面加载');
     this.loadDashboardData();
   },

@@ -1,6 +1,4 @@
 <view class="page">
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-  <view class="nav"><text class="title">工作台</text></view>
 
   <!-- 概览卡片 -->
   <view class="overview">
@@ -45,11 +43,6 @@
       <text class="s-label">店铺状态</text>
       <text class="s-status">{{storeOpen ? '营业中' : '休息中'}}</text>
       <switch checked="{{storeOpen}}" bindchange="onStoreSwitch" color="#1677ff" />
-    </view>
-    <view class="switch-row">
-      <text class="s-label">自动接单</text>
-      <text class="s-status">{{autoAccept ? '自动接单' : '手动接单'}}</text>
-      <switch checked="{{autoAccept}}" bindchange="onAutoAcceptSwitch" color="#1677ff" />
     </view>
   </view>
 

@@ -1,14 +1,7 @@
 <!--pages/admin-order-detail/index.wxml-->
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <view class="back-btn" bindtap="onBack">◀</view>
-    <text class="title">订单详情</text>
-    <view class="nav-actions"></view>
-  </view>
 
   <scroll-view scroll-y class="content" wx:if="{{!loading}}">
     <!-- 订单状态 -->
@@ -38,7 +31,7 @@
         <text class="store-name" wx:if="{{orderInfo.isNonStoreOrder}}">{{orderInfo.userNickname || '用户'}}</text>
         <text class="store-name" wx:else>{{orderInfo.storeName}}</text>
         <text class="store-address" wx:if="{{orderInfo.isNonStoreOrder}}">
-          {{orderInfo.orderType === 'gaming' ? '游戏陪玩' : (orderInfo.orderType === 'reward' ? '悬赏' : '代拿快递')}}
+          {{orderInfo.orderType === 'gaming' ? '游戏陪玩' : (orderInfo.orderType === 'reward' ? '跑腿' : '代拿快递')}}
         </text>
         <text class="store-address" wx:else>{{orderInfo.storeAddress}}</text>
       </view>
@@ -179,7 +172,7 @@
         <view class="info-row">
           <text class="info-label">订单类型</text>
           <text class="info-value">
-            {{orderInfo.orderType === 'gaming' ? '游戏陪玩' : (orderInfo.orderType === 'reward' ? '悬赏' : (orderInfo.orderType === 'express' ? '代拿快递' : '普通订单'))}}
+            {{orderInfo.orderType === 'gaming' ? '游戏陪玩' : (orderInfo.orderType === 'reward' ? '跑腿' : (orderInfo.orderType === 'express' ? '代拿快递' : '普通订单'))}}
           </text>
         </view>
         <view class="info-row">

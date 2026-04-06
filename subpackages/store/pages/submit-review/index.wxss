@@ -1,17 +1,17 @@
+/* 提交评价 - 设计系统 */
 .page {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
   min-height: 100vh;
 }
 
-/* 导航栏 */
 .navbar {
-  background: #fff;
+  background: var(--color-bg-card);
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .navbar-content {
@@ -24,7 +24,7 @@
 
 .back-btn {
   font-size: 18px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 600;
 }
 
@@ -34,7 +34,7 @@
   transform: translateX(-50%);
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .placeholder {
@@ -47,22 +47,21 @@
   padding: 16px;
 }
 
-/* 区块 */
 .section {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  padding: var(--space-block);
+  margin-bottom: var(--space-block);
+  box-shadow: var(--shadow-card);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 16px;
+  color: var(--color-text);
+  margin-bottom: var(--space-block);
 }
 
-/* 星级评分 */
 .rating-container {
   display: flex;
   justify-content: center;
@@ -71,30 +70,30 @@
 
 .star {
   font-size: 48px;
-  color: #ddd;
+  color: var(--color-border);
   transition: all 0.2s;
 }
 
 .star.active {
-  color: #ff9800;
+  color: var(--color-warning);
 }
 
-/* 文本域 */
 .textarea {
   width: 100%;
   min-height: 120px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  padding: var(--space-item);
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   line-height: 1.5;
+  border: 1px solid var(--color-border);
 }
 
 .char-count {
   text-align: right;
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-secondary);
   margin-top: 8px;
 }
 
@@ -124,7 +123,7 @@
   right: -6px;
   width: 24px;
   height: 24px;
-  background: #ff4757;
+  background: var(--color-danger);
   color: #fff;
   border-radius: 50%;
   display: flex;
@@ -132,14 +131,14 @@
   justify-content: center;
   font-size: 18px;
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .add-image-btn {
   width: 100px;
   height: 100px;
-  border: 2px dashed #ddd;
-  border-radius: 8px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-btn);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -149,39 +148,37 @@
 
 .add-icon {
   font-size: 32px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
-.add-text {
-  font-size: 12px;
-  color: #999;
-}
-
+.add-text,
 .image-tip {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-secondary);
+}
+.image-tip {
   margin-top: 8px;
 }
 
-/* 提交按钮 */
 .submit-section {
   padding: 20px 0 40px;
 }
 
 .submit-btn {
   width: 100%;
-  height: 48px;
-  background: #1976d2;
+  height: 44px;
+  min-height: var(--min-tap);
+  background: var(--color-primary);
   color: #fff;
-  border-radius: 24px;
+  border-radius: var(--radius-tag);
   font-size: 16px;
   font-weight: 600;
   border: none;
 }
 
 .submit-btn.disabled {
-  background: #ccc;
-  color: #999;
+  background: var(--color-border);
+  color: var(--color-text-placeholder);
 }
 
 .submit-btn::after {

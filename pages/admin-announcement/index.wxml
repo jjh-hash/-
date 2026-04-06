@@ -1,16 +1,7 @@
 <!--pages/admin-announcement/index.wxml-->
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <text class="title">系统公告</text>
-    <view class="back-btn" bindtap="onBack">◀</view>
-    <view class="add-btn" bindtap="showTypeModal">
-      <text class="add-btn-text">+ 发布</text>
-    </view>
-  </view>
 
   <!-- 页面内容 -->
   <scroll-view scroll-y class="page-content">

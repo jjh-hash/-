@@ -1,0 +1,211 @@
+/* 校园兼职 - 设计系统 */
+.page {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
+
+.content {
+  min-height: 100vh;
+  padding: var(--space-page);
+  padding-bottom: calc(var(--space-page) + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.section {
+  margin-bottom: var(--space-page);
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+/* 卡片 */
+.card {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  padding: var(--space-block);
+  box-shadow: var(--shadow-card);
+}
+
+.card-head {
+  margin-bottom: var(--space-item);
+}
+
+.card-head .title {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.card-head .desc {
+  display: block;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.card-head .date-desc {
+  font-size: 13px;
+  color: var(--color-text-placeholder);
+}
+
+/* 加载态 */
+.card-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: campus-partner-spin 0.8s linear infinite;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+@keyframes campus-partner-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 保证金金额 */
+.amount-block {
+  background: var(--color-primary-light);
+  border-radius: var(--radius-btn);
+  padding: 16px;
+  margin-bottom: var(--space-block);
+}
+
+.amount-label {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.amount {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* 主按钮 */
+.btn {
+  width: 100%;
+  height: 48px;
+  line-height: 48px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  transition: opacity var(--transition-fast);
+}
+
+.btn::after {
+  border: none;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:active {
+  opacity: 0.9;
+}
+
+/* 已开通卡片 */
+.card-active .card-head {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.action-hint {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+}
+
+.action-row:active {
+  background: var(--color-primary-light);
+}
+
+.action-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-desc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.btn-inline {
+  width: auto !important;
+  min-width: 96px;
+  height: 40px !important;
+  line-height: 40px !important;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* 申请退保证金 - 次要按钮 */
+.btn-refund {
+  background: var(--color-bg-page) !important;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  font-weight: 500;
+}
+
+.btn-refund:active {
+  background: var(--color-border) !important;
+  opacity: 1;
+}
+
+.tip-caption {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  text-align: center;
+  margin-top: 12px;
+}

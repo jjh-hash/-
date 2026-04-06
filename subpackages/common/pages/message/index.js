@@ -105,7 +105,7 @@ Page({
       'order': { icon: '📦', text: '订单联系', color: '#1a73e8' },
       'gaming': { icon: '🎮', text: '游戏陪玩', color: '#ff6b35' },
       'express': { icon: '🚚', text: '快递跑腿', color: '#10b981' },
-      'reward': { icon: '🏷️', text: '悬赏', color: '#f59e0b' },
+      'reward': { icon: '🏷️', text: '跑腿', color: '#f59e0b' },
       'secondhand': { icon: '🛍️', text: '闲置出售', color: '#8b5cf6' }
     };
     return typeMap[type] || { icon: '💬', text: '消息', color: '#6b7280' };

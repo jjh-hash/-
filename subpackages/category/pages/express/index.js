@@ -470,15 +470,15 @@ Page({
 
       if (res.result && res.result.code === 200) {
         wx.showToast({
-          title: '订单提交成功',
+          title: '发布成功，已为您打开任务大厅',
           icon: 'success',
-          duration: 1500
+          duration: 2000
         });
 
-        // 延迟跳转到首页，跳出当前页面
+        // 跳转到任务大厅，用户可查看/接单或点「我发布的」查看自己的任务
         setTimeout(() => {
           wx.reLaunch({
-            url: '/pages/home/index'
+            url: '/subpackages/order/pages/receive-order/index'
           });
         }, 1500);
       } else {
@@ -499,6 +499,16 @@ Page({
     }
   },
 
+  // 去任务大厅
+  onGoTaskHall() {
+    wx.navigateTo({
+      url: '/subpackages/order/pages/receive-order/index',
+      fail: (err) => {
+        console.error('跳转到任务大厅失败:', err);
+        wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+      }
+    });
+  },
 
   // 返回
   onBackTap() {

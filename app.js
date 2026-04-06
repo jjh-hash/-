@@ -8,43 +8,101 @@ App({
         env: 'cloud1-7g0bpzkg04df43f9', // 云环境ID
         traceUser: true,
       });
+      // 管理端页面内发起的云函数自动附带服务端可校验的 adminSessionToken（普通用户页不注入）
+      const _origCallFunction = wx.cloud.callFunction.bind(wx.cloud);
+      wx.cloud.callFunction = function (options) {
+        try {
+          const token = wx.getStorageSync('adminToken');
+          const pages = getCurrentPages();
+          const route = pages.length ? pages[pages.length - 1].route || '' : '';
+          const adminRoute =
+            route.indexOf('admin') !== -1 ||
+            route.indexOf('merchant-register') !== -1;
+          if (
+            token &&
+            adminRoute &&
+            options &&
+            options.data &&
+            typeof options.data === 'object' &&
+            options.data.adminSessionToken === undefined
+          ) {
+            options = Object.assign({}, options, {
+              data: Object.assign({}, options.data, { adminSessionToken: token })
+            });
+          }
+        } catch (e) {}
+        return _origCallFunction(options);
+      };
     }
     
     // 立即执行的关键初始化
     this.checkUserLogin();
     
-    // 延迟执行非关键操作，提升启动速度
-    setTimeout(() => {
-      this.checkLoginModal();
-    }, 500);
+    // 不再自动弹出登录弹窗，用户可先浏览，需要时在「我的」等入口自行登录
+    // setTimeout(() => { this.checkLoginModal(); }, 500);
     
     // 公告检查延迟更久，避免影响页面加载
     setTimeout(() => {
       this.checkAnnouncement();
     }, 2000);
+    
+    // 购物车 Tab 角标、订阅消息预拉：延后执行，避免同步 Storage 阻塞启动
+    setTimeout(() => {
+      try {
+        const cartUtil = require('./utils/cart.js');
+        if (cartUtil && cartUtil.updateTabBarBadge) cartUtil.updateTabBarBadge();
+      } catch (e) {}
+      try {
+        const subscribeMessage = require('./utils/subscribeMessage.js');
+        if (subscribeMessage && subscribeMessage.preloadOrderStatusTemplateId) {
+          subscribeMessage.preloadOrderStatusTemplateId();
+        }
+      } catch (e) {}
+    }, 100);
+
+    // 内存告警：释放非必要资源，降低闪退风险
+    wx.onMemoryWarning && wx.onMemoryWarning((res) => {
+      console.warn('【内存告警】level:', res.level, 'lastResidentSize:', res.lastResidentSize);
+      // 可在此释放非关键缓存，如首页列表缓存（用户重新进入会再拉）
+      try {
+        wx.removeStorage({ key: 'home_products_cache' });
+      } catch (e) {}
+    });
   },
-  
+
   globalData: {
     userInfo: null,
     openid: null,
     userToken: null,
     lastAnnouncementShowTime: 0, // 上次显示公告的时间
-    isLoggedIn: false
+    isLoggedIn: false,
+    prefetchedStoreDetail: {} // { storeId: Promise<result> } 供店铺详情页提前请求使用
   },
 
   /**
-   * 检查用户登录状态
+   * 检查用户登录状态（若有 token 但本地用户信息为默认，则异步从服务器拉取并回写，避免清理缓存后头像昵称丢失）
+   * 使用异步 getStorage 避免阻塞启动路径
    */
   checkUserLogin() {
-    const userInfo = wx.getStorageSync('userInfo');
-    const userToken = wx.getStorageSync('userToken');
-    
-    if (userInfo && userToken) {
+    const read = (key) => new Promise((resolve) => {
+      wx.getStorage({ key, success: (r) => resolve(r.data), fail: () => resolve(null) });
+    });
+    Promise.all([read('userInfo'), read('userToken')]).then(([userInfo, userToken]) => {
+      if (!userInfo || !userToken) return;
       this.globalData.userInfo = userInfo;
       this.globalData.userToken = userToken;
       this.globalData.isLoggedIn = true;
       this.globalData.openid = userInfo.openid;
-    }
+      const isDefault = !userInfo.nickname || userInfo.nickname === '微信用户' || !userInfo.avatar;
+      if (isDefault) {
+        this.loginUser().then(res => {
+          if (res && res.success && res.userInfo) {
+            wx.setStorage({ key: 'userInfo', data: res.userInfo });
+            this.globalData.userInfo = res.userInfo;
+          }
+        }).catch(() => {});
+      }
+    });
   },
 
   /**
@@ -159,27 +217,23 @@ App({
   },
 
   /**
-   * 检查是否需要显示登录弹窗
+   * 检查是否需要显示登录弹窗（使用异步 getStorage 避免阻塞）
    */
   checkLoginModal() {
-    // 检查是否已经登录
-    if (this.globalData.isLoggedIn) {
-      return;
-    }
-
-    // 检查是否已经显示过登录弹窗（24小时内不重复显示）
-    const lastShowTime = wx.getStorageSync('lastLoginModalTime');
-    const now = Date.now();
-    const oneDay = 24 * 60 * 60 * 1000; // 24小时
-
-    if (lastShowTime && (now - lastShowTime) < oneDay) {
-      return;
-    }
-
-    // 延迟显示弹窗，确保页面加载完成
-    setTimeout(() => {
-      this.showLoginModal();
-    }, 1000);
+    if (this.globalData.isLoggedIn) return;
+    wx.getStorage({
+      key: 'lastLoginModalTime',
+      success: (res) => {
+        const lastShowTime = res.data;
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
+        if (lastShowTime && (now - lastShowTime) < oneDay) return;
+        setTimeout(() => this.showLoginModal(), 1000);
+      },
+      fail: () => {
+        setTimeout(() => this.showLoginModal(), 1000);
+      }
+    });
   },
 
   /**
@@ -193,16 +247,13 @@ App({
       cancelText: '稍后再说',
       success: (res) => {
         if (res.confirm) {
-          // 用户点击立即登录
           this.handleLoginFromModal();
         } else {
-          // 用户点击稍后再说，记录时间
-          wx.setStorageSync('lastLoginModalTime', Date.now());
+          wx.setStorage({ key: 'lastLoginModalTime', data: Date.now() });
         }
       },
       fail: () => {
-        // 弹窗显示失败，记录时间避免重复
-        wx.setStorageSync('lastLoginModalTime', Date.now());
+        wx.setStorage({ key: 'lastLoginModalTime', data: Date.now() });
       }
     });
   },
@@ -252,38 +303,13 @@ App({
 
   /**
    * 登录成功回调
+   * 不再强制弹窗/跳转用户信息设置，使用默认头像、昵称、手机号，用户可稍后在「个人中心」或「用户信息设置」页自行修改。
    */
   onLoginSuccess(userInfo, isNewUser) {
     console.log('用户登录成功:', userInfo);
     console.log('用户头像:', userInfo.avatar);
     console.log('用户昵称:', userInfo.nickname);
-    
-    // 可以在这里添加登录成功后的逻辑
-    // 比如：跳转到特定页面、发送统计数据等
-    
-    if (isNewUser) {
-      // 新用户特殊处理
-      console.log('欢迎新用户:', userInfo.nickname);
-      
-      // 新用户登录后，弹出用户信息设置弹窗
-      setTimeout(() => {
-        this.showUserInfoModal();
-      }, 500);
-    } else {
-      // 老用户检查是否需要更新头像昵称
-      const needUpdate = !userInfo.avatar || 
-                        !userInfo.nickname || 
-                        userInfo.nickname === '微信用户' ||
-                        userInfo.nickname.trim() === '';
-      
-      console.log('是否需要更新用户信息:', needUpdate);
-      
-      if (needUpdate) {
-        setTimeout(() => {
-          this.showUserInfoModal();
-        }, 500);
-      }
-    }
+    // 不再调用 showUserInfoModal，让用户先浏览体验，需要时再在设置页修改
   },
 
   /**
@@ -303,7 +329,7 @@ App({
     } else {
       // 如果当前页面没有弹窗组件，跳转到用户信息设置页面
       wx.navigateTo({
-        url: '/pages/user-info-setting/index'
+        url: '/subpackages/common/pages/user-info-setting/index'
       });
     }
   },
@@ -324,6 +350,18 @@ App({
    */
   showLoginModalManually() {
     this.showLoginModal();
+  },
+
+  /**
+   * 核心操作前校验登录：未登录则弹出登录框并返回 false，已登录返回 true
+   * @param {string} tip 未登录时的提示（可选）
+   * @returns {boolean}
+   */
+  ensureLogin(tip) {
+    if (this.globalData.isLoggedIn) return true;
+    if (tip) wx.showToast({ title: tip, icon: 'none', duration: 2000 });
+    this.showLoginModal();
+    return false;
   },
 
   /**

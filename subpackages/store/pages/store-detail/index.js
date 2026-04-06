@@ -1,5 +1,10 @@
+const log = require('../../../../utils/logger.js');
+const cartUtil = require('../../../../utils/cart.js');
+const cloudImages = require('../../../../config/cloudImages.js');
+
 Page({
   data: {
+    deliveryBoyIcon: cloudImages.deliveryBoyIcon,
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     activeTab: 0,
     tabs: ['点餐', '评价', '商家'],
@@ -8,6 +13,7 @@ Page({
     displayProducts: [], // 当前显示的商品列表（根据分类筛选）
     cartItems: [],
     cartTotal: 0,
+    minOrderGap: '', // 未达起送时还差金额
     // 规格选择弹窗相关
     showSpecPopup: false,
     currentProduct: null,
@@ -20,13 +26,10 @@ Page({
     showCartSummary: false,
     deliveryType: 'delivery', // 'delivery' 外送, 'pickup' 自取
     priceInfo: null, // 价格信息
+    storeDetailLoading: true, // 店铺详情骨架屏
     storeInfo: {
-      name: '意大利特火小面条馆',
-      description: '生活总是有很多的失败,就好比游戏的....',
-      announcement: '失败了,就失败了,爬起来总结一下再继续',
-      logo: 'https://picsum.photos/seed/store-logo/80/80',
-      deliveryFee: 2,
-      minOrder: 12,
+      deliveryFee: 0,
+      minOrder: 0,
       overallRating: 0,
       deliveryRating: 0,
       totalReviews: 0,
@@ -47,106 +50,61 @@ Page({
       introduction: ''
     },
     merchantInfoLoading: false,
-    categories: [
-      { id: 0, name: '麻辣香锅' },
-      { id: 1, name: '麻辣香锅' },
-      { id: 2, name: '麻辣香锅' },
-      { id: 3, name: '麻辣香锅' },
-      { id: 4, name: '麻辣香锅' },
-      { id: 5, name: '麻辣香锅' },
-      { id: 6, name: '麻辣香锅' },
-      { id: 7, name: '麻辣香锅' },
-      { id: 8, name: '麻辣香锅' },
-      { id: 9, name: '麻辣香锅' },
-      { id: 10, name: '麻辣香锅 微辣' }
-    ],
-    products: [
-      {
-        id: 1,
-        name: '意大利特火小面条200g来点',
-        price: 17,
-        image: 'https://picsum.photos/seed/product1/120/120',
-        category: 0,
-        quantity: 0
-      },
-      {
-        id: 2,
-        name: '意大利特火小面条200g来点',
-        price: 17,
-        image: 'https://picsum.photos/seed/product2/120/120',
-        category: 0,
-        quantity: 0
-      },
-      {
-        id: 3,
-        name: '意大利特火小面条200g来点',
-        price: 17,
-        image: 'https://picsum.photos/seed/product3/120/120',
-        category: 0,
-        quantity: 0,
-        hasSpec: true
-      },
-      {
-        id: 4,
-        name: '意大利特火小面条200g来点',
-        price: 17,
-        image: 'https://picsum.photos/seed/product4/120/120',
-        category: 0,
-        quantity: 0
-      }
-    ]
+    categories: [],
+    products: []
   },
 
   onLoad(options) {
-    console.log('【店铺详情】onLoad接收参数:', options);
-    
-    // 如果有传入的店铺ID，可以在这里获取店铺详情
+    log.log('【店铺详情】onLoad接收参数:', options);
+    if (options.productId) {
+      this._pendingProductId = options.productId;
+    }
     if (options.storeId) {
       this.setData({ storeId: options.storeId });
       this.loadStoreDetail(options.storeId);
     } else {
-      // 如果没有传入storeId，使用模拟数据
-      console.log('【店铺详情】未传入店铺ID，使用模拟数据');
+      log.log('【店铺详情】未传入storeId');
+      this.setData({ storeDetailLoading: false });
     }
     this.calculateCartTotal();
-    // 添加调试日志
-    console.log('onLoad - Initial storeInfo.minOrder:', this.data.storeInfo.minOrder);
-    console.log('onLoad - Initial cartTotal:', this.data.cartTotal);
+    log.log('onLoad - Initial storeInfo.minOrder:', this.data.storeInfo.minOrder);
+    log.log('onLoad - Initial cartTotal:', this.data.cartTotal);
   },
 
-  // 页面显示时刷新店铺状态
+  // 页面显示时刷新店铺状态（仅非首次进入时刷新，避免覆盖 productId 定位）
   onShow() {
-    // 如果已有店铺ID，刷新店铺状态（获取最新状态）
-    if (this.data.storeId) {
-      console.log('【店铺详情】onShow 刷新店铺状态，店铺ID:', this.data.storeId);
+    if (!this.data.storeId) return;
+    if (this._storeDetailEverLoaded) {
+      log.log('【店铺详情】onShow 刷新店铺状态，店铺ID:', this.data.storeId);
       this.loadStoreDetail(this.data.storeId);
-      // 刷新评分信息，确保数据是最新的（特别是从评论页面返回时）
       this.loadStoreRating(this.data.storeId);
-      // 如果当前在评价标签页，也刷新评论列表
       if (this.data.activeTab === 1) {
         this.loadReviewList(this.data.storeId);
       }
     }
   },
 
-  // 加载店铺详情
+  // 加载店铺详情（优先使用首页预取结果，减少等待）
   async loadStoreDetail(storeId) {
     try {
-      wx.showLoading({ title: '加载中...' });
-      
-      console.log('【店铺详情】加载店铺详情，店铺ID:', storeId);
-      
-      const res = await wx.cloud.callFunction({
-        name: 'storeManage',
-        data: {
-          action: 'getStoreDetailWithProducts',
-          data: {
-            storeId: storeId
-          }
-        }
-      });
-      
-      console.log('【店铺详情】云函数返回:', res.result);
+      this.setData({ storeDetailLoading: true });
+      log.log('【店铺详情】加载店铺详情，店铺ID:', storeId);
+
+      const app = getApp();
+      let res;
+      const prefetched = app.globalData.prefetchedStoreDetail && app.globalData.prefetchedStoreDetail[storeId];
+      if (prefetched && typeof prefetched.then === 'function') {
+        res = await prefetched;
+        delete app.globalData.prefetchedStoreDetail[storeId];
+        log.log('【店铺详情】使用预取数据');
+      } else {
+        res = await wx.cloud.callFunction({
+          name: 'storeManage',
+          data: { action: 'getStoreDetailWithProducts', data: { storeId } }
+        });
+      }
+
+      log.log('【店铺详情】云函数返回:', res.result);
       
       if (res.result && res.result.code === 200) {
         const { storeInfo, categories, products } = res.result.data;
@@ -161,6 +119,7 @@ Page({
         const currentStoreInfo = this.data.storeInfo || {};
         this.setData({
           storeId: storeId, // 保存storeId到data中
+          storeDetailLoading: false, // 关闭骨架屏
           storeInfo: {
             storeId: storeId, // 添加到storeInfo中
             _id: storeId, // 兼容字段
@@ -172,6 +131,8 @@ Page({
             logoUrl: avatar, // 兼容字段
             deliveryFee: storeInfo.deliveryFee,
             minOrder: storeInfo.minOrder,
+            ratingAvg: storeInfo.ratingAvg ?? storeInfo.overallRating ?? 0,
+            monthlySales: storeInfo.monthlySales ?? storeInfo.sales ?? 0,
             businessStatus: storeInfo.businessStatus || 'open', // 保存店铺状态
             // 保留已有的评分信息，避免被重置为0
             overallRating: currentStoreInfo.overallRating || 0,
@@ -181,22 +142,35 @@ Page({
           },
           categories: categories,
           products: products,
-          activeCategory: 0 // 确保默认选中第一个分类
+          activeCategory: 0
         }, () => {
-          console.log('【店铺详情】数据加载成功');
-          console.log('【店铺详情】storeInfo:', this.data.storeInfo);
-          console.log('【店铺详情】categories:', this.data.categories);
-          console.log('【店铺详情】products:', this.data.products);
-          
-          // 数据加载完成后，根据第一个分类筛选商品
+          log.log('【店铺详情】数据加载成功');
+          this._storeDetailEverLoaded = true;
           this.filterProductsByCategory();
-          
-          // 检查公告是否需要滚动
+          this.applyGlobalCartToPage();
+          const productId = this._pendingProductId;
+          if (productId && products && products.length > 0 && categories && categories.length > 0) {
+            const product = products.find(p => String(p.id || p._id) === String(productId));
+            log.log('【店铺详情】定位商品 productId=', productId, '找到=', !!product, product ? { categoryId: product.categoryId, category: product.category } : '');
+            if (product) {
+              const categoryId = product.categoryId || product.category;
+              let idx = categories.findIndex(c => String(c.id || c._id) === String(categoryId));
+              if (idx < 0 && (categoryId === 'default' || !categoryId)) {
+                idx = categories.findIndex(c => c.id === 'default' || c.name === '全部商品');
+              }
+              if (idx < 0) idx = 0;
+              log.log('【店铺详情】分类匹配 categoryId=', categoryId, 'idx=', idx);
+              this.setData({ activeCategory: idx }, () => this.filterProductsByCategory());
+            } else {
+              this.filterProductsByCategory();
+            }
+            this._pendingProductId = null;
+          }
           this.checkAnnouncementScroll();
         });
       } else if (res.result && res.result.code === 403) {
         // 店铺休息中
-        wx.hideLoading();
+        this.setData({ storeDetailLoading: false });
         wx.showModal({
           title: '提示',
           content: res.result.message || '店铺当前休息中，暂不提供服务',
@@ -206,21 +180,20 @@ Page({
           }
         });
       } else {
-        console.error('【店铺详情】加载失败:', res.result);
-        wx.hideLoading();
+        log.error('【店铺详情】加载失败:', res.result);
+        this.setData({ storeDetailLoading: false });
         wx.showToast({
           title: res.result?.message || '加载失败',
           icon: 'none'
         });
       }
     } catch (err) {
-      console.error('【店铺详情】加载异常:', err);
+      log.error('【店铺详情】加载异常:', err);
+      this.setData({ storeDetailLoading: false });
       wx.showToast({
         title: '加载异常',
         icon: 'none'
       });
-    } finally {
-      wx.hideLoading();
     }
   },
 
@@ -282,7 +255,7 @@ Page({
         });
       }
     } catch (error) {
-      console.error('加载店铺评分失败:', error);
+      log.error('加载店铺评分失败:', error);
     }
   },
   
@@ -359,7 +332,7 @@ Page({
       }
     } catch (error) {
       wx.hideLoading();
-      console.error('加载评论列表失败:', error);
+      log.error('加载评论列表失败:', error);
       this.setData({ reviewsLoading: false });
     }
   },
@@ -422,7 +395,7 @@ Page({
       }
     } catch (error) {
       wx.hideLoading();
-      console.error('加载商家信息失败:', error);
+      log.error('加载商家信息失败:', error);
       this.setData({ merchantInfoLoading: false });
     }
   },
@@ -430,12 +403,12 @@ Page({
   // 切换分类
   onCategoryTap(e) {
     const index = e.currentTarget.dataset.index;
-    console.log('【分类切换】点击分类索引:', index);
+    log.log('【分类切换】点击分类索引:', index);
     
     this.setData({
       activeCategory: index
     }, () => {
-      console.log('【分类切换】activeCategory 更新为:', this.data.activeCategory);
+      log.log('【分类切换】activeCategory 更新为:', this.data.activeCategory);
       // 筛选商品并更新显示
       this.filterProductsByCategory();
     });
@@ -445,13 +418,13 @@ Page({
   filterProductsByCategory() {
     const { categories, products, activeCategory } = this.data;
     
-    console.log('【筛选商品】当前activeCategory:', activeCategory);
-    console.log('【筛选商品】所有分类:', categories);
-    console.log('【筛选商品】所有商品:', products);
+    log.log('【筛选商品】当前activeCategory:', activeCategory);
+    log.log('【筛选商品】所有分类:', categories);
+    log.log('【筛选商品】所有商品:', products);
     
     // 如果没有商品，显示空列表
     if (!products || products.length === 0) {
-      console.log('【筛选商品】商品列表为空');
+      log.log('【筛选商品】商品列表为空');
       this.setData({
         displayProducts: []
       });
@@ -460,7 +433,7 @@ Page({
     
     // 如果没有分类，显示所有商品
     if (!categories || categories.length === 0) {
-      console.log('【筛选商品】分类列表为空，显示所有商品');
+      log.log('【筛选商品】分类列表为空，显示所有商品');
       this.setData({
         displayProducts: products
       });
@@ -472,7 +445,7 @@ Page({
     const currentCategory = categories[validCategoryIndex];
     
     if (!currentCategory) {
-      console.log('【筛选商品】当前分类不存在，显示所有商品');
+      log.log('【筛选商品】当前分类不存在，显示所有商品');
       this.setData({
         displayProducts: products,
         activeCategory: 0 // 重置为第一个分类
@@ -480,12 +453,12 @@ Page({
       return;
     }
     
-    console.log('【筛选商品】当前选中分类:', currentCategory);
-    console.log('【筛选商品】分类ID:', currentCategory.id);
+    log.log('【筛选商品】当前选中分类:', currentCategory);
+    log.log('【筛选商品】分类ID:', currentCategory.id);
     
     // 如果是默认分类或全部商品，返回所有商品
     if (currentCategory.id === 'default' || currentCategory.name === '全部商品') {
-      console.log('【筛选商品】选中"全部商品"，显示所有商品');
+      log.log('【筛选商品】选中"全部商品"，显示所有商品');
       this.setData({
         displayProducts: products
       });
@@ -502,14 +475,14 @@ Page({
       const match = String(productCategoryId) === String(categoryId);
       
       if (match) {
-        console.log(`✓ 匹配商品: ${product.name}, categoryId: ${productCategoryId}, 分类ID: ${categoryId}`);
+        log.log(`✓ 匹配商品: ${product.name}, categoryId: ${productCategoryId}, 分类ID: ${categoryId}`);
       }
       
       return match;
     });
     
-    console.log('【筛选商品】筛选结果:', filteredProducts.length, '个商品');
-    console.log('【筛选商品】筛选后的商品列表:', filteredProducts.map(p => p.name));
+    log.log('【筛选商品】筛选结果:', filteredProducts.length, '个商品');
+    log.log('【筛选商品】筛选后的商品列表:', filteredProducts.map(p => p.name));
     
     this.setData({
       displayProducts: filteredProducts.length > 0 ? filteredProducts : [],
@@ -582,16 +555,17 @@ Page({
         });
       }
       
-      this.setData({
+this.setData({
         products: products,
         displayProducts: displayProducts, // 更新显示的商品列表
         cartItems: cartItems
       }, () => {
         this.calculateCartTotal();
-        console.log('onAddToCart - After setData, cartItems:', this.data.cartItems);
-        console.log('onAddToCart - After setData, cartTotal:', this.data.cartTotal);
+        this.syncPageCartToGlobal();
+        log.log('onAddToCart - After setData, cartItems:', this.data.cartItems);
+        log.log('onAddToCart - After setData, cartTotal:', this.data.cartTotal);
       });
-      
+
       wx.showToast({
         title: '已添加到购物车',
         icon: 'success',
@@ -645,6 +619,7 @@ Page({
     });
     
     this.calculateCartTotal();
+    this.syncPageCartToGlobal();
   },
 
   // 选择规格
@@ -658,7 +633,7 @@ Page({
       product.specifications.forEach((group, groupIndex) => {
         if (group.options && group.options.length > 0) {
           const type = group.type || 'single'; // 默认为单选
-          console.log(`【打开规格弹窗】规格组 ${groupIndex} (${group.name}): type=${type}`);
+          log.log(`【打开规格弹窗】规格组 ${groupIndex} (${group.name}): type=${type}`);
           if (type === 'required' || type === 'single') {
             // 必选和单选：默认选择第一个选项
             selectedSpecs[groupIndex] = 0;
@@ -669,9 +644,9 @@ Page({
         }
       });
       
-      console.log('【打开规格弹窗】product:', product);
-      console.log('【打开规格弹窗】product.specifications:', product.specifications);
-      console.log('【打开规格弹窗】初始化的selectedSpecs:', selectedSpecs);
+      log.log('【打开规格弹窗】product:', product);
+      log.log('【打开规格弹窗】product.specifications:', product.specifications);
+      log.log('【打开规格弹窗】初始化的selectedSpecs:', selectedSpecs);
       
       const specSelectionMap = this.calculateSpecSelectionMap(product, selectedSpecs);
       this.setData({
@@ -711,16 +686,16 @@ Page({
     const type = group.type || 'single'; // 默认为单选
     const selectedSpecs = { ...currentSelectedSpecs };
     
-    console.log('【选择规格】groupIndex:', groupIndex, 'optionIndex:', optionIndex, 'type:', type);
+    log.log('【选择规格】groupIndex:', groupIndex, 'optionIndex:', optionIndex, 'type:', type);
     
     if (type === 'required') {
       // 必选：只能切换选项，不能取消
       // 如果点击已选中的选项，不执行任何操作（保持选中状态）
       if (selectedSpecs[groupIndex] !== optionIndex) {
         selectedSpecs[groupIndex] = optionIndex;
-        console.log(`【选择规格】必选规格组 ${groupIndex} 切换到选项 ${optionIndex}`);
+        log.log(`【选择规格】必选规格组 ${groupIndex} 切换到选项 ${optionIndex}`);
       } else {
-        console.log(`【选择规格】必选规格组 ${groupIndex} 已选中选项 ${optionIndex}，不允许取消`);
+        log.log(`【选择规格】必选规格组 ${groupIndex} 已选中选项 ${optionIndex}，不允许取消`);
         // 必选规格组不允许取消，直接返回
         return;
       }
@@ -748,7 +723,7 @@ Page({
       selectedSpecs[groupIndex] = selectedArray;
     }
     
-    console.log('【选择规格】更新后的selectedSpecs:', selectedSpecs);
+    log.log('【选择规格】更新后的selectedSpecs:', selectedSpecs);
     
     this.setData({
       selectedSpecs: selectedSpecs
@@ -814,15 +789,15 @@ Page({
     const basePrice = parseFloat(currentProduct.price) || 0;
     let additionalPrice = 0;
     
-    console.log('【计算价格】basePrice:', basePrice);
-    console.log('【计算价格】selectedSpecs:', selectedSpecs);
-    console.log('【计算价格】quantity:', quantity);
+    log.log('【计算价格】basePrice:', basePrice);
+    log.log('【计算价格】selectedSpecs:', selectedSpecs);
+    log.log('【计算价格】quantity:', quantity);
     
     // 计算所有选中规格项的加价
     currentProduct.specifications.forEach((group, groupIndex) => {
       const type = group.type || 'single'; // 默认为单选
       const selectedValue = selectedSpecs[groupIndex];
-      console.log(`【计算价格】规格组 ${groupIndex} (type: ${type}): selectedValue=`, selectedValue);
+      log.log(`【计算价格】规格组 ${groupIndex} (type: ${type}): selectedValue=`, selectedValue);
       
       if (type === 'multiple') {
         // 多选：累加所有选中选项的价格
@@ -832,7 +807,7 @@ Page({
               const option = group.options[optionIndex];
               const optionPrice = parseFloat(option.price) || 0;
               additionalPrice += optionPrice;
-              console.log(`【计算价格】多选选项 ${optionIndex} (${option.name}): +${optionPrice}, 累计加价: ${additionalPrice}`);
+              log.log(`【计算价格】多选选项 ${optionIndex} (${option.name}): +${optionPrice}, 累计加价: ${additionalPrice}`);
             }
           });
         }
@@ -842,13 +817,13 @@ Page({
           const option = group.options[selectedValue];
           const optionPrice = parseFloat(option.price) || 0;
           additionalPrice += optionPrice;
-          console.log(`【计算价格】选项 ${selectedValue} (${option.name}): +${optionPrice}, 累计加价: ${additionalPrice}`);
+          log.log(`【计算价格】选项 ${selectedValue} (${option.name}): +${optionPrice}, 累计加价: ${additionalPrice}`);
         }
       }
     });
     
     const totalPrice = (basePrice + additionalPrice) * quantity;
-    console.log('【计算价格】最终价格:', totalPrice, '= (', basePrice, '+', additionalPrice, ') *', quantity);
+    log.log('【计算价格】最终价格:', totalPrice, '= (', basePrice, '+', additionalPrice, ') *', quantity);
     
     return totalPrice;
   },
@@ -1039,8 +1014,9 @@ Page({
       quantity: 1
     });
     
-    this.calculateCartTotal();
-    
+this.calculateCartTotal();
+    this.syncPageCartToGlobal();
+
     wx.showToast({
       title: '已添加到购物车',
       icon: 'success',
@@ -1055,27 +1031,59 @@ Page({
       const price = parseFloat(item.finalPrice || item.price) || 0;
       const quantity = parseInt(item.quantity) || 0;
       const itemTotal = price * quantity;
-      console.log(`商品 ${item.name}: 价格=${price}, 数量=${quantity}, 小计=${itemTotal}`);
+      log.log(`商品 ${item.name}: 价格=${price}, 数量=${quantity}, 小计=${itemTotal}`);
       return sum + itemTotal;
     }, 0);
     
-    console.log('购物车总价计算:', total);
+    log.log('购物车总价计算:', total);
     
-    this.setData({
-      cartTotal: total
-    }, () => {
-      // 重新计算价格信息
-      if (this.data.showCartSummary) {
-        const priceInfo = this.getFinalPrice();
-        this.setData({
-          priceInfo: priceInfo
-        });
-      }
-      // 添加调试日志
-      console.log('calculateCartTotal - Updated cartTotal:', this.data.cartTotal);
-      console.log('calculateCartTotal - Current storeInfo.minOrder:', this.data.storeInfo.minOrder);
-      console.log('calculateCartTotal - Condition (cartTotal >= minOrder):', this.data.cartTotal >= this.data.storeInfo.minOrder);
-      console.log('calculateCartTotal - cartItems.length:', this.data.cartItems.length);
+    const minOrder = parseFloat(this.data.storeInfo?.minOrder) || 0;
+    const minOrderGap = total > 0 && total < minOrder ? (minOrder - total).toFixed(2) : '';
+    const payload = { cartTotal: total, minOrderGap };
+    if (this.data.showCartSummary) {
+      payload.priceInfo = this.getFinalPrice(total);
+    }
+    this.setData(payload, () => {
+      log.log('calculateCartTotal - Updated cartTotal:', this.data.cartTotal);
+      log.log('calculateCartTotal - Current storeInfo.minOrder:', this.data.storeInfo.minOrder);
+      log.log('calculateCartTotal - Condition (cartTotal >= minOrder):', this.data.cartTotal >= this.data.storeInfo.minOrder);
+      log.log('calculateCartTotal - cartItems.length:', this.data.cartItems.length);
+    });
+  },
+
+  /** 从全局购物车拉取该店数据并应用到本页 */
+  applyGlobalCartToPage() {
+    const storeId = this.data.storeId;
+    if (!storeId) return;
+    const bucket = cartUtil.getStoreCart(storeId);
+    if (!bucket || !bucket.items || bucket.items.length === 0) {
+      return;
+    }
+    const cartItems = bucket.items;
+    const products = (this.data.products || []).map(p => {
+      const qty = cartItems.filter(it => String(it.id) === String(p.id)).reduce((s, it) => s + (parseInt(it.quantity, 10) || 0), 0);
+      return { ...p, quantity: qty };
+    });
+    this.setData({ cartItems, products }, () => {
+      this.filterProductsByCategory();
+      this.calculateCartTotal();
+    });
+  },
+
+  /** 将本页购物车同步到全局 */
+  syncPageCartToGlobal() {
+    const storeId = this.data.storeId;
+    if (!storeId) return;
+    const { cartItems, storeInfo, deliveryType, cartTotal } = this.data;
+    if (!cartItems || cartItems.length === 0) {
+      cartUtil.removeStoreFromCart(storeId);
+      return;
+    }
+    cartUtil.setStoreCart(storeId, {
+      storeInfo: storeInfo || {},
+      deliveryType: deliveryType || 'delivery',
+      items: cartItems,
+      cartTotal: cartTotal != null ? cartTotal : cartUtil.computeCartTotal(cartItems)
     });
   },
 
@@ -1104,22 +1112,23 @@ Page({
     });
   },
 
-  // 切换配送方式
+  // 切换配送方式（合并 setData 减少通信次数）
   onToggleDeliveryType(e) {
     const type = e.currentTarget.dataset.type;
-    this.setData({
-      deliveryType: type
-    });
-    // 更新价格信息
-    const priceInfo = this.getFinalPrice();
-    this.setData({
-      priceInfo: priceInfo
-    });
+    const deliveryFee = type === 'delivery' ? (this.data.storeInfo.deliveryFee || 0) : 0;
+    const finalPrice = this.data.cartTotal + deliveryFee;
+    const priceInfo = {
+      originalPrice: this.data.cartTotal,
+      deliveryFee,
+      finalPrice: finalPrice > 0 ? finalPrice : 0,
+      finalPriceFormatted: (finalPrice > 0 ? finalPrice : 0).toFixed(1)
+    };
+    this.setData({ deliveryType: type, priceInfo });
   },
 
-  // 计算最终价格
-  getFinalPrice() {
-    const cartTotal = this.data.cartTotal;
+  // 计算最终价格（cartTotalOverride 可选，用于 setData 前提前计算）
+  getFinalPrice(cartTotalOverride) {
+    const cartTotal = cartTotalOverride != null ? cartTotalOverride : this.data.cartTotal;
     const deliveryFee = this.data.deliveryType === 'delivery' ? (this.data.storeInfo.deliveryFee || 0) : 0;
     
     const finalPrice = cartTotal + deliveryFee;
@@ -1174,6 +1183,7 @@ Page({
     });
     
     this.calculateCartTotal();
+    this.syncPageCartToGlobal();
     
     // 如果弹窗打开，更新价格信息
     if (this.data.showCartSummary) {
@@ -1226,6 +1236,7 @@ Page({
     });
     
     this.calculateCartTotal();
+    this.syncPageCartToGlobal();
     
     // 如果弹窗打开，更新价格信息
     if (this.data.showCartSummary) {
@@ -1262,6 +1273,7 @@ Page({
           });
           
           this.calculateCartTotal();
+          this.syncPageCartToGlobal();
           
           wx.showToast({
             title: '购物车已清空',
@@ -1285,6 +1297,7 @@ Page({
 
   // 结算
   onCheckout() {
+    this.syncPageCartToGlobal();
     // 检查店铺状态：只有营业中的店铺才能下单
     if (this.data.storeInfo.businessStatus && this.data.storeInfo.businessStatus !== 'open') {
       wx.showToast({
@@ -1304,9 +1317,11 @@ Page({
       return;
     }
     
-    console.log('【店铺详情】准备跳转到结算页面');
-    console.log('【店铺详情】当前storeInfo:', this.data.storeInfo);
-    console.log('【店铺详情】当前storeId:', this.data.storeId);
+    if (!getApp().ensureLogin('请先登录后再下单')) return;
+
+    log.log('【店铺详情】准备跳转到结算页面');
+    log.log('【店铺详情】当前storeInfo:', this.data.storeInfo);
+    log.log('【店铺详情】当前storeId:', this.data.storeId);
     
     // 计算最终价格信息
     const priceInfo = this.getFinalPrice();
@@ -1324,15 +1339,15 @@ Page({
       }
     };
     
-    console.log('【店铺详情】传递的cartData:', cartData);
+    log.log('【店铺详情】传递的cartData:', cartData);
     
     wx.navigateTo({
       url: `/subpackages/store/pages/checkout/index?cartData=${encodeURIComponent(JSON.stringify(cartData))}`,
       success: () => {
-        console.log('跳转到结算页面成功');
+        log.log('跳转到结算页面成功');
       },
       fail: (err) => {
-        console.error('跳转到结算页面失败:', err);
+        log.error('跳转到结算页面失败:', err);
         wx.showToast({
           title: '跳转失败',
           icon: 'none',
@@ -1349,8 +1364,8 @@ Page({
 
   // Logo加载错误处理
   onLogoError(e) {
-    console.warn('店铺Logo加载失败，使用默认图片');
-    console.warn('失败的头像URL:', this.data.storeInfo.avatar || this.data.storeInfo.logo || this.data.storeInfo.logoUrl);
+    log.warn('店铺Logo加载失败，使用默认图片');
+    log.warn('失败的头像URL:', this.data.storeInfo.avatar || this.data.storeInfo.logo || this.data.storeInfo.logoUrl);
     this.setData({
       'storeInfo.avatar': '/pages/小标/商家.png',
       'storeInfo.logo': '/pages/小标/商家.png',
@@ -1368,7 +1383,7 @@ Page({
     wx.showActionSheet({
       itemList: ['分享店铺', '收藏店铺', '联系客服'],
       success: (res) => {
-        console.log('选择了:', res.tapIndex);
+        log.log('选择了:', res.tapIndex);
       }
     });
   },
@@ -1393,7 +1408,7 @@ Page({
       wx.makePhoneCall({
         phoneNumber: phone,
         fail: (err) => {
-          console.error('拨打电话失败:', err);
+          log.error('拨打电话失败:', err);
           wx.showToast({
             title: '拨打电话失败',
             icon: 'none'
@@ -1482,7 +1497,7 @@ Page({
     wx.navigateTo({
       url: `/subpackages/store/pages/submit-review/index?storeId=${this.data.storeId}`,
       fail: (err) => {
-        console.error('跳转到提交评论页面失败:', err);
+        log.error('跳转到提交评论页面失败:', err);
         wx.showToast({
           title: '跳转失败',
           icon: 'none'

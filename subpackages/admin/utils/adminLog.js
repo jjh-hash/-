@@ -9,9 +9,8 @@
  */
 async function recordAdminLog(action, target, targetType, result, details = {}) {
   try {
-    // 获取管理员ID（从本地存储）
-    const adminToken = wx.getStorageSync('adminToken');
-    const adminId = adminToken ? adminToken.split('_')[1] : 'unknown';
+    const adminInfo = wx.getStorageSync('adminInfo') || {};
+    const adminId = adminInfo.username || 'admin';
     
     // 调用云函数记录日志
     await wx.cloud.callFunction({

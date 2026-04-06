@@ -1,0 +1,51 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+  <scroll-view scroll-y class="content">
+    <view class="section address-section" bindtap="onSelectAddress">
+      <view class="section-title">收货地址</view>
+      <view wx:if="{{hasAddress}}" class="address-row">
+        <text class="name">{{address.name}}</text>
+        <text class="phone">{{address.phone}}</text>
+        <text class="detail">{{address.addressDetail}}{{address.buildingName || ''}}{{address.houseNumber || ''}}</text>
+      </view>
+      <view wx:else class="address-empty">请选择收货地址</view>
+      <text class="arrow">></text>
+    </view>
+
+    <view class="section total-section">
+      <view class="total-row total-in-content">
+        <text class="total-label">合计</text>
+        <text class="total-value" wx:if="{{totalFeeFen > 0}}">{{totalFeeText}}</text>
+        <text class="total-value" wx:else>¥0.00</text>
+      </view>
+    </view>
+
+    <view class="section store-section">
+      <view class="section-title">商品清单</view>
+      <block wx:for="{{storeList}}" wx:key="storeId">
+        <view class="store-block">
+          <text class="store-name">{{item.storeInfo.name || '店铺'}}</text>
+          <view class="item" wx:for="{{item.items}}" wx:for-item="it" wx:key="id">
+            <text class="item-name">{{it.name}} x{{it.quantity}}</text>
+            <text class="item-price">¥{{(it.finalPrice || it.price) * it.quantity}}</text>
+          </view>
+          <view class="store-footer">
+            <text class="store-total">小计 ¥{{item.cartTotal}}</text>
+            <text class="store-fee">配送费 ¥{{item.storeInfo.deliveryFee || 0}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <view class="safe-bottom"></view>
+  </scroll-view>
+
+  <view class="footer">
+    <view class="total-row">
+      <text class="total-label">合计</text>
+      <text class="total-value" wx:if="{{totalFeeFen > 0}}">{{totalFeeText}}</text>
+      <text class="total-value" wx:else>¥0.00</text>
+    </view>
+    <button class="btn-pay" disabled="{{submitting}}" bindtap="onSubmit">{{submitting ? '提交中...' : '统一付款'}}</button>
+  </view>
+</view>

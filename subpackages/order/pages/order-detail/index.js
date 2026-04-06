@@ -1,3 +1,5 @@
+const subscribeMessage = require('../../../../utils/subscribeMessage.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -6,7 +8,8 @@ Page({
     orderStatusText: '订单详情',
     hasReviewed: false,
     firstProductName: '',
-    showAddressDetails: false // 地址详情展开/收起状态
+    showAddressDetails: false, // 地址详情展开/收起状态
+    paying: false // 支付防重复
   },
 
   onLoad(options) {
@@ -15,6 +18,7 @@ Page({
     if (options.orderId) {
       this.setData({ orderId: options.orderId });
       this.loadOrderDetail(options.orderId);
+      subscribeMessage.preloadOrderStatusTemplateId();
     } else {
       wx.showToast({
         title: '订单ID缺失',
@@ -146,7 +150,10 @@ Page({
 
         // 格式化订单时间（完整格式）
         const orderTime = this.formatDateTime(order.createdAt);
-        
+
+        // 是否可申请退款（骑手确认取餐后不可退）
+        const canRefund = this._canRefund(order);
+
         this.setData({
           orderInfo: {
             id: order._id,
@@ -170,7 +177,11 @@ Page({
             expectedTime: order.expectedTime || '立即配送', // 期望时间
             paymentMethod: order.paymentMethod || '在线支付', // 支付方式
             needCutlery: order.needCutlery !== undefined ? order.needCutlery : true, // 是否需要餐具
-            cutleryQuantity: order.cutleryQuantity || 0 // 餐具数量
+            cutleryQuantity: order.cutleryQuantity || 0, // 餐具数量
+            payStatus: order.payStatus || 'unpaid',
+            completedAt: order.completedAt || null,
+            canRefund: canRefund,
+            refundStatus: order.refundStatus || null
           },
           orderStatusText: getStatusText(order.orderStatus, order.payStatus || 'unpaid'),
           firstProductName: firstProductName.length > 10 ? firstProductName.substring(0, 10) + '...' : firstProductName,
@@ -215,6 +226,14 @@ Page({
     } catch (error) {
       console.error('检查评价状态失败:', error);
     }
+  },
+
+  // 判断是否可申请退款（骑手未取餐前可退）
+  _canRefund(order) {
+    if (order.orderStatus === 'delivering') return false;
+    if (order.orderStatus === 'completed' && order.riderOpenid) return false;
+    if (order.orderStatus === 'cancelled') return false;
+    return ['pending', 'confirmed', 'preparing', 'ready'].includes(order.orderStatus);
   },
 
   // 格式化金额
@@ -412,27 +431,31 @@ Page({
     });
   },
 
-  // 申请退款
+  // 申请退款（在用户点击时请求退款进度订阅，再跳转）
   onRefund() {
     const orderInfo = this.data.orderInfo;
     if (orderInfo && orderInfo.id) {
-      wx.navigateTo({
-        url: `/subpackages/order/pages/refund-apply/index?orderId=${orderInfo.id}`,
-        fail: (err) => {
-          console.error('跳转到退款申请页面失败:', err);
-          // 如果subpackage路径失败，尝试主包路径
-          wx.navigateTo({
-            url: `/pages/refund-apply/index?orderId=${orderInfo.id}`,
-            fail: (err2) => {
-              console.error('跳转到退款申请页面失败（主包路径）:', err2);
-              wx.showToast({
-                title: '跳转失败',
-                icon: 'none'
-              });
-            }
-          });
-        }
-      });
+      const refundTid = subscribeMessage.getRefundTemplateId();
+      const doNav = () => {
+        wx.navigateTo({
+          url: `/subpackages/order/pages/refund-apply/index?orderId=${orderInfo.id}`,
+          fail: (err) => {
+            console.error('跳转到退款申请页面失败:', err);
+            wx.navigateTo({
+              url: `/pages/refund-apply/index?orderId=${orderInfo.id}`,
+              fail: (err2) => {
+                console.error('跳转到退款申请页面失败（主包路径）:', err2);
+                wx.showToast({ title: '跳转失败', icon: 'none' });
+              }
+            });
+          }
+        });
+      };
+      if (refundTid) {
+        subscribeMessage.triggerSubscribeSync(refundTid).then(doNav).catch(doNav);
+      } else {
+        doNav();
+      }
     } else {
       wx.showToast({
         title: '订单信息缺失',
@@ -441,27 +464,145 @@ Page({
     }
   },
 
-  // 评价
+  // 支付订单
+  async onPayOrder() {
+    if (this.data.paying) return;
+    if (this.data.orderInfo.payStatus === 'paid') {
+      wx.showToast({
+        title: '订单已支付',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const tid = getApp().globalData.subscribeMessageOrderStatusTemplateId;
+    if (!tid) {
+      wx.showToast({ title: '加载中，请稍后再试', icon: 'none' });
+      subscribeMessage.preloadOrderStatusTemplateId();
+      return;
+    }
+    this.setData({ paying: true });
+    subscribeMessage.triggerSubscribeSync(tid)
+      .then(() => this._doPayOrder())
+      .catch(() => this._doPayOrder());
+  },
+
+  async _doPayOrder() {
+    wx.showLoading({ title: '正在支付...' });
+
+    try {
+      // 调用统一下单接口
+      const res = await wx.cloud.callFunction({
+        name: 'paymentManage',
+        data: {
+          action: 'unifiedOrder',
+          data: {
+            orderId: this.data.orderId,
+            totalFee: Math.round(this.data.orderInfo.total * 100), // 转换为分
+            description: `订单支付-${this.data.orderInfo.orderNo}`
+          }
+        }
+      });
+
+      wx.hideLoading();
+
+      console.log('【支付】统一下单返回:', res.result);
+
+      if (res.result && res.result.code === 200) {
+        const paymentParams = res.result.data;
+
+        // 调用微信支付（paying 在 success/fail 中清除）
+        wx.requestPayment({
+          timeStamp: paymentParams.timeStamp,
+          nonceStr: paymentParams.nonceStr,
+          package: paymentParams.package,
+          signType: paymentParams.signType,
+          paySign: paymentParams.paySign,
+          success: async (payRes) => {
+            this.setData({ paying: false });
+            console.log('【支付】成功:', payRes);
+
+            // 支付成功后主动更新订单状态
+            try {
+              await wx.cloud.callFunction({
+                name: 'orderManage',
+                data: {
+                  action: 'updateOrderPayStatus',
+                  data: {
+                    orderId: this.data.orderId,
+                    payStatus: 'paid'
+                  }
+                }
+              });
+            } catch (updateError) {
+              console.warn('【支付】更新订单状态失败:', updateError);
+              // 不影响支付成功提示
+            }
+            wx.showToast({
+              title: '支付成功',
+              icon: 'success',
+              duration: 2000
+            });
+            // 重新加载订单详情
+            setTimeout(() => {
+              this.loadOrderDetail(this.data.orderId);
+            }, 500);
+          },
+          fail: (payErr) => {
+            this.setData({ paying: false });
+            console.error('【支付】失败:', payErr);
+            wx.showToast({
+              title: '支付失败',
+              icon: 'none',
+              duration: 2000
+            });
+          }
+        });
+      } else {
+        this.setData({ paying: false });
+        wx.showToast({
+          title: res.result?.message || '统一下单失败',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      this.setData({ paying: false });
+      console.error('【支付】异常:', error);
+      wx.showToast({
+        title: '支付异常，请重试',
+        icon: 'none',
+        duration: 2000
+      });
+    }
+  },
+
+  // 评价（在用户点击时请求评价提醒订阅，再跳转）
   onReview() {
     const orderInfo = this.data.orderInfo;
     if (orderInfo.storeId) {
-      wx.navigateTo({
-        url: `/subpackages/store/pages/submit-review/index?orderId=${orderInfo.id}&storeId=${orderInfo.storeId}`,
-        fail: (err) => {
-          console.error('跳转到提交评论页面失败:', err);
-          // 如果subpackage路径失败，尝试主包路径
-          wx.navigateTo({
-            url: `/pages/submit-review/index?orderId=${orderInfo.id}&storeId=${orderInfo.storeId}`,
-            fail: (err2) => {
-              console.error('跳转到提交评论页面失败（主包路径）:', err2);
-              wx.showToast({
-                title: '跳转失败',
-                icon: 'none'
-              });
-            }
-          });
-        }
-      });
+      const reviewTid = subscribeMessage.getReviewTemplateId();
+      const doNav = () => {
+        wx.navigateTo({
+          url: `/subpackages/store/pages/submit-review/index?orderId=${orderInfo.id}&storeId=${orderInfo.storeId}`,
+          fail: (err) => {
+            console.error('跳转到提交评论页面失败:', err);
+            wx.navigateTo({
+              url: `/pages/submit-review/index?orderId=${orderInfo.id}&storeId=${orderInfo.storeId}`,
+              fail: (err2) => {
+                console.error('跳转到提交评论页面失败（主包路径）:', err2);
+                wx.showToast({ title: '跳转失败', icon: 'none' });
+              }
+            });
+          }
+        });
+      };
+      if (reviewTid) {
+        subscribeMessage.triggerSubscribeSync(reviewTid).then(doNav).catch(doNav);
+      } else {
+        doNav();
+      }
     } else {
       wx.showToast({
         title: '店铺信息缺失',
@@ -472,6 +613,7 @@ Page({
 
   // 再来一单
   async onOrderAgain() {
+    if (!getApp().ensureLogin('请先登录后再下单')) return;
     const orderInfo = this.data.orderInfo;
     
     if (orderInfo.orderType === 'express') {

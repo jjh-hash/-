@@ -1,10 +1,4 @@
 <view class="page">
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-  <view class="nav">
-    <view class="back" bindtap="onBack">◀</view>
-    <text class="title">商品管理</text>
-    <view class="tools">🔍</view>
-  </view>
 
   <!-- 顶部tab -->
   <view class="tabs">
@@ -30,7 +24,7 @@
                 bindtouchmove="onTouchMove" 
                 bindtouchend="onTouchEnd"
                 data-id="{{item.id}}">
-            <image class="thumb" src="{{item.coverUrl || 'https://picsum.photos/seed/product/100/100'}}" mode="aspectFill" />
+            <image class="thumb" src="{{item.coverUrl || 'https://picsum.photos/seed/product/100/100'}}" mode="aspectFill" lazy-load />
             <view class="meta">
               <text class="name">{{item.name}}</text>
               <text class="price">¥{{item.price}}</text>

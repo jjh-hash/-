@@ -27,7 +27,8 @@ Component({
         tempNickname: userInfo.nickname || '',
         tempAvatar: userInfo.avatar || ''
       });
-      console.log('临时头像设置:', userInfo.avatar);
+      // tempAvatar 为弹窗内可编辑的表单值，头像 URL 本身为云存储持久化地址
+      console.log('弹窗表单头像已填充:', userInfo.avatar);
     }
   },
 

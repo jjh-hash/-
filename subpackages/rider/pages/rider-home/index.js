@@ -1,3 +1,5 @@
+const log = require('../../../../utils/logger.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -12,19 +14,220 @@ Page({
     deliverLoading: false,
     deliverOrders: [], // 待送达订单列表
     riderStatus: 'not_registered', // 骑手审核状态: not_registered, pending, approved, rejected
-    canGrabOrder: false // 是否可以接单
+    canGrabOrder: false, // 是否可以接单
+    grabbingOrderId: null,
+    pickupOrderId: null,
+    deliveringOrderId: null,
+    watchOrder: null,
+    pollingTimer: null,
+    reconnectCount: 0,
+    watchConnected: false,
+    pollingActive: false,
+    lastRefreshTime: 0,
+    lastScrollTime: 0,
+    scrollTop: 0,
+    loadError: false,
+    errorMessage: ''
   },
 
   onLoad() {
-    // 页面加载时获取数据
     this.loadRiderStatus();
     this.loadOrdersByTab(this.data.activeTab);
+    this.startOrderWatch();
   },
 
   onShow() {
-    // 页面显示时刷新数据
     this.loadRiderStatus();
-    this.loadOrdersByTab(this.data.activeTab);
+    const now = Date.now();
+    if (!this._ordersLastLoadTime || now - this._ordersLastLoadTime > 60000) {
+      this.loadOrdersByTab(this.data.activeTab);
+    }
+    this.startOrderWatch();
+    setTimeout(() => {
+      if (!this.data.watchConnected && !this.data.pollingActive) {
+        log.log('【骑手接单大厅】Watch未连接，启动轮询兜底');
+        this.startPolling();
+      }
+    }, 2000);
+  },
+
+  onHide() {
+    log.log('【骑手接单大厅】页面隐藏，停止监听和轮询');
+    this.stopOrderWatch();
+    this.stopPolling();
+    this._clearTimers();
+  },
+
+  onUnload() {
+    log.log('【骑手接单大厅】页面卸载，停止监听和轮询');
+    this.stopOrderWatch();
+    this.stopPolling();
+    this._clearTimers();
+  },
+
+  _clearTimers() {
+    if (this._refreshTimer) {
+      clearTimeout(this._refreshTimer);
+      this._refreshTimer = null;
+    }
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+    if (this._scrollTimer) {
+      clearTimeout(this._scrollTimer);
+      this._scrollTimer = null;
+    }
+  },
+
+  startOrderWatch() {
+    this.stopOrderWatch();
+    this.stopPolling();
+    this.setData({ reconnectCount: 0 });
+    try {
+      log.log('【骑手接单大厅】启动订单实时监听');
+      const db = wx.cloud.database();
+      wx.cloud.callFunction({ name: 'loginUser', data: {} }).then(res => {
+        const data = res.result?.data;
+        const openid = data?.userInfo?.openid || res.result?.openid || (wx.getStorageSync('userInfo') && wx.getStorageSync('userInfo').openid);
+        if (!openid) {
+          log.warn('【骑手接单大厅】无法启动Watch：缺少openid，降级到轮询');
+          this.startPolling();
+          return;
+        }
+        const _ = db.command;
+        const whereCondition = _.or([
+          {
+            orderStatus: _.in(['ready', 'confirmed']),
+            riderOpenid: _.exists(false),
+            payStatus: 'paid'
+          },
+          { riderOpenid: openid }
+        ]);
+        this.data.watchOrder = db.collection('orders')
+          .where(whereCondition)
+          .watch({
+            onChange: (snapshot) => {
+              if (!this.data.watchConnected) {
+                this.setData({ watchConnected: true });
+                log.log('【骑手接单大厅】Watch连接成功');
+                this.stopPolling();
+              }
+              if (snapshot.docChanges && snapshot.docChanges.length > 0) {
+                this.handleOrderChange();
+              }
+            },
+            onError: (err) => {
+              log.error('【骑手接单大厅】Watch错误:', err);
+              this.handleWatchError(err);
+            }
+          });
+        log.log('【骑手接单大厅】Watch已启动');
+      }).catch(err => {
+        log.error('【骑手接单大厅】获取openid失败:', err);
+        this.startPolling();
+      });
+    } catch (error) {
+      log.error('【骑手接单大厅】启动Watch失败:', error);
+      this.startPolling();
+    }
+  },
+
+  handleOrderChange() {
+    const now = Date.now();
+    if (now - this.data.lastRefreshTime < 1000) return;
+    if (this.data.loading || this.data.pickupLoading || this.data.deliverLoading) return;
+    const timeSinceScroll = now - (this.data.lastScrollTime || 0);
+    if (timeSinceScroll < 3000) {
+      if (this._refreshTimer) clearTimeout(this._refreshTimer);
+      this._refreshTimer = setTimeout(() => this.handleOrderChange(), 3000 - timeSinceScroll + 2000);
+      return;
+    }
+    if (this.data.scrollTop > 100) {
+      if (this._refreshTimer) clearTimeout(this._refreshTimer);
+      this._refreshTimer = setTimeout(() => {
+        if (Date.now() - (this.data.lastScrollTime || 0) >= 3000) this.handleOrderChange();
+      }, 3000);
+      return;
+    }
+    this.setData({ lastRefreshTime: now });
+    if (this._refreshTimer) clearTimeout(this._refreshTimer);
+    this._refreshTimer = setTimeout(() => {
+      if (!this.data.loading && !this.data.pickupLoading && !this.data.deliverLoading) {
+        this.loadOrdersByTab(this.data.activeTab);
+      }
+    }, 500);
+  },
+
+  handleWatchError(err) {
+    this.setData({ watchConnected: false });
+    const reconnectCount = this.data.reconnectCount || 0;
+    const maxReconnect = 3;
+    if (reconnectCount >= maxReconnect) {
+      log.warn('【骑手接单大厅】Watch重连达上限，降级到轮询');
+      this.startPolling();
+      return;
+    }
+    const intervals = [2000, 5000, 8000];
+    const delay = intervals[reconnectCount] || 8000;
+    this.setData({ reconnectCount: reconnectCount + 1 });
+    if (this._reconnectTimer) clearTimeout(this._reconnectTimer);
+    this._reconnectTimer = setTimeout(() => this.startOrderWatch(), delay);
+  },
+
+  startPolling() {
+    if (this.data.pollingActive) return;
+    log.log('【骑手接单大厅】启动轮询兜底');
+    this.setData({ pollingActive: true });
+    this.pollOrders();
+    const timerId = setInterval(() => this.pollOrders(), 12000);
+    this.setData({ pollingTimer: timerId });
+  },
+
+  stopPolling() {
+    const id = this.data.pollingTimer;
+    if (id) {
+      clearInterval(id);
+      this.setData({ pollingTimer: null });
+    }
+    this.setData({ pollingActive: false });
+  },
+
+  pollOrders() {
+    const { activeTab, pickupOrders, deliverOrders } = this.data;
+    const hasActive = (activeTab === 0) || (pickupOrders && pickupOrders.length > 0) || (deliverOrders && deliverOrders.length > 0);
+    if (!hasActive) {
+      this.stopPolling();
+      return;
+    }
+    const now = Date.now();
+    if (now - (this.data.lastScrollTime || 0) < 3000) return;
+    if (this.data.scrollTop > 100) return;
+    if (!this.data.loading && !this.data.pickupLoading && !this.data.deliverLoading) {
+      this.loadOrdersByTab(this.data.activeTab);
+    }
+  },
+
+  stopOrderWatch() {
+    if (this.data.watchOrder) {
+      try {
+        this.data.watchOrder.close();
+      } catch (error) {
+        log.error('【骑手接单大厅】停止Watch失败:', error);
+      }
+      this.data.watchOrder = null;
+    }
+    this.setData({ watchConnected: false });
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+  },
+
+  onScroll(e) {
+    const now = Date.now();
+    const scrollTop = e.detail.scrollTop || 0;
+    this.setData({ lastScrollTime: now, scrollTop });
   },
 
   // 加载骑手审核状态
@@ -66,10 +269,15 @@ Page({
 
   onTabChange(e) {
     const index = Number(e.currentTarget.dataset.index);
-    this.setData({ activeTab: index });
+    this.setData({ activeTab: index, loadError: false });
     
     // 切换标签时可以根据不同标签加载不同的订单数据
     this.loadOrdersByTab(index);
+  },
+
+  onRetryLoad() {
+    this.setData({ loadError: false });
+    this.loadOrdersByTab(this.data.activeTab);
   },
 
   // 根据标签加载订单
@@ -92,9 +300,11 @@ Page({
         
         if (res.result && res.result.code === 200) {
           const orders = res.result.data.list || [];
+          this._ordersLastLoadTime = Date.now();
           this.setData({
             orders: orders,
-            loading: false
+            loading: false,
+            loadError: false
           });
         } else {
           throw new Error(res.result?.message || '获取订单失败');
@@ -102,10 +312,7 @@ Page({
       } catch (error) {
         console.error('加载订单失败:', error);
         if (!this.data.refreshing) {
-        wx.showToast({
-          title: error.message || '加载失败',
-          icon: 'none'
-        });
+          this.setData({ loadError: true, errorMessage: error.message || '加载失败' });
         }
         this.setData({
           orders: [],
@@ -131,9 +338,11 @@ Page({
         
         if (res.result && res.result.code === 200) {
           const pickupOrders = res.result.data.list || [];
+          this._ordersLastLoadTime = Date.now();
           this.setData({
             pickupOrders: pickupOrders,
-            pickupLoading: false
+            pickupLoading: false,
+            loadError: false
           });
         } else {
           throw new Error(res.result?.message || '获取订单失败');
@@ -141,10 +350,7 @@ Page({
       } catch (error) {
         console.error('加载待取货订单失败:', error);
         if (!this.data.refreshing) {
-        wx.showToast({
-          title: error.message || '加载失败',
-          icon: 'none'
-        });
+          this.setData({ loadError: true, errorMessage: error.message || '加载失败' });
         }
         this.setData({
           pickupOrders: [],
@@ -170,9 +376,11 @@ Page({
         
         if (res.result && res.result.code === 200) {
           const deliverOrders = res.result.data.list || [];
+          this._ordersLastLoadTime = Date.now();
           this.setData({
             deliverOrders: deliverOrders,
-            deliverLoading: false
+            deliverLoading: false,
+            loadError: false
           });
         } else {
           throw new Error(res.result?.message || '获取订单失败');
@@ -180,10 +388,7 @@ Page({
       } catch (error) {
         console.error('加载待送达订单失败:', error);
         if (!this.data.refreshing) {
-        wx.showToast({
-          title: error.message || '加载失败',
-          icon: 'none'
-        });
+          this.setData({ loadError: true, errorMessage: error.message || '加载失败' });
         }
         this.setData({
           deliverOrders: [],
@@ -266,6 +471,8 @@ Page({
       content: '确定要抢这个订单吗？',
       success: async (res) => {
         if (res.confirm) {
+          if (this.data.grabbingOrderId) return;
+          this.setData({ grabbingOrderId: orderId });
           try {
             wx.showLoading({ title: '抢单中...' });
             
@@ -280,6 +487,7 @@ Page({
             });
             
             wx.hideLoading();
+            this.setData({ grabbingOrderId: null });
             
             if (result.result && result.result.code === 200) {
               wx.showToast({
@@ -295,15 +503,29 @@ Page({
                 this.loadOrdersByTab(this.data.activeTab);
               }, 500);
             } else {
-              wx.showToast({
-                title: result.result?.message || '❌ 抢单失败',
-                icon: 'none',
-                duration: 2000
-              });
+              const msg = result.result?.message || '❌ 抢单失败';
+              const isCampusRequired = result.result?.code === 403 && (msg.indexOf('校园兼职') !== -1 || msg.indexOf('保证金') !== -1);
+              if (isCampusRequired) {
+                this.setData({ grabbingOrderId: null });
+                wx.showModal({
+                  title: '无法抢单',
+                  content: msg,
+                  confirmText: '去开通',
+                  success: (r) => {
+                    if (r.confirm) {
+                      wx.navigateTo({ url: '/subpackages/common/pages/campus-partner/index' });
+                    }
+                  }
+                });
+              } else {
+                wx.showToast({ title: msg, icon: 'none', duration: 2000 });
+              }
+              this.setData({ grabbingOrderId: null });
               console.error('【骑手端】抢单失败:', result.result);
             }
           } catch (error) {
             wx.hideLoading();
+            this.setData({ grabbingOrderId: null });
             console.error('【骑手端】抢单异常:', error);
             wx.showToast({
               title: '❌ 抢单失败，请重试',
@@ -325,6 +547,8 @@ Page({
       content: '确认已从商家处取到餐品？',
       success: async (res) => {
         if (res.confirm) {
+          if (this.data.pickupOrderId) return;
+          this.setData({ pickupOrderId: orderId });
           try {
             wx.showLoading({ title: '确认中...' });
             
@@ -339,6 +563,7 @@ Page({
             });
             
             wx.hideLoading();
+            this.setData({ pickupOrderId: null });
             
             if (result.result && result.result.code === 200) {
               wx.showToast({
@@ -354,6 +579,7 @@ Page({
                 this.loadOrdersByTab(this.data.activeTab);
               }, 500);
             } else {
+              this.setData({ pickupOrderId: null });
               wx.showToast({
                 title: result.result?.message || '❌ 操作失败',
                 icon: 'none',
@@ -363,6 +589,7 @@ Page({
             }
           } catch (error) {
             wx.hideLoading();
+            this.setData({ pickupOrderId: null });
             console.error('【骑手端】取餐异常:', error);
             wx.showToast({
               title: '❌ 操作失败，请重试',
@@ -384,6 +611,8 @@ Page({
       content: '确认已将餐品送达给用户？',
       success: async (res) => {
         if (res.confirm) {
+          if (this.data.deliveringOrderId) return;
+          this.setData({ deliveringOrderId: orderId });
           try {
             wx.showLoading({ title: '确认中...' });
             
@@ -398,6 +627,7 @@ Page({
             });
             
             wx.hideLoading();
+            this.setData({ deliveringOrderId: null });
             
             if (result.result && result.result.code === 200) {
               // 显示成功提示
@@ -435,6 +665,7 @@ Page({
                 }, 1000);
               }, 500);
             } else {
+              this.setData({ deliveringOrderId: null });
               wx.showToast({
                 title: result.result?.message || '❌ 操作失败',
                 icon: 'none',
@@ -444,6 +675,7 @@ Page({
             }
           } catch (error) {
             wx.hideLoading();
+            this.setData({ deliveringOrderId: null });
             console.error('【骑手端】送达异常:', error);
             wx.showToast({
               title: '❌ 操作失败，请重试',
@@ -474,35 +706,6 @@ Page({
     wx.navigateTo({
       url: '/subpackages/rider/pages/rider-register/index'
     });
-  },
-
-  onSettingTap() {
-    wx.navigateTo({
-      url: '/subpackages/rider/pages/rider-settings/index',
-      fail: (err) => {
-        console.error('跳转到跑单设置页面失败:', err);
-    wx.showToast({ 
-          title: '跳转失败',
-      icon: 'none' 
-        });
-      }
-    });
-  },
-
-  onRefresh() {
-    wx.showLoading({ title: '刷新中...' });
-    
-    // 刷新订单数据
-    this.loadOrdersByTab(this.data.activeTab);
-    
-    setTimeout(() => {
-      wx.hideLoading();
-      wx.showToast({ 
-        title: '刷新完成', 
-        icon: 'success',
-        duration: 1500
-      });
-    }, 1000);
   },
 
   // 下拉刷新

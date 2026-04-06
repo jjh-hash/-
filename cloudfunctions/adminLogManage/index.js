@@ -21,6 +21,7 @@ cloud.init({
 });
 
 const db = cloud.database();
+const { extractAdminSessionToken, verifyAdminSession, deny } = require('./adminSession');
 
 exports.main = async (event, context) => {
   console.log('管理员操作日志管理请求:', event);
@@ -28,6 +29,10 @@ exports.main = async (event, context) => {
   const { action, data } = event;
   
   try {
+    const v = await verifyAdminSession(db, extractAdminSessionToken(event));
+    if (!v.ok) {
+      return deny(v);
+    }
     switch (action) {
       case 'getList':
         return await getLogList(data);

@@ -1,15 +1,6 @@
-<view class="page">
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="back" bindtap="onBack">◀</text>
-      <text class="title">个人中心</text>
-      <view class="icons">
-      </view>
-    </view>
-  </view>
-
+<view class="page profile-page">
+  <!-- 状态栏占位，避免头像/昵称被遮挡 -->
+  <view class="status-bar-spacer" style="height: {{statusBarHeight}}px;"></view>
   <!-- 用户信息区域 -->
   <view class="profile-section" bindtap="editUserInfo">
     <view class="avatar">
@@ -21,8 +12,7 @@
     <text class="nickname">{{userInfo.nickname || '微信用户'}}</text>
   </view>
 
-  <!-- 用户信息设置弹窗 -->
-  <user-info-modal 
+  <user-info-modal
     id="userInfoModal"
     show="{{showUserInfoModal}}"
     userInfo="{{userInfo}}"
@@ -30,82 +20,27 @@
     bind:update="onUpdateUserInfo"
   />
 
-  <!-- 功能菜单 -->
-  <view class="menu-section">
-    <view class="menu-list">
-      <view class="menu-item" bindtap="onMenuTap" data-type="user-info">
-        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/姓名.png" mode="aspectFit" /></view>
-        <text class="menu-text">我的信息</text>
-        <text class="menu-arrow">></text>
+  <!-- 白色内容区：宫格入口 -->
+  <view class="profile-content">
+    <view class="menu-section" wx:for="{{menuSections}}" wx:key="title">
+      <text class="section-title">{{item.title}}</text>
+      <view class="menu-grid menu-grid-cols-{{item.cols || 2}}">
+        <view
+          class="menu-grid-item ds-press"
+          wx:for="{{item.items}}"
+          wx:for-item="entry"
+          wx:key="type"
+          bindtap="onMenuTap"
+          data-type="{{entry.type}}"
+        >
+          <view class="grid-icon-wrap">
+            <image class="grid-icon" src="{{entry.icon}}" mode="aspectFit" />
+          </view>
+          <text class="grid-text">{{entry.text}}</text>
+          <text class="grid-extra" wx:if="{{entry.extra}}">{{entry.extra}}</text>
+          <text class="grid-desc" wx:if="{{entry.desc}}">{{entry.desc}}</text>
+        </view>
       </view>
-      
-      <view class="menu-item" bindtap="onMenuTap" data-type="reviews">
-        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/待评价.png" mode="aspectFit" /></view>
-        <text class="menu-text">我的评价</text>
-        <text class="menu-arrow">></text>
-      </view>
-      
-      <view class="menu-item" bindtap="onMenuTap" data-type="my-orders">
-        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/dingdan.png" mode="aspectFit" /></view>
-        <text class="menu-text">历史订单</text>
-        <text class="menu-arrow">></text>
-      </view>
-      
-      <view class="menu-item" bindtap="onMenuTap" data-type="address">
-        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/地址.png" mode="aspectFit" /></view>
-        <text class="menu-text">我的地址</text>
-        <text class="menu-arrow">></text>
-      </view>
-      
-      <view class="menu-item" bindtap="onMenuTap" data-type="about">
-        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/关于我们.png" mode="aspectFit" /></view>
-        <text class="menu-text">关于我们</text>
-        <text class="menu-arrow">></text>
-      </view>
-      
-      <view class="menu-item" bindtap="onMenuTap" data-type="service">
-        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/联系客服.png" mode="aspectFit" /></view>
-        <text class="menu-text">联系客服</text>
-        <text class="menu-phone">+v 15890121731</text>
-      </view>
-
-      <view class="menu-item" bindtap="onMenuTap" data-type="switch-merchant">
-        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/商家.png" mode="aspectFit" /></view>
-        <text class="menu-text">切换到商家端</text>
-        <text class="menu-arrow">></text>
-      </view>
-
-      <view class="menu-item" bindtap="onMenuTap" data-type="switch-rider">
-        <view class="menu-icon"><image class="menu-icon-img" src="/pages/小标/接单.png" mode="aspectFit" /></view>
-        <text class="menu-text">切换到接单端</text>
-        <text class="menu-arrow">></text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 自定义底部栏 -->
-  <view class="tabbar">
-    <view class="tab" bindtap="onTabTap" data-tab="home">
-      <image class="t-icon" src="/pages/小标/shouye.png" mode="aspectFit" />
-      <text class="t-text">首页</text>
-    </view>
-    <view class="tab" bindtap="onTabTap" data-tab="order">
-      <image class="t-icon" src="/pages/小标/dingdan.png" mode="aspectFit" />
-      <text class="t-text">订单</text>
-    </view>
-    <!-- 接单功能正在开发中，已注释 -->
-    <!-- <view class="tab" bindtap="onTabTap" data-tab="receive">
-      <image class="t-icon" src="/pages/小标/接单.png" mode="aspectFit" />
-      <text class="t-text">接单</text>
-    </view> -->
-    <!-- 消息功能正在开发中，已注释 -->
-    <!-- <view class="tab" bindtap="onTabTap" data-tab="message">
-      <image class="t-icon" src="/pages/小标/消息.png" mode="aspectFit" />
-      <text class="t-text">消息</text>
-    </view> -->
-    <view class="tab active">
-      <image class="t-icon" src="/pages/小标/wode-copy.png" mode="aspectFit" />
-      <text class="t-text">我的</text>
     </view>
   </view>
 </view>

@@ -12,7 +12,8 @@
 .tab.active{color:#1677ff;font-weight:600}
 .tab.active::after{content:'';position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:28px;height:2px;background:#1677ff;border-radius:1px}
 
-.list{height:calc(100vh - 44px - 44px - 60px)}
+/* 列表：无顶部导航，高度 = 视口 - tab 栏(48px) - 安全区 */
+.list{position:relative;z-index:2;height:calc(100vh - 48px - env(safe-area-inset-bottom))}
 
 /* 加载和空状态 */
 .loading-container, .empty-container{
@@ -63,17 +64,21 @@
 .t-item.active{color:#1677ff}
 .t-img{width:22px;height:22px}
 .t-txt{font-size:12px;margin-top:2px}
-.safe-area-bottom{height:env(safe-area-inset-bottom)}
+.safe-area-bottom{height:calc(50px + env(safe-area-inset-bottom))}
 
 /* 底部弹层 */
-.sheet-mask{position:fixed;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,.35);opacity:0;visibility:hidden;transition:all .2s}
-.sheet-mask.show{opacity:1;visibility:visible}
-.sheet{position:fixed;left:0;right:0;bottom:-100%;background:#fff;border-radius:12px 12px 0 0;box-shadow:0 -4px 12px rgba(0,0,0,.08);padding:12px;transition:bottom .25s;height:70%}
+/* 未显示时遮罩 z-index 低于列表，避免盖住列表；显示时置于最前 */
+.sheet-mask{position:fixed;left:0;right:0;top:0;bottom:0;z-index:1;background:rgba(0,0,0,.35);opacity:0;visibility:hidden;transition:all .2s}
+.sheet-mask.show{z-index:10;opacity:1;visibility:visible}
+.sheet{position:fixed;left:0;right:0;bottom:-100%;z-index:11;background:#fff;border-radius:12px 12px 0 0;box-shadow:0 -4px 12px rgba(0,0,0,.08);padding:12px;transition:bottom .25s;height:70%}
 .sheet.show{bottom:0}
 .sheet-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .sheet-desk{font-size:18px;font-weight:700;color:#333}
 .sheet-status{color:#1677ff}
 .sheet-status.cancelled{color:#ef4444}
+.sheet-status-wrapper{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pay-status-badge{font-size:12px;padding:2px 8px;border-radius:4px;font-weight:500}
+.pay-status-badge.paid{background:#d4edda;color:#2e7d32}
 .sheet-items{max-height:200px;margin-top:6px}
 .s-item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f5f5f5}
 .s-thumb{width:44px;height:44px;border-radius:6px;margin-right:8px}
@@ -99,6 +104,8 @@
 .refund-status-badge{font-size:12px;padding:2px 8px;border-radius:4px;font-weight:500}
 .refund-status-badge.approved{background:#d4edda;color:#155724}
 .refund-status-badge.rejected{background:#f8d7da;color:#721c24}
+.order-status-badge{font-size:12px;padding:2px 8px;border-radius:4px;font-weight:500}
+.order-status-badge.cancelled{background:#f8d7da;color:#721c24}
 
 .refund-section{margin-top:12px;background:#f8f9fa;border-radius:8px;padding:12px}
 .refund-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}

@@ -9,8 +9,11 @@ Page({
   },
 
   onLoad() {
-    console.log('【接单页面】页面加载');
-    this.loadOrders();
+    console.log('【接单页面】主包页面加载，统一重定向至分包任务大厅');
+    wx.redirectTo({
+      url: '/subpackages/order/pages/receive-order/index',
+      fail: () => { this.loadOrders(); }
+    });
   },
 
   onShow() {
@@ -141,7 +144,7 @@ Page({
       });
     } else if (tab === 'order') {
       wx.reLaunch({
-        url: '/pages/order/index'
+        url: '/subpackages/order/pages/order/index'
       });
     } else if (tab === 'receive') {
       // 接单功能正在开发中
@@ -502,7 +505,7 @@ onTabTap(e){
     if(tab === 'home'){
       wx.reLaunch({ url: '/pages/home/index' });
     } else if(tab === 'order'){
-      wx.reLaunch({ url: '/pages/order/index' });
+      wx.reLaunch({ url: '/subpackages/order/pages/order/index' });
     } else if(tab === 'receive'){
       // 当前页面，无需跳转
     } else if(tab === 'profile'){

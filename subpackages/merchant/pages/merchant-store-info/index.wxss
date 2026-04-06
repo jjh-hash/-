@@ -1,28 +1,29 @@
-.page{min-height:100vh;background:#f5f5f5}
+/* 商家店铺信息 - 设计系统 */
+.page{min-height:100vh;background:var(--color-bg-page)}
 .status-bar{width:100%}
-.nav{height:44px;background:#fff;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;position:relative}
-.back{position:absolute;left:12px;color:#333}
-.title{font-size:18px;color:#333;font-weight:600}
+.nav{height:44px;background:var(--color-bg-card);border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:center;position:relative}
+.back{position:absolute;left:12px;color:var(--color-text)}
+.title{font-size:18px;color:var(--color-text);font-weight:600}
 
-.section-title{margin:12px;color:#333;font-weight:600}
-.list{background:#fff;margin:0 12px 12px;border-radius:12px;overflow:hidden}
-.cell{display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid #f2f3f5;color:#333}
+.section-title{margin:12px;color:var(--color-text);font-weight:600}
+.list{background:var(--color-bg-card);margin:0 12px 12px;border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-card)}
+.cell{display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid var(--color-border);color:var(--color-text)}
 .cell:last-child{border-bottom:none}
-.label{color:#333}
-.input{flex:1;text-align:right;color:#333}
-.placeholder{flex:1;text-align:right;color:#c0c4cc}
-.time-display{flex:1;text-align:right;color:#333}
-.arrow{color:#c0c4cc;margin-left:8px}
+.label{color:var(--color-text)}
+.input{flex:1;text-align:right;color:var(--color-text)}
+.placeholder{flex:1;text-align:right;color:var(--color-text-placeholder)}
+.time-display{flex:1;text-align:right;color:var(--color-text)}
+.arrow{color:var(--color-text-placeholder);margin-left:8px}
 .picker-view{display:flex;align-items:center;flex:1;justify-content:flex-end}
-.picker-text{color:#333;text-align:right}
-.picker-placeholder{color:#c0c4cc;text-align:right}
+.picker-text{color:var(--color-text);text-align:right}
+.picker-placeholder{color:var(--color-text-placeholder);text-align:right}
 .avatar .right{display:flex;align-items:center}
 .avatar-img{width:28px;height:28px;border-radius:14px}
 .price{display:flex;align-items:center}
 .short{width:60px;text-align:right}
-.unit{margin-left:6px;color:#333}
+.unit{margin-left:6px;color:var(--color-text)}
 .save-wrap{padding:20px 12px}
-.btn.primary{height:44px;border-radius:22px;background:#1677ff;color:#fff;display:flex;align-items:center;justify-content:center}
+.btn.primary{height:44px;border-radius:22px;background:var(--color-primary);color:#fff;display:flex;align-items:center;justify-content:center}
 
 /* 时间选择弹窗样式 */
 .time-picker-modal{
@@ -44,9 +45,9 @@
   visibility:visible;
 }
 .modal-content{
-  background:#fff;
+  background:var(--color-bg-card);
   width:100%;
-  border-radius:12px 12px 0 0;
+  border-radius:var(--radius-card) var(--radius-card) 0 0;
   padding:0 0 env(safe-area-inset-bottom) 0;
   transform:translateY(100%);
   transition:transform 0.3s ease;
@@ -59,10 +60,10 @@
   justify-content:space-between;
   align-items:center;
   padding:16px 20px;
-  border-bottom:1px solid #f0f0f0;
+  border-bottom:1px solid var(--color-border);
 }
-.cancel-btn{color:#666;font-size:16px}
-.confirm-btn{color:#1677ff;font-size:16px;font-weight:500}
+.cancel-btn{color:var(--color-text-secondary);font-size:16px}
+.confirm-btn{color:var(--color-primary);font-size:16px;font-weight:500}
 .time-display-section{
   display:flex;
   align-items:center;
@@ -72,17 +73,17 @@
 }
 .time-box{
   padding:12px 20px;
-  border:1px solid #e0e0e0;
-  border-radius:8px;
-  background:#f8f9fa;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-btn);
+  background:var(--color-bg-page);
   transition:all 0.2s ease;
 }
 .time-box.active{
-  border-color:#1677ff;
-  background:#f0f7ff;
+  border-color:var(--color-primary);
+  background:var(--color-primary-light);
 }
-.time-text{font-size:16px;color:#333;font-weight:500}
-.time-separator{font-size:16px;color:#666;margin:0 8px}
+.time-text{font-size:16px;color:var(--color-text);font-weight:500}
+.time-separator{font-size:16px;color:var(--color-text-secondary);margin:0 8px}
 .time-picker-container{
   display:flex;
   align-items:center;
@@ -113,14 +114,14 @@
   margin:2px 0;
 }
 .picker-item:hover{
-  background:#f0f7ff;
+  background:var(--color-primary-light);
 }
 .picker-item:active{
-  background:#e6f3ff;
+  background:var(--color-primary-light);
 }
 .picker-label{
   font-size:14px;
-  color:#666;
+  color:var(--color-text-secondary);
   margin:0 4px;
 }
 

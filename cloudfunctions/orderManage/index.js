@@ -1,26 +1,189 @@
 // 订单管理云函数
 const cloud = require('wx-server-sdk');
 
-// 兼容性辅助函数：padStart的替代方案
-function padStart(str, targetLength, padString) {
-  str = String(str);
-  padString = padString || ' ';
-  if (str.length >= targetLength) {
-    return str;
-  }
-  const padLength = targetLength - str.length;
-  let padding = '';
-  for (let i = 0; i < padLength; i++) {
-    padding += padString;
-  }
-  return padding + str;
-}
-
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
 const db = cloud.database();
+const { extractAdminSessionToken, verifyAdminSession, deny } = require('./adminSession');
+
+/** 订阅消息：订单状态通知模板的文案（thing 类最多 20 字） */
+const SUBSCRIBE_EVENT_TEXT = {
+  paid: '支付成功',
+  preparing: '商家制作中',
+  ready: '待骑手取餐',
+  rider_grabbed: '骑手已接单',
+  delivering: '配送中',
+  completed: '订单已送达'
+};
+
+/**
+ * 发送订单状态类订阅消息（静默失败，不影响主流程）
+ * 模板「订单状态变更通知」：thing1 商家名称、thing2 订单状态、thing7 温馨提示、thing10 商品名称、phone_number12 商家电话
+ * @param {string} userOpenid - 接收人 openid
+ * @param {object} order - 订单文档（含 _id、orderNo、storeId、items）
+ * @param {string} eventType - paid | preparing | ready | rider_grabbed | delivering | completed
+ */
+async function sendOrderSubscribeMessage(userOpenid, order, eventType) {
+  if (!userOpenid || !order || !SUBSCRIBE_EVENT_TEXT[eventType]) return;
+  try {
+    const configRes = await db.collection('platform_config').limit(1).get();
+    const config = (configRes.data && configRes.data[0]) || {};
+    const templateId = config.subscribeMsgOrderTplId || config.subscribeMessageOrderStatusTemplateId || '';
+    if (!templateId) {
+      console.log('【订阅消息】未配置订阅消息模板ID，跳过发送');
+      return;
+    }
+    const statusText = SUBSCRIBE_EVENT_TEXT[eventType].slice(0, 20);
+    let storeName = '校园外卖';
+    let storePhone = '';
+    if (order.storeId) {
+      try {
+        const storeRes = await db.collection('stores').doc(order.storeId).get();
+        if (storeRes.data) {
+          storeName = (storeRes.data.name || storeName).slice(0, 20);
+          storePhone = (storeRes.data.phone || storeRes.data.contactPhone || '').toString().slice(0, 20);
+        }
+      } catch (e) {}
+    }
+    const items = order.items || [];
+    const firstNames = items.slice(0, 2).map(it => (it.name || it.productName || '商品').toString()).join('等');
+    const thing10 = (firstNames || '商品').slice(0, 20);
+    const page = `subpackages/order/pages/order-detail/index?orderId=${order._id}`;
+    const data = {
+      thing1: { value: storeName },
+      thing2: { value: statusText },
+      thing7: { value: '请留意订单进度'.slice(0, 20) },
+      thing10: { value: thing10 },
+      phone_number12: { value: storePhone || '-' }
+    };
+    await cloud.openapi.subscribeMessage.send({
+      touser: userOpenid,
+      template_id: templateId,
+      page,
+      data
+    });
+    console.log('【订阅消息】已发送', eventType, 'orderId:', order._id);
+  } catch (err) {
+    console.warn('【订阅消息】发送失败', eventType, err.message || err);
+  }
+}
+
+/**
+ * 发送订单评价提醒订阅消息（订单完成时，静默失败）
+ * 模板「订单评价提醒」：thing8 商家名称、amount6 消费金额、date3 下单时间、thing5 点评提醒
+ */
+async function sendReviewRemindSubscribeMessage(userOpenid, order) {
+  if (!userOpenid || !order) return;
+  try {
+    const configRes = await db.collection('platform_config').limit(1).get();
+    const config = (configRes.data && configRes.data[0]) || {};
+    const templateId = config.subscribeMsgReviewTplId || config.subscribeMessageReviewTemplateId || '';
+    if (!templateId) {
+      console.log('【订阅消息】评价提醒未配置模板ID，跳过 orderId=', order._id);
+      return;
+    }
+    let storeName = '校园外卖';
+    if (order.storeId) {
+      try {
+        const storeRes = await db.collection('stores').doc(order.storeId).get();
+        if (storeRes.data && storeRes.data.name) storeName = String(storeRes.data.name).slice(0, 20);
+      } catch (e) {}
+    }
+    const totalFen = order.amountTotal != null ? order.amountTotal : (order.amountPayable != null ? order.amountPayable : 0);
+    const amountYuan = typeof totalFen === 'number' && totalFen >= 100 ? (totalFen / 100).toFixed(2) : (typeof totalFen === 'number' ? (totalFen / 100).toFixed(2) : '0.00');
+    let orderTime = '';
+    if (order.createdAt) {
+      const d = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        orderTime = `${y}年${m}月${day}日 ${h}:${min}`;
+      }
+    }
+    const thing5 = '亲，订单已完成，快来点评一下吧'.slice(0, 20);
+    const page = `subpackages/store/pages/submit-review/index?orderId=${order._id}&storeId=${order.storeId || ''}`;
+    await cloud.openapi.subscribeMessage.send({
+      touser: userOpenid,
+      template_id: templateId,
+      page,
+      data: {
+        thing8: { value: storeName },
+        amount6: { value: amountYuan },
+        date3: { value: orderTime.slice(0, 20) },
+        thing5: { value: thing5 }
+      }
+    });
+    console.log('【订阅消息】评价提醒已发送 orderId=', order._id, 'userOpenid=', userOpenid);
+  } catch (err) {
+    const code = err.errCode || err.errcode;
+    console.warn('【订阅消息】评价提醒发送失败 orderId=', order._id, 'errCode=', code, 'errMsg=', err.errMsg || err.errmsg || err.message);
+    // 43101=用户未订阅该模板，需在结算页弹窗中勾选「订单评价提醒」并允许
+  }
+}
+
+/**
+ * 发送商家新订单通知订阅消息（用户支付成功时，静默失败）
+ * 模板「新订单通知」：thing3 菜品名称、amount4 支付金额、time2 要餐时间、time6 下单时间、thing5 订单备注
+ */
+async function sendMerchantNewOrderNotify(storeId, order) {
+  if (!storeId || !order) return;
+  try {
+    const configRes = await db.collection('platform_config').limit(1).get();
+    const config = (configRes.data && configRes.data[0]) || {};
+    const templateId = config.subscribeMsgNewOrderTplId || config.subscribeMessageNewOrderTemplateId || '';
+    if (!templateId) {
+      console.log('【订阅消息】商家新订单未配置模板ID，跳过 orderId=', order._id);
+      return;
+    }
+    const merchantsRes = await db.collection('merchants')
+      .where({ storeId, status: db.command.in(['active', 'pending']) })
+      .get();
+    const openids = (merchantsRes.data || []).map(m => m.openid).filter(Boolean);
+    if (openids.length === 0) {
+      console.log('【订阅消息】商家新订单：店铺无绑定 openid 的商家，跳过 storeId=', storeId);
+      return;
+    }
+    const dishNames = (order.items || []).slice(0, 3).map(i => (i.productName || i.name || '')).filter(Boolean);
+    const thing3 = (dishNames.join('、') || '商品').slice(0, 20);
+    const totalFen = order.amountTotal != null ? order.amountTotal : (order.amountPayable != null ? order.amountPayable : 0);
+    const amountYuan = typeof totalFen === 'number' && totalFen >= 100 ? (totalFen / 100).toFixed(2) : (typeof totalFen === 'number' ? (totalFen / 100).toFixed(2) : '0.00');
+    const amount4 = amountYuan + '元';
+    const createdAt = order.createdAt ? (order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt)) : new Date();
+    const fmtTime = (d) => !isNaN(d.getTime()) ? `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '';
+    const time6 = fmtTime(createdAt);
+    const mealTime = new Date(createdAt.getTime() + 30 * 60 * 1000);
+    const time2 = fmtTime(mealTime);
+    const thing5 = (order.remark || '无').slice(0, 20);
+    const page = `subpackages/merchant/pages/merchant-orders/index`;
+    for (const openid of openids) {
+      try {
+        await cloud.openapi.subscribeMessage.send({
+          touser: openid,
+          template_id: templateId,
+          page,
+          data: {
+            thing3: { value: thing3 },
+            amount4: { value: amount4 },
+            time2: { value: time2 },
+            time6: { value: time6 },
+            thing5: { value: thing5 }
+          }
+        });
+        console.log('【订阅消息】商家新订单已发送 orderId=', order._id, 'merchantOpenid=', openid);
+      } catch (e) {
+        const code = e.errCode || e.errcode;
+        console.warn('【订阅消息】商家新订单发送失败 orderId=', order._id, 'openid=', openid, 'errCode=', code);
+      }
+    }
+  } catch (err) {
+    console.warn('【订阅消息】商家新订单通知异常', order._id, err.errMsg || err.message);
+  }
+}
 
 exports.main = async (event, context) => {
   try {
@@ -36,6 +199,14 @@ exports.main = async (event, context) => {
         message: '缺少action参数'
       };
     }
+
+    const ADMIN_SESSION_ACTIONS = new Set(['getAdminOrderList']);
+    if (ADMIN_SESSION_ACTIONS.has(action)) {
+      const v = await verifyAdminSession(db, extractAdminSessionToken(event));
+      if (!v.ok) {
+        return deny(v);
+      }
+    }
     
     let result;
     
@@ -43,6 +214,12 @@ exports.main = async (event, context) => {
     switch (action) {
       case 'createOrder':
         result = await createOrder(OPENID, data);
+        break;
+      case 'createUnifiedOrders':
+        result = await createUnifiedOrders(OPENID, data);
+        break;
+      case 'updateUnifiedPaymentPaid':
+        result = await updateUnifiedPaymentPaid(OPENID, data);
         break;
       case 'getOrderList':
         result = await getOrderList(OPENID, data);
@@ -60,14 +237,20 @@ exports.main = async (event, context) => {
         result = await updateOrderPayStatus(OPENID, data);
         break;
       case 'cancelOrder':
-        result = await cancelOrder(OPENID, data);
+        result = await cancelOrder(OPENID, data, event);
         break;
       case 'getAdminOrderList':
         result = await getAdminOrderList(OPENID, data);
         break;
-      case 'completeOrder':
-        result = await completeOrder(OPENID, data);
+      case 'completeOrder': {
+        const completeAd = await verifyAdminSession(db, extractAdminSessionToken(event));
+        if (!completeAd.ok) {
+          result = deny(completeAd);
+        } else {
+          result = await completeOrder(OPENID, data);
+        }
         break;
+      }
       case 'createExpressOrder':
         result = await createExpressOrder(OPENID, data);
         break;
@@ -174,7 +357,7 @@ exports.main = async (event, context) => {
  */
 async function createOrder(openid, data) {
   try {
-    const { storeId, cartItems, cartTotal, storeInfo, address, remark, deliveryFee, deliveryType, needCutlery, cutleryQuantity, payStatus } = data;
+    const { storeId, cartItems, cartTotal, storeInfo, address, remark, deliveryFee, deliveryType, needCutlery, cutleryQuantity, payStatus, paymentProof } = data;
     
     console.log('【创建订单】接收到的参数:', data);
     console.log('【创建订单】参数详情:', {
@@ -245,12 +428,10 @@ async function createOrder(openid, data) {
       };
     }
     
-    // 检查自动接单设置：如果开启自动接单，订单状态直接设为confirmed
-    // 如果未开启自动接单，订单状态为pending，需要商家确认后才能变为confirmed，骑手端才能看到
-    const autoAccept = store.data.autoAccept === true;
-    const initialOrderStatus = autoAccept ? 'confirmed' : 'pending';
+    // 统一逻辑：新订单初始即为 confirmed，支付成功后直接进骑手大厅，无需商家确认
+    const initialOrderStatus = 'confirmed';
     
-    console.log('【创建订单】自动接单设置:', autoAccept, '初始订单状态:', initialOrderStatus);
+    console.log('【创建订单】初始订单状态:', initialOrderStatus, '（支付成功即进骑手大厅，商家仅查看不做操作）');
     
     // 3. 获取平台配置（配送费、服务费比例、订单超时时间）
     let platformConfig = null;
@@ -410,7 +591,8 @@ async function createOrder(openid, data) {
       
       // 订单状态：根据自动接单设置决定初始状态
       orderStatus: initialOrderStatus, // pending-待确认, confirmed-已确认, preparing-制作中, ready-待配送, delivering-配送中, completed-已完成, cancelled-已取消
-      payStatus: payStatus || 'unpaid' // 支付状态：使用客户端传递的值，默认为未支付
+      payStatus: payStatus || 'unpaid', // 支付状态：使用客户端传递的值，默认为未支付（需要商家确认收到款项后更新为paid）
+      paymentProof: paymentProof || '', // 支付凭证的云存储fileID
       
       // 时间戳
       createdAt: db.serverDate(),
@@ -474,6 +656,192 @@ async function createOrder(openid, data) {
 }
 
 /**
+ * 统一付款：一次创建多店订单并生成统一支付单，每笔订单归属商户清晰
+ */
+async function createUnifiedOrders(openid, data) {
+  try {
+    const { address, remark, needCutlery, cutleryQuantity, stores } = data;
+    if (!stores || !Array.isArray(stores) || stores.length === 0) {
+      return { code: 400, message: '缺少 stores 或为空' };
+    }
+
+    const user = await db.collection('users').where({ openid }).get();
+    if (!user.data || user.data.length === 0) return { code: 404, message: '用户不存在' };
+    const userInfo = user.data[0];
+
+    let platformConfig = null;
+    try {
+      const configRes = await db.collection('platform_config').limit(1).get();
+      if (configRes.data.length > 0) platformConfig = configRes.data[0];
+    } catch (e) {}
+    const platformFeeRate = (platformConfig && platformConfig.platformFeeRate) != null ? platformConfig.platformFeeRate : 0.08;
+    const platformDeliveryFee = (platformConfig && platformConfig.deliveryFee) != null ? platformConfig.deliveryFee : 300;
+    const orderTimeoutMinutes = (platformConfig && platformConfig.orderTimeoutMinutes != null) ? parseInt(platformConfig.orderTimeoutMinutes, 10) : 20;
+    const validMinutes = !isNaN(orderTimeoutMinutes) && orderTimeoutMinutes >= 5 ? orderTimeoutMinutes : 20;
+    const expiredAt = new Date(Date.now() + validMinutes * 60 * 1000);
+
+    const out_trade_no = 'U' + Date.now() + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const unifiedRes = await db.collection('unified_payments').add({
+      data: {
+        out_trade_no,
+        userOpenid: openid,
+        orderIds: [],
+        totalFeeFen: 0,
+        status: 'pending',
+        createdAt: db.serverDate()
+      }
+    });
+    const unifiedPaymentId = unifiedRes._id;
+    const orderIds = [];
+    let totalFeeFen = 0;
+    const addressObj = address ? {
+      name: address.name || userInfo.nickname || '用户',
+      phone: address.phone || userInfo.phone || '',
+      address: address.address || '未设置地址',
+      addressDetail: (address.addressDetail || address.address || '').trim() || '未设置地址',
+      buildingName: address.buildingName || '',
+      houseNumber: address.houseNumber || ''
+    } : {
+      name: userInfo.nickname || '用户',
+      phone: userInfo.phone || '',
+      address: '未设置地址',
+      addressDetail: '未设置地址',
+      buildingName: '',
+      houseNumber: ''
+    };
+
+    for (const row of stores) {
+      const { storeId, storeInfo, cartItems, cartTotal, deliveryType } = row;
+      if (!storeId || !cartItems || cartItems.length === 0) continue;
+
+      const store = await db.collection('stores').doc(storeId).get();
+      if (!store.data) continue;
+      if (store.data.businessStatus !== 'open') {
+        return { code: 403, message: `店铺「${store.data.name || storeId}」当前休息中，暂不接单` };
+      }
+
+      const amountGoodsFen = Math.round((cartTotal || 0) * 100);
+      const platformFee = Math.round(amountGoodsFen * platformFeeRate);
+      const deliveryFeeFen = platformDeliveryFee;
+      const totalAmount = (cartTotal || 0) + deliveryFeeFen / 100;
+      const merchantIncome = (cartTotal || 0) - platformFee / 100;
+      const orderNo = `ORD${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+      const orderData = {
+        orderNo,
+        userId: userInfo._id,
+        userOpenid: openid,
+        storeId,
+        storeName: (store.data && store.data.name) || (storeInfo && storeInfo.name) || '店铺',
+        items: (cartItems || []).map(item => {
+          let specText = '';
+          if (item.selectedSpecs && Array.isArray(item.selectedSpecs)) {
+            specText = item.selectedSpecs.map(s => (s && s.optionName) || s).join('、');
+          } else if (item.spec) specText = typeof item.spec === 'string' ? item.spec : JSON.stringify(item.spec);
+          return {
+            productId: item.id || item.productId,
+            productName: item.name || item.productName,
+            price: Math.round((parseFloat(item.finalPrice || item.price) || 0) * 100),
+            quantity: item.quantity,
+            spec: specText,
+            image: item.image || item.coverUrl || '',
+            selectedSpecs: item.selectedSpecs || []
+          };
+        }),
+        amountGoods: amountGoodsFen,
+        amountDelivery: deliveryFeeFen,
+        platformFee,
+        platformFeeRate,
+        amountDiscount: 0,
+        amountTotal: Math.round(totalAmount * 100),
+        amountPayable: Math.round(totalAmount * 100),
+        merchantIncome: Math.round(merchantIncome * 100),
+        expiredAt,
+        address: addressObj,
+        remark: remark || '',
+        needCutlery: needCutlery !== undefined ? needCutlery : true,
+        cutleryQuantity: needCutlery ? (cutleryQuantity || 1) : 0,
+        deliveryType: deliveryType || 'delivery',
+        orderStatus: 'confirmed',
+        payStatus: 'unpaid',
+        paymentProof: '',
+        unifiedPaymentId,
+        createdAt: db.serverDate(),
+        updatedAt: db.serverDate()
+      };
+
+      const addRes = await db.collection('orders').add({ data: orderData });
+      orderIds.push(addRes._id);
+      totalFeeFen += orderData.amountPayable;
+    }
+
+    if (orderIds.length === 0) {
+      await db.collection('unified_payments').doc(unifiedPaymentId).remove();
+      return { code: 400, message: '没有可创建的订单' };
+    }
+
+    await db.collection('unified_payments').doc(unifiedPaymentId).update({
+      data: {
+        orderIds,
+        totalFeeFen,
+        updatedAt: db.serverDate()
+      }
+    });
+
+    return {
+      code: 200,
+      message: '订单创建成功',
+      data: { orderIds, totalFeeFen, unifiedPaymentId, out_trade_no }
+    };
+  } catch (error) {
+    console.error('【统一创建订单】异常:', error);
+    return { code: 500, message: '创建订单失败', error: (error && error.message) || '' };
+  }
+}
+
+/**
+ * 统一付款成功：将统一支付单及关联订单全部置为已支付
+ */
+async function updateUnifiedPaymentPaid(openid, data) {
+  try {
+    const { unifiedPaymentId } = data;
+    if (!unifiedPaymentId) return { code: 400, message: '缺少 unifiedPaymentId' };
+
+    const up = await db.collection('unified_payments').doc(unifiedPaymentId).get();
+    if (!up.data) return { code: 404, message: '统一支付单不存在' };
+    const rec = up.data;
+    if (rec.userOpenid !== openid) return { code: 403, message: '无权操作' };
+    if (rec.status === 'paid') return { code: 200, message: '已支付' };
+
+    const orderIds = rec.orderIds || [];
+    for (const oid of orderIds) {
+      await db.collection('orders').doc(oid).update({
+        data: {
+          payStatus: 'paid',
+          updatedAt: db.serverDate()
+        }
+      });
+      const ord = await db.collection('orders').doc(oid).get();
+      if (ord.data) {
+        if (ord.data.userOpenid) sendOrderSubscribeMessage(ord.data.userOpenid, ord.data, 'paid').catch(() => {});
+        if (ord.data.storeId) sendMerchantNewOrderNotify(ord.data.storeId, ord.data).catch(() => {});
+      }
+    }
+    await db.collection('unified_payments').doc(unifiedPaymentId).update({
+      data: {
+        status: 'paid',
+        paidAt: db.serverDate(),
+        updatedAt: db.serverDate()
+      }
+    });
+    return { code: 200, message: '支付状态已更新' };
+  } catch (error) {
+    console.error('【更新统一支付】异常:', error);
+    return { code: 500, message: '更新失败', error: (error && error.message) || '' };
+  }
+}
+
+/**
  * 获取用户订单列表
  */
 async function getOrderList(openid, data) {
@@ -512,7 +880,7 @@ async function getOrderList(openid, data) {
     } catch (err) {
       console.warn('【获取订单列表】获取平台配置失败:', err);
     }
-    const estimatedDeliveryMinutes = (platformConfig && platformConfig.estimatedDeliveryMinutes) || 30;
+    const estimatedDeliveryMinutes = platformConfig?.estimatedDeliveryMinutes || 30;
     
     // 查询订单
     const result = await db.collection('orders')
@@ -608,9 +976,9 @@ async function getOrderList(openid, data) {
  */
 async function getMerchantOrders(openid, data) {
   try {
-    const { status, page = 1, pageSize = 20, merchantId, storeId: providedStoreId } = data;
+    const { status, page = 1, pageSize = 20, merchantId, storeId: providedStoreId, payStatus } = data;
     
-    console.log('【获取商家订单】参数:', { status, page, pageSize, merchantId, providedStoreId });
+    console.log('【获取商家订单】参数:', { status, page, pageSize, merchantId, providedStoreId, payStatus });
     
     let storeId = providedStoreId;
     let merchantInfo = null;
@@ -652,6 +1020,9 @@ async function getMerchantOrders(openid, data) {
     if (status) {
       whereCondition.orderStatus = status;
     }
+    if (payStatus) {
+      whereCondition.payStatus = payStatus;
+    }
     
     // 3. 查询订单
     const result = await db.collection('orders')
@@ -668,31 +1039,15 @@ async function getMerchantOrders(openid, data) {
     
     // 格式化订单数据
     const formattedList = result.data.map(order => {
-      // 处理金额（从分转换为元）
-      // 所有金额字段在数据库中都是以分为单位存储的，统一除以100转换为元
-      let amountGoods = order.amountGoods || 0;
-      if (typeof amountGoods === 'number') {
-        // 如果金额大于等于100（1元），说明是以分为单位存储的，需要转换
-        amountGoods = amountGoods >= 100 ? amountGoods / 100 : amountGoods;
-      }
-      
-      let amountDelivery = order.amountDelivery || 0;
-      if (typeof amountDelivery === 'number') {
-        // 如果金额大于等于100（1元），说明是以分为单位存储的，需要转换
-        amountDelivery = amountDelivery >= 100 ? amountDelivery / 100 : amountDelivery;
-      }
-      
-      let platformFee = order.platformFee || 0;
-      if (typeof platformFee === 'number') {
-        // 如果金额大于等于100（1元），说明是以分为单位存储的，需要转换
-        platformFee = platformFee >= 100 ? platformFee / 100 : platformFee;
-      }
-      
-      let amountPayable = order.amountPayable || order.amountTotal || 0;
-      if (typeof amountPayable === 'number') {
-        // 如果金额大于等于100（1元），说明是以分为单位存储的，需要转换
-        amountPayable = amountPayable >= 100 ? amountPayable / 100 : amountPayable;
-      }
+      // 处理金额（从分转换为元）：数据库中金额统一以分存储，始终除以100得到元
+      const toYuan = (v) => {
+        const n = typeof v === 'number' ? v : parseFloat(v) || 0;
+        return n / 100;
+      };
+      let amountGoods = toYuan(order.amountGoods);
+      let amountDelivery = toYuan(order.amountDelivery);
+      let platformFee = toYuan(order.platformFee);
+      let amountPayable = toYuan(order.amountPayable || order.amountTotal);
       
       // 计算订单超时倒计时（使用真实时间）
       const expiredMinutes = calculateExpiredMinutes(order.expiredAt, order.createdAt, order.completedAt);
@@ -837,14 +1192,14 @@ async function updateOrderStatus(openid, data) {
     await db.collection('orders').doc(orderId).update({
       data: updateData
     });
-    
+    if (order.userOpenid && (status === 'preparing' || status === 'ready')) {
+      sendOrderSubscribeMessage(order.userOpenid, order, status).catch(() => {});
+    }
     console.log('【更新订单状态】更新成功');
-    
     return {
       code: 200,
       message: '订单状态更新成功'
     };
-    
   } catch (error) {
     console.error('【更新订单状态】异常:', error);
     return {
@@ -889,11 +1244,16 @@ async function updateOrderPayStatus(openid, data) {
     
     const order = orderResult.data;
     
-    // 验证权限：只有商家可以更新支付状态
-    // 通过订单的storeId查询店铺，验证商家权限
+    // 验证权限：下单用户本人、商家、管理员可更新支付状态
     let hasPermission = false;
     
-    if (order.storeId) {
+    // 下单用户本人：支付成功后由前端调用更新为已支付
+    if (order.userOpenid === openid) {
+      hasPermission = true;
+      console.log('【更新订单支付状态】权限验证通过：订单所属用户');
+    }
+    
+    if (!hasPermission && order.storeId) {
       try {
         const merchantResult = await db.collection('merchants')
           .where({ 
@@ -946,16 +1306,22 @@ async function updateOrderPayStatus(openid, data) {
       };
     }
     
-    // 更新订单支付状态
+    // 更新订单支付状态；若设为已支付且当前为待确认，则同时改为已确认（支付成功即进骑手大厅）
+    const updateData = {
+      payStatus: payStatus,
+      updatedAt: db.serverDate()
+    };
+    if (payStatus === 'paid' && order.orderStatus === 'pending') {
+      updateData.orderStatus = 'confirmed';
+    }
     await db.collection('orders').doc(orderId).update({
-      data: {
-        payStatus: payStatus,
-        updatedAt: db.serverDate()
-      }
+      data: updateData
     });
-    
-    console.log('【更新订单支付状态】更新成功，订单号:', order.orderNo, '支付状态:', payStatus);
-    
+    if (payStatus === 'paid') {
+      if (order.userOpenid) sendOrderSubscribeMessage(order.userOpenid, order, 'paid').catch(() => {});
+      if (order.storeId) sendMerchantNewOrderNotify(order.storeId, order).catch(() => {});
+    }
+    console.log('【更新订单支付状态】更新成功，订单号:', order.orderNo, '支付状态:', payStatus, updateData.orderStatus ? ', 订单状态已同步为 confirmed' : '');
     return {
       code: 200,
       message: '支付状态更新成功'
@@ -1048,10 +1414,10 @@ async function updateSalesStatistics(order) {
     const now = new Date();
     const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
     const chinaTime = new Date(now.getTime() + chinaTimeOffset);
-    const dateStr = `${chinaTime.getUTCFullYear()}-${padStart(chinaTime.getUTCMonth() + 1, 2, '0')}-${padStart(chinaTime.getUTCDate(), 2, '0')}`;
+    const dateStr = `${chinaTime.getUTCFullYear()}-${String(chinaTime.getUTCMonth() + 1).padStart(2, '0')}-${String(chinaTime.getUTCDate()).padStart(2, '0')}`;
     
     // 获取当前月份（YYYY-MM格式），用于月售统计
-    const monthStr = `${chinaTime.getUTCFullYear()}-${padStart(chinaTime.getUTCMonth() + 1, 2, '0')}`;
+    const monthStr = `${chinaTime.getUTCFullYear()}-${String(chinaTime.getUTCMonth() + 1).padStart(2, '0')}`;
     
     // 1. 更新日销售统计（如果sales_statistics集合存在）
     try {
@@ -1171,7 +1537,7 @@ async function updateSalesStatistics(order) {
 /**
  * 取消订单
  */
-async function cancelOrder(openid, data) {
+async function cancelOrder(openid, data, event) {
   try {
     const { orderId } = data;
     
@@ -1241,7 +1607,16 @@ async function cancelOrder(openid, data) {
       }
     }
     
-    // 3. 检查是否是管理员
+    // 3. 管理员会话（admin_accounts 登录）
+    if (!hasPermission && event) {
+      const v = await verifyAdminSession(db, extractAdminSessionToken(event));
+      if (v.ok) {
+        hasPermission = true;
+        console.log('【取消订单】权限验证通过：管理员会话');
+      }
+    }
+
+    // 4. 兼容旧 admins 集合
     if (!hasPermission) {
       try {
         const adminResult = await db.collection('admins')
@@ -1250,7 +1625,7 @@ async function cancelOrder(openid, data) {
         
         if (adminResult.data && adminResult.data.length > 0) {
           hasPermission = true;
-          console.log('【取消订单】权限验证通过：管理员权限');
+          console.log('【取消订单】权限验证通过：admins 集合');
         }
       } catch (err) {
         console.warn('【取消订单】查询管理员失败:', err);
@@ -1264,8 +1639,14 @@ async function cancelOrder(openid, data) {
       };
     }
     
-    // 验证订单状态：只有待确认、已确认、制作中的订单可以取消
+    // 验证订单状态：只有待确认、已确认、制作中的订单可以取消；骑手确认取餐后（ready/delivering）用户不可取消
     const allowedStatuses = ['pending', 'confirmed', 'preparing'];
+    if (order.orderStatus === 'ready' || order.orderStatus === 'delivering') {
+      return {
+        code: 400,
+        message: '骑手已确认取餐，无法取消订单'
+      };
+    }
     if (!allowedStatuses.includes(order.orderStatus)) {
       return {
         code: 400,
@@ -1273,10 +1654,40 @@ async function cancelOrder(openid, data) {
       };
     }
     
-    // 如果订单已支付，需要处理退款（这里暂时只更新状态，退款功能后续实现）
-    if (order.payStatus === 'paid') {
-      console.log('【取消订单】订单已支付，需要处理退款');
-      // TODO: 后续实现退款逻辑
+    // 只要有商户订单号就尝试退款（避免支付成功后 updateOrderPayStatus 未执行导致 payStatus 仍为 unpaid）
+    if (order.orderNo) {
+      console.log('【取消订单】尝试退款，订单号:', order.orderNo, 'payStatus:', order.payStatus);
+      try {
+        const refundRes = await cloud.callFunction({
+          name: 'paymentManage',
+          data: { action: 'refundOrder', data: { orderId } }
+        });
+        const refundResult = refundRes.result;
+        if (!refundResult || refundResult.code !== 200) {
+          const errMsg = (refundResult && refundResult.message) ? refundResult.message : '退款失败';
+          console.error('【取消订单】退款失败:', errMsg);
+          return {
+            code: 500,
+            message: '取消订单需先退款，退款失败：' + errMsg
+          };
+        }
+        if (refundResult.data && refundResult.data.skipped) {
+          console.log('【取消订单】订单未支付，无需退款，直接取消');
+        } else {
+          console.log('【取消订单】退款成功，再更新订单状态');
+          cloud.callFunction({
+            name: 'refundManage',
+            data: { action: 'sendRefundNotificationForCancel', data: { orderId } }
+          }).catch(() => {});
+        }
+      } catch (refundErr) {
+        console.error('【取消订单】调用退款异常:', refundErr);
+        return {
+          code: 500,
+          message: '取消订单失败：退款请求异常',
+          error: refundErr.message
+        };
+      }
     }
     
     // 如果订单已完成，需要减少销量
@@ -1448,10 +1859,10 @@ function formatDate(date) {
   
   // 使用UTC方法获取时间组件（因为我们已经手动加上了时区偏移）
   const year = chinaTime.getUTCFullYear();
-  const month = padStart(chinaTime.getUTCMonth() + 1, 2, '0');
-  const day = padStart(chinaTime.getUTCDate(), 2, '0');
-  const hours = padStart(chinaTime.getUTCHours(), 2, '0');
-  const minutes = padStart(chinaTime.getUTCMinutes(), 2, '0');
+  const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(chinaTime.getUTCDate()).padStart(2, '0');
+  const hours = String(chinaTime.getUTCHours()).padStart(2, '0');
+  const minutes = String(chinaTime.getUTCMinutes()).padStart(2, '0');
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
@@ -1803,9 +2214,9 @@ async function getAdminOrderList(openid, data) {
           statusText: getStatusText(order.payStatus, order.orderStatus),
           isNonStoreOrder: order.orderType === 'gaming' || order.orderType === 'reward' || order.orderType === 'express',
           orderType: order.orderType || 'normal',
-          storeLogo: (storeInfo && storeInfo.logoUrl) || '/pages/小标/商家.png',
-          storeName: (storeInfo && storeInfo.name) || order.storeName || '未知店铺',
-          storeAddress: (storeInfo && storeInfo.address) || (order.address && (order.address.address || order.address.addressDetail)) || '未知地址',
+          storeLogo: storeInfo?.logoUrl || '/pages/小标/商家.png',
+          storeName: storeInfo?.name || order.storeName || '未知店铺',
+          storeAddress: storeInfo?.address || (order.address && (order.address.address || order.address.addressDetail)) || '未知地址',
           userInfo: order.userInfo || (order.userId ? userMap.get(order.userId) : null),
           userNickname: userNickname,
           userAvatar: userAvatarUrl,
@@ -2203,9 +2614,9 @@ async function getAdminOrderList(openid, data) {
         isNonStoreOrder: order.orderType === 'gaming' || order.orderType === 'reward' || order.orderType === 'express',
         orderType: order.orderType || 'normal',
         // 店铺信息（有店铺订单）
-        storeLogo: (storeInfo && storeInfo.logoUrl) || '/pages/小标/商家.png',
-        storeName: (storeInfo && storeInfo.name) || order.storeName || '未知店铺',
-        storeAddress: (storeInfo && storeInfo.address) || (order.address && (order.address.address || order.address.addressDetail)) || '未知地址',
+        storeLogo: storeInfo?.logoUrl || '/pages/小标/商家.png',
+        storeName: storeInfo?.name || order.storeName || '未知店铺',
+        storeAddress: storeInfo?.address || (order.address && (order.address.address || order.address.addressDetail)) || '未知地址',
         // 用户信息（无店铺订单）- 优先使用订单中保存的，否则从用户表查询
         userInfo: order.userInfo || (order.userId ? userMap.get(order.userId) : null),
         userNickname: userNickname,
@@ -3103,7 +3514,23 @@ async function getAvailableOrders(openid, data) {
 }
 
 /**
- * 骑手接单
+ * 校验用户是否为已开通校园兼职（保证金已缴且有效）
+ */
+async function checkCampusPartnerActive(openid) {
+  if (!openid) return false;
+  try {
+    const res = await db.collection('campus_partners').where({ openid }).limit(1).get();
+    const record = res.data && res.data[0];
+    return record && record.status === 'active';
+  } catch (e) {
+    if (e.errCode === -502005 || (e.message && e.message.includes('not exist'))) return false;
+    console.error('【校园兼职校验】', e);
+    return false;
+  }
+}
+
+/**
+ * 骑手接单（配送单）：校园兼职已开通或骑手审核通过均可接单
  */
 async function grabOrder(openid, data) {
   try {
@@ -3118,42 +3545,41 @@ async function grabOrder(openid, data) {
       };
     }
     
-    // 检查骑手审核状态
-    let riderStatus = 'not_registered';
-    try {
-      const riderQuery = await db.collection('riders')
-        .where({ openid: openid })
-        .get();
-      
-      if (riderQuery.data && riderQuery.data.length > 0) {
-        riderStatus = riderQuery.data[0].status || 'pending';
-      }
-    } catch (error) {
-      // 如果集合不存在，说明未注册
-      if (error.errCode === -502005 || error.message.includes('collection not exist')) {
-        riderStatus = 'not_registered';
-      } else {
-        console.error('【骑手接单】查询骑手状态失败:', error);
-      }
-    }
-    
-    // 只有审核通过的骑手才能接单
-    if (riderStatus !== 'approved') {
-      let message = '';
-      if (riderStatus === 'not_registered') {
-        message = '您还未注册骑手，请先注册';
-      } else if (riderStatus === 'pending') {
-        message = '您的申请正在审核中，审核通过后才能接单';
-      } else if (riderStatus === 'rejected') {
-        message = '您的申请未通过审核，请联系管理员';
-      } else {
-        message = '您暂无接单权限';
+    // 优先校验校园兼职：已开通则可接配送单
+    const campusActive = await checkCampusPartnerActive(openid);
+    if (campusActive) {
+      // 通过，继续后续订单校验
+    } else {
+      // 未开通校园兼职时，兼容原骑手审核
+      let riderStatus = 'not_registered';
+      try {
+        const riderQuery = await db.collection('riders')
+          .where({ openid: openid })
+          .get();
+        
+        if (riderQuery.data && riderQuery.data.length > 0) {
+          riderStatus = riderQuery.data[0].status || 'pending';
+        }
+      } catch (error) {
+        if (error.errCode === -502005 || error.message.includes('collection not exist')) {
+          riderStatus = 'not_registered';
+        } else {
+          console.error('【骑手接单】查询骑手状态失败:', error);
+        }
       }
       
-      return {
-        code: 403,
-        message: message
-      };
+      if (riderStatus !== 'approved') {
+        let message = '请先开通校园兼职（缴纳保证金）或注册骑手后再接配送单';
+        if (riderStatus === 'pending') {
+          message = '您的骑手申请正在审核中，或可先开通校园兼职接单';
+        } else if (riderStatus === 'rejected') {
+          message = '您的骑手申请未通过，或可先开通校园兼职接单';
+        }
+        return {
+          code: 403,
+          message: message
+        };
+      }
     }
     
     // 获取订单信息
@@ -3190,14 +3616,14 @@ async function grabOrder(openid, data) {
         updatedAt: db.serverDate()
       }
     });
-    
+    if (order.userOpenid) {
+      sendOrderSubscribeMessage(order.userOpenid, order, 'rider_grabbed').catch(() => {});
+    }
     console.log('【骑手接单】接单成功');
-    
     return {
       code: 200,
       message: '接单成功'
     };
-    
   } catch (error) {
     console.error('【骑手接单】异常:', error);
     return {
@@ -3455,9 +3881,10 @@ async function confirmPickup(openid, data) {
         updatedAt: db.serverDate()
       }
     });
-    
+    if (order.userOpenid) {
+      sendOrderSubscribeMessage(order.userOpenid, order, 'delivering').catch(() => {});
+    }
     console.log('【确认取餐】取餐成功');
-    
     return {
       code: 200,
       message: '取餐成功'
@@ -3627,7 +4054,10 @@ async function confirmDelivery(openid, data) {
         updatedAt: db.serverDate()
       }
     });
-    
+    if (order.userOpenid) {
+      sendOrderSubscribeMessage(order.userOpenid, order, 'completed').catch(() => {});
+      sendReviewRemindSubscribeMessage(order.userOpenid, order).catch(() => {});
+    }
     // 更新销售统计
     await updateSalesStatistics(order);
     
@@ -3653,7 +4083,7 @@ async function confirmDelivery(openid, data) {
 
 /**
  * 更新骑手今日统计数据
- * 每完成一个订单，今日接单数+1，今日收入+2元
+ * 每完成一个订单，今日接单数+1，今日收入固定+1元（与订单金额/配送费无关）
  */
 async function updateRiderTodayStats(riderOpenid) {
   try {
@@ -3670,8 +4100,8 @@ async function updateRiderTodayStats(riderOpenid) {
     const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
     const chinaTime = new Date(now.getTime() + chinaTimeOffset);
     const year = chinaTime.getUTCFullYear();
-    const month = padStart(chinaTime.getUTCMonth() + 1, 2, '0');
-    const day = padStart(chinaTime.getUTCDate(), 2, '0');
+    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
     console.log('【更新骑手统计】日期字符串:', dateStr, '骑手openid:', riderOpenid);
@@ -3704,11 +4134,11 @@ async function updateRiderTodayStats(riderOpenid) {
       const updateResult = await db.collection('rider_stats').doc(stats._id).update({
         data: {
           todayOrders: db.command.inc(1), // 今日接单数+1
-          todayIncome: db.command.inc(2.00), // 今日收入+2元
+          todayIncome: db.command.inc(1.00), // 今日收入固定+1元/单
           updatedAt: db.serverDate()
         }
       });
-      console.log('【更新骑手统计】更新成功，订单数+1，收入+2元，更新结果:', updateResult);
+      console.log('【更新骑手统计】更新成功，订单数+1，收入+1元，更新结果:', updateResult);
       } catch (updateError) {
         console.error('【更新骑手统计】更新失败:', updateError);
         // 如果更新失败，尝试重新创建记录
@@ -3719,7 +4149,7 @@ async function updateRiderTodayStats(riderOpenid) {
               riderOpenid: riderOpenid,
               date: dateStr,
               todayOrders: (stats.todayOrders || 0) + 1, // 今日接单数+1
-              todayIncome: ((stats.todayIncome || 0) + 2.00).toFixed(2), // 今日收入+2元
+              todayIncome: ((stats.todayIncome || 0) + 1.00).toFixed(2), // 今日收入固定+1元/单
               createdAt: db.serverDate(),
               updatedAt: db.serverDate()
             }
@@ -3737,12 +4167,12 @@ async function updateRiderTodayStats(riderOpenid) {
           riderOpenid: riderOpenid,
           date: dateStr,
           todayOrders: 1, // 今日接单数
-          todayIncome: 2.00, // 今日收入（元）
+          todayIncome: 1.00, // 今日收入固定1元/单
           createdAt: db.serverDate(),
           updatedAt: db.serverDate()
         }
       });
-      console.log('【更新骑手统计】创建新记录，订单数=1，收入=2元，创建结果:', addResult);
+      console.log('【更新骑手统计】创建新记录，订单数=1，收入=1元，创建结果:', addResult);
       } catch (addError) {
         console.error('【更新骑手统计】创建新记录失败:', addError);
         // 如果创建失败，记录错误但不抛出，避免影响订单完成流程
@@ -3774,8 +4204,8 @@ async function getRiderTodayStats(riderOpenid, data) {
     const chinaTimeOffset = 8 * 60 * 60 * 1000; // 8小时的毫秒数
     const chinaTime = new Date(now.getTime() + chinaTimeOffset);
     const year = chinaTime.getUTCFullYear();
-    const month = padStart(chinaTime.getUTCMonth() + 1, 2, '0');
-    const day = padStart(chinaTime.getUTCDate(), 2, '0');
+    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
     // 获取今天的日期范围（开始和结束时间）- 使用中国时区
@@ -3813,7 +4243,7 @@ async function getRiderTodayStats(riderOpenid, data) {
       }
     }
     
-    console.log('【获取骑手统计】查询结果:', statsResult && statsResult.data);
+    console.log('【获取骑手统计】查询结果:', statsResult?.data);
     
     // 如果统计数据存在，直接返回
     if (hasStatsData && statsResult.data && statsResult.data.length > 0) {
@@ -3852,9 +4282,9 @@ async function getRiderTodayStats(riderOpenid, data) {
         return false;
       });
       
-      // 计算统计数据
+      // 计算统计数据（每单固定1元，与订单金额/配送费无关）
       const orders = todayCompletedOrders.length;
-      const income = (orders * 2.00).toFixed(2); // 每完成一单收入2元
+      const income = (orders * 1.00).toFixed(2);
       
       console.log('【获取骑手统计】从订单数据计算:', { orders, income, todayCompletedOrders: todayCompletedOrders.length });
       
@@ -3919,33 +4349,8 @@ async function getRiderTotalStats(riderOpenid, data) {
       .get();
     
     const totalOrders = completedOrdersResult.data ? completedOrdersResult.data.length : 0;
-    
-    // 计算总收入
-    let totalIncome = 0;
-    if (completedOrdersResult.data && completedOrdersResult.data.length > 0) {
-      totalIncome = completedOrdersResult.data.reduce((sum, order) => {
-        // 骑手收入可能是 riderIncome 字段，或者从配送费计算
-        let riderIncome = order.riderIncome || 0;
-        
-        // 如果 riderIncome 是分，转换为元
-        if (riderIncome >= 100) {
-          riderIncome = riderIncome / 100;
-        }
-        
-        // 如果没有 riderIncome 字段，使用配送费作为收入（默认每单2元）
-        if (!riderIncome && order.amountDelivery) {
-          let deliveryFee = order.amountDelivery;
-          if (deliveryFee >= 100) {
-            deliveryFee = deliveryFee / 100;
-          }
-          riderIncome = deliveryFee || 2.00; // 默认每单2元
-        } else if (!riderIncome) {
-          riderIncome = 2.00; // 默认每单2元
-        }
-        
-        return sum + riderIncome;
-      }, 0);
-    }
+    // 计算总收入：每单固定1元，与订单金额/配送费无关
+    const totalIncome = totalOrders * 1.00;
     
     console.log('【获取骑手总统计】总接单数:', totalOrders, '总收入:', totalIncome.toFixed(2));
     
@@ -4008,26 +4413,8 @@ async function getRiderWeekStats(riderOpenid, data) {
     }) : [];
     
     const totalOrders = weekOrders.length;
-    
-    // 计算总收入
-    let totalIncome = 0;
-    if (weekOrders.length > 0) {
-      totalIncome = weekOrders.reduce((sum, order) => {
-        let riderIncome = order.riderIncome || 0;
-        if (riderIncome >= 100) {
-          riderIncome = riderIncome / 100;
-        } else if (!riderIncome && order.amountDelivery) {
-          let deliveryFee = order.amountDelivery;
-          if (deliveryFee >= 100) {
-            deliveryFee = deliveryFee / 100;
-          }
-          riderIncome = deliveryFee || 2.00;
-        } else if (!riderIncome) {
-          riderIncome = 2.00;
-        }
-        return sum + riderIncome;
-      }, 0);
-    }
+    // 每单固定1元，与订单金额/配送费无关
+    const totalIncome = totalOrders * 1.00;
     
     return {
       code: 200,
@@ -4084,26 +4471,8 @@ async function getRiderMonthStats(riderOpenid, data) {
     }) : [];
     
     const totalOrders = monthOrders.length;
-    
-    // 计算总收入
-    let totalIncome = 0;
-    if (monthOrders.length > 0) {
-      totalIncome = monthOrders.reduce((sum, order) => {
-        let riderIncome = order.riderIncome || 0;
-        if (riderIncome >= 100) {
-          riderIncome = riderIncome / 100;
-        } else if (!riderIncome && order.amountDelivery) {
-          let deliveryFee = order.amountDelivery;
-          if (deliveryFee >= 100) {
-            deliveryFee = deliveryFee / 100;
-          }
-          riderIncome = deliveryFee || 2.00;
-        } else if (!riderIncome) {
-          riderIncome = 2.00;
-        }
-        return sum + riderIncome;
-      }, 0);
-    }
+    // 每单固定1元，与订单金额/配送费无关
+    const totalIncome = totalOrders * 1.00;
     
     return {
       code: 200,
@@ -4178,10 +4547,10 @@ function formatRiderOrder(order) {
     const chinaTimeOffset = 8 * 60 * 60 * 1000;
     const chinaTime = new Date(d.getTime() + chinaTimeOffset);
     const year = chinaTime.getUTCFullYear();
-    const month = padStart(chinaTime.getUTCMonth() + 1, 2, '0');
-    const day = padStart(chinaTime.getUTCDate(), 2, '0');
-    const hour = padStart(chinaTime.getUTCHours(), 2, '0');
-    const minute = padStart(chinaTime.getUTCMinutes(), 2, '0');
+    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
+    const hour = String(chinaTime.getUTCHours()).padStart(2, '0');
+    const minute = String(chinaTime.getUTCMinutes()).padStart(2, '0');
     return `${year}-${month}-${day} ${hour}:${minute}`;
   };
   
@@ -4613,6 +4982,15 @@ async function acceptOrder(openid, data) {
       };
     }
     
+    // 校验校园兼职：接任务单需已开通（缴纳保证金）
+    const campusActive = await checkCampusPartnerActive(openid);
+    if (!campusActive) {
+      return {
+        code: 403,
+        message: '请先开通校园兼职（缴纳保证金）后再接单'
+      };
+    }
+    
     // 检查订单状态和接单者信息
     // 如果订单状态是 received 且接单者是当前用户，但 receiverInfo 是 null
     // 说明之前接单时第一步更新完成了，但第二步更新 receiverInfo 失败了
@@ -4875,7 +5253,7 @@ async function acceptOrder(openid, data) {
           action: 'createMessage',
           data: {
             toUserId: order.userOpenid,
-            toUserName: (order.userInfo && order.userInfo.nickname) || '用户',
+            toUserName: order.userInfo?.nickname || '用户',
             messageType: order.orderType, // gaming/express/reward
             relatedId: orderId,
             relatedTitle: `订单 ${order.orderNo || orderId} 已被接单`
@@ -4968,7 +5346,7 @@ async function receiverConfirmOrder(openid, data) {
           action: 'createMessage',
           data: {
             toUserId: order.userOpenid,
-            toUserName: (order.userInfo && order.userInfo.nickname) || '用户',
+            toUserName: order.userInfo?.nickname || '用户',
             messageType: order.orderType,
             relatedId: orderId,
             relatedTitle: `订单 ${order.orderNo || orderId} 接单者已确认`
@@ -5056,7 +5434,7 @@ async function receiverCompleteOrder(openid, data) {
           action: 'createMessage',
           data: {
             toUserId: order.userOpenid,
-            toUserName: (order.userInfo && order.userInfo.nickname) || '用户',
+            toUserName: order.userInfo?.nickname || '用户',
             messageType: order.orderType,
             relatedId: orderId,
             relatedTitle: `订单 ${order.orderNo || orderId} 接单者已完成，请确认`
@@ -5136,7 +5514,9 @@ async function userConfirmComplete(openid, data) {
     });
     
     console.log('【用户确认订单完成】确认成功');
-    
+    if (order.userOpenid) {
+      sendReviewRemindSubscribeMessage(order.userOpenid, order).catch(() => {});
+    }
     // 发送消息通知给接单者
     try {
       await cloud.callFunction({
@@ -5145,7 +5525,7 @@ async function userConfirmComplete(openid, data) {
           action: 'createMessage',
           data: {
             toUserId: order.receiverOpenid,
-            toUserName: (order.receiverInfo && order.receiverInfo.nickname) || '用户',
+            toUserName: order.receiverInfo?.nickname || '用户',
             messageType: order.orderType,
             relatedId: orderId,
             relatedTitle: `订单 ${order.orderNo || orderId} 用户已确认完成`
@@ -5346,7 +5726,7 @@ async function cancelReceiverOrderByReceiver(openid, data) {
             action: 'createMessage',
             data: {
               toUserId: order.userOpenid,
-              toUserName: (order.userInfo && order.userInfo.nickname) || '用户',
+              toUserName: order.userInfo?.nickname || '用户',
               messageType: order.orderType,
               relatedId: orderId,
               relatedTitle: `订单 ${order.orderNo || orderId} 接单者已取消接单`
@@ -5462,7 +5842,7 @@ async function cancelReceiverOrder(openid, data) {
             action: 'createMessage',
             data: {
               toUserId: receiverOpenid,
-              toUserName: (receiverInfo && receiverInfo.nickname) || '用户',
+              toUserName: receiverInfo?.nickname || '用户',
               messageType: order.orderType,
               relatedId: orderId,
               relatedTitle: `订单 ${order.orderNo || orderId} 已被取消接单`

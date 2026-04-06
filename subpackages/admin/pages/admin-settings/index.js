@@ -1,5 +1,6 @@
 // pages/admin-settings/index.js
 const adminLog = require('../../utils/adminLog');
+const { verifyAdminPage } = require('../../utils/verifyAdminPage.js');
 
 Page({
   data: {
@@ -40,6 +41,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!verifyAdminPage()) return;
     console.log('系统设置页面加载', options);
     
     // 检查是否有特殊操作参数

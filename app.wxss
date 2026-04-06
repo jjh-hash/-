@@ -1,14 +1,272 @@
+/* ========== 校园外卖 - 设计系统 Design System ========== */
 page {
-  background: #F5F6F8;
+  /* 主色 - 橙/暖黄（方案2） */
+  --color-primary: #FFB800;
+  --color-primary-light: rgba(255, 184, 0, 0.12);
+  /* 副色 - 蓝 */
+  --color-secondary: #3B82F6;
+  --color-secondary-light: #EDF0FE;
+  /* 强调色 */
+  --color-success: #07c160;
+  --color-warning: #DD8E09;
+  --color-danger: #EF4444;
+  /* 次色 - 中性灰（Pale Sky） */
+  --color-text: #31353C;
+  --color-text-secondary: #6B7280;
+  --color-text-placeholder: #9AA2B1;
+  --color-bg-page: #FFF0E0;
+  --color-bg-card: #ffffff;
+  --color-border: #B8BDC8;
+  --font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  --radius-card: 12px;
+  --radius-btn: 8px;
+  --radius-tag: 20px;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-card-hover: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-float: 0 4px 16px rgba(0,0,0,0.08);
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --space-page: 16px;
+  --space-block: 16px;
+  --space-item: 12px;
+  --min-tap: 44px;
+  background: var(--color-bg-page);
+  font-family: var(--font-family);
 }
 
-.safe-area-bottom {
-  height: env(safe-area-inset-bottom);
-}
-
+/* 通用 */
 .ellipsis {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.safe-area-bottom {
+  height: calc(60px + env(safe-area-inset-bottom));
+}
 
+/* 字体层级 */
+.ds-title-lg { font-size: 19px; font-weight: 600; color: var(--color-text); }
+.ds-title { font-size: 16px; font-weight: 600; color: var(--color-text); }
+.ds-body { font-size: 14px; font-weight: 400; color: var(--color-text); }
+.ds-caption { font-size: 12px; font-weight: 400; color: var(--color-text-secondary); }
+.ds-tag-text { font-size: 11px; font-weight: 400; }
+
+/* 主按钮 */
+.ds-btn-primary {
+  display: flex; align-items: center; justify-content: center;
+  height: 44px; min-height: 44px; padding: 0 20px;
+  background: var(--color-primary); color: #fff;
+  border: none; border-radius: var(--radius-btn);
+  font-size: 15px; font-weight: 500;
+}
+.ds-btn-primary:active { opacity: 0.9; }
+
+/* 次按钮 */
+.ds-btn-secondary {
+  display: flex; align-items: center; justify-content: center;
+  height: 44px; min-height: 44px; padding: 0 20px;
+  background: var(--color-bg-card); color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  font-size: 15px; font-weight: 500;
+}
+.ds-btn-secondary:active { background: var(--color-border); }
+
+/* 卡片 */
+.ds-card {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  padding: var(--space-item);
+  box-shadow: var(--shadow-card);
+}
+
+/* 列表项（可点击区域 ≥44px） */
+.ds-list-item {
+  display: flex; align-items: center;
+  min-height: var(--min-tap);
+  padding: 12px var(--space-page);
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
+}
+.ds-list-item:last-child { border-bottom: none; }
+
+/* 空状态 */
+.ds-empty {
+  padding: 48px 24px;
+  text-align: center;
+}
+.ds-empty-icon {
+  font-size: 56px; line-height: 1;
+  display: block; margin-bottom: 16px;
+  color: var(--color-text-placeholder);
+}
+.ds-empty-icon-wrap {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.ds-empty-icon-char {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+.ds-empty-title {
+  font-size: 16px; font-weight: 500; color: var(--color-text);
+  margin-bottom: 8px;
+}
+.ds-empty-desc {
+  font-size: 13px; color: var(--color-text-secondary);
+  margin-bottom: 20px;
+}
+.ds-empty-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 40px; padding: 0 24px;
+  background: var(--color-primary); color: #fff;
+  border-radius: var(--radius-tag);
+  font-size: 14px; font-weight: 500;
+}
+
+/* 标签/胶囊 */
+.ds-tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-tag);
+  font-size: 12px; color: var(--color-text-secondary);
+  background: var(--color-border);
+}
+.ds-tag-primary {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+/* 加载骨架占位（首屏/列表页可用） */
+.ds-skeleton {
+  background: linear-gradient(90deg, var(--color-border) 25%, rgba(0,0,0,0.04) 50%, var(--color-border) 75%);
+  background-size: 200% 100%;
+  animation: ds-skeleton 1.2s ease-in-out infinite;
+  border-radius: var(--radius-btn);
+}
+.ds-skeleton-line {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--color-border) 25%, rgba(0,0,0,0.04) 50%, var(--color-border) 75%);
+  background-size: 200% 100%;
+  animation: ds-skeleton 1.2s ease-in-out infinite;
+}
+.ds-skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, var(--color-border) 25%, rgba(0,0,0,0.04) 50%, var(--color-border) 75%);
+  background-size: 200% 100%;
+  animation: ds-skeleton 1.2s ease-in-out infinite;
+}
+.ds-skeleton-card {
+  height: 80px;
+  border-radius: var(--radius-card);
+  background: linear-gradient(90deg, var(--color-border) 25%, rgba(0,0,0,0.04) 50%, var(--color-border) 75%);
+  background-size: 200% 100%;
+  animation: ds-skeleton 1.2s ease-in-out infinite;
+}
+@keyframes ds-skeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 统一错误态（网络错误、无权限等：图标+文案+操作） */
+.ds-error {
+  padding: 48px 24px;
+  text-align: center;
+}
+.ds-error-icon {
+  font-size: 56px;
+  line-height: 1;
+  display: block;
+  margin-bottom: 16px;
+  color: var(--color-text-placeholder);
+}
+.ds-error-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+.ds-error-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.ds-error-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 24px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-tag);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 统一加载态（列表底部 / 按钮内） */
+.ds-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--color-text-placeholder);
+  font-size: 14px;
+}
+.ds-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: ds-spin 0.8s linear infinite;
+  margin-right: 8px;
+}
+.ds-loading-btn {
+  opacity: 0.7;
+  pointer-events: none;
+}
+@keyframes ds-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 点击态（轻量，不影响流畅度） */
+.ds-press:active { opacity: 0.88; }
+.ds-press-scale:active { transform: scale(0.98); }
+
+/* 输入框统一样式 */
+.ds-input {
+  height: 44px;
+  padding: 0 14px;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  font-size: 15px;
+  color: var(--color-text);
+  transition: border-color var(--transition-fast);
+}
+.ds-input:focus { border-color: var(--color-primary); }
+
+/* 分割线 */
+.ds-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0 var(--space-page);
+}
+
+/* 淡入（用于列表项、弹窗） */
+.ds-fade-in {
+  animation: ds-fade-in var(--transition-normal) ease-out;
+}
+@keyframes ds-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -1,17 +1,4 @@
 <view class="page">
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="back" bindtap="onBack">◀</text>
-      <text class="title">确认订单</text>
-      <view class="icons">
-        <text class="dot">•</text>
-        <text class="battery">▮</text>
-      </view>
-    </view>
-  </view>
-
   <scroll-view scroll-y class="content">
     <!-- 店铺信息 -->
     <view class="store-info">
@@ -47,7 +34,7 @@
       <view class="section-title">订单详情</view>
       <block wx:for="{{cartItems}}" wx:key="id">
         <view class="order-item">
-          <image class="item-image" src="{{item.image}}" mode="aspectFill" />
+          <image class="item-image" src="{{item.image}}" mode="aspectFill" lazy-load />
           <view class="item-info">
             <view class="item-name">{{item.name}}</view>
             <!-- 优先显示新格式的规格信息 selectedSpecs -->
@@ -82,27 +69,6 @@
       <view class="delivery-item">
         <text class="delivery-label">预计送达</text>
         <text class="delivery-value">{{estimatedDeliveryTimeRange}}</text>
-      </view>
-    </view>
-
-    <!-- 支付方式 -->
-    <view class="payment-section">
-      <view class="section-title">支付方式</view>
-      <view class="payment-item {{paymentMethod === 'wechat' ? 'active' : ''}}" 
-            data-method="wechat" bindtap="onSelectPayment">
-        <view class="payment-info">
-          <text class="payment-icon">💳</text>
-          <text class="payment-name">微信支付</text>
-        </view>
-        <view class="payment-radio {{paymentMethod === 'wechat' ? 'checked' : ''}}"></view>
-      </view>
-      <view class="payment-item {{paymentMethod === 'alipay' ? 'active' : ''}}" 
-            data-method="alipay" bindtap="onSelectPayment">
-        <view class="payment-info">
-          <text class="payment-icon">💰</text>
-          <text class="payment-name">支付宝</text>
-        </view>
-        <view class="payment-radio {{paymentMethod === 'alipay' ? 'checked' : ''}}"></view>
       </view>
     </view>
 
@@ -147,8 +113,8 @@
       <text class="total-label">合计</text>
       <text class="total-amount">¥{{totalAmount}}</text>
     </view>
-    <view class="submit-btn" bindtap="onSubmitOrder">
-      <text class="submit-text">结算</text>
+    <view class="submit-btn {{submitting ? 'disabled' : ''}}" bindtap="onSubmitOrder">
+      <text class="submit-text">{{submitting ? '提交中...' : '结算'}}</text>
     </view>
   </view>
 

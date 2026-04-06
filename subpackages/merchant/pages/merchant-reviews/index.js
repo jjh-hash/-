@@ -24,12 +24,11 @@ Page({
   },
 
   onShow() {
-    // 页面显示时，如果已有店铺ID，重新加载数据
-    if (this.data.storeId) {
-      console.log('【评价管理】页面显示，重新加载数据，店铺ID:', this.data.storeId);
-      this.loadReviews();
-      this.loadRatingStats();
-    }
+    if (!this.data.storeId) return;
+    const now = Date.now();
+    if (this._reviewsLastLoadTime && (now - this._reviewsLastLoadTime < 60000)) return;
+    this.loadReviews();
+    this.loadRatingStats();
   },
 
   // 初始化页面
@@ -190,16 +189,8 @@ Page({
           allReviews: finalAllReviews,
           reviews: finalReviews,
           loading: false
-        }, () => {
-          console.log('【评价管理】setData完成，当前reviews数量:', this.data.reviews.length);
-          console.log('【评价管理】allReviews数量:', this.data.allReviews.length);
-          console.log('【评价管理】setData后的reviews类型:', Array.isArray(this.data.reviews));
-          if (this.data.reviews.length > 0) {
-            console.log('【评价管理】第一条评论数据:', JSON.stringify(this.data.reviews[0]));
-          }
         });
-        
-        console.log('【评价管理】加载成功，共', reviews.length, '条评价');
+        this._reviewsLastLoadTime = Date.now();
       } else {
         console.error('【评价管理】加载失败:', res.result);
         wx.showToast({

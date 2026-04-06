@@ -1,7 +1,7 @@
-/* pages/chat/index.wxss */
+/* 聊天页 - 设计系统 */
 .page {
   height: 100vh;
-  background-color: #f5f6f8;
+  background: var(--color-bg-page);
   display: flex;
   flex-direction: column;
 }
@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
-  background: linear-gradient(180deg, #0a86ff, #2aa7ff);
+  background: var(--color-primary);
   color: #fff;
   position: relative;
 }
@@ -79,7 +79,7 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background-color: #e5e7eb;
+  background: var(--color-border);
 }
 
 .message-wrapper {
@@ -107,13 +107,13 @@
 }
 
 .message-content.other {
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-card);
   border-top-left-radius: 4px;
 }
 
 .message-content.self {
-  background: linear-gradient(180deg, #0a86ff, #2aa7ff);
+  background: var(--color-primary);
   color: #fff;
   border-top-right-radius: 4px;
 }
@@ -135,7 +135,7 @@
 
 .message-time {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-placeholder);
 }
 
 .message-status {
@@ -143,15 +143,15 @@
 }
 
 .message-status .sending {
-  color: #9ca3af;
+  color: var(--color-text-placeholder);
 }
 
 .message-status .read {
-  color: #1a73e8;
+  color: var(--color-primary);
 }
 
 .message-status .unread {
-  color: #9ca3af;
+  color: var(--color-text-placeholder);
 }
 
 .input-bar {
@@ -159,10 +159,10 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: #fff;
+  background: var(--color-bg-card);
   padding: 8px 12px;
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -173,22 +173,22 @@
   flex: 1;
   height: 36px;
   padding: 0 12px;
-  background: #f3f4f6;
+  background: var(--color-bg-page);
   border-radius: 18px;
   font-size: 14px;
 }
 
 .send-btn {
   padding: 8px 20px;
-  background: #d1d5db;
-  color: #6b7280;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
   border-radius: 18px;
   font-size: 14px;
   transition: all 0.3s;
 }
 
 .send-btn.active {
-  background: linear-gradient(180deg, #0a86ff, #2aa7ff);
+  background: var(--color-primary);
   color: #fff;
 }
 

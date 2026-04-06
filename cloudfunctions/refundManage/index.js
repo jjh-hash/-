@@ -20,6 +20,82 @@ cloud.init({
 });
 
 const db = cloud.database();
+const { extractAdminSessionToken, verifyAdminSession } = require('./adminSession');
+
+/**
+ * 发送退款进度通知订阅消息（静默失败）
+ * 模板「退款进度通知」：thing1 商家名称、thing7 商品名称、amount5 退款金额、thing4 退款原因、thing8 温馨提示
+ */
+async function sendRefundResultSubscribeMessage(userOpenid, refund, order, resultText) {
+  if (!userOpenid) return;
+  try {
+    const configRes = await db.collection('platform_config').limit(1).get();
+    const config = (configRes.data && configRes.data[0]) || {};
+    const templateId = config.subscribeMsgRefundTplId || config.subscribeMessageRefundTemplateId || '';
+    if (!templateId) {
+      console.log('【订阅消息】未配置退款结果模板ID，跳过');
+      return;
+    }
+    let storeName = '商家';
+    if (order && order.storeId) {
+      try {
+        const storeRes = await db.collection('stores').doc(order.storeId).get();
+        if (storeRes.data && storeRes.data.name) storeName = String(storeRes.data.name).slice(0, 20);
+      } catch (e) {}
+    }
+    const items = (order && order.items) || (refund && refund.selectedItems) || [];
+    const productNames = items.slice(0, 2).map(it => (it.name || it.productName || '商品').toString()).join('等');
+    const thing7 = (productNames || '商品').slice(0, 20);
+    const amount = (refund && (refund.refundAmount != null ? refund.refundAmount : refund.amount)) || 0;
+    const amountYuan = typeof amount === 'number' && amount >= 100 ? (amount / 100).toFixed(2) : String(amount);
+    const reason = (refund && (refund.refundReasonText || refund.refundReason || '')) || '用户申请退款';
+    const thing4 = String(reason).slice(0, 20);
+    const thing8 = (resultText || '退款进度更新').slice(0, 20);
+    const page = `subpackages/order/pages/order-detail/index?orderId=${refund.orderId}`;
+    await cloud.openapi.subscribeMessage.send({
+      touser: userOpenid,
+      template_id: templateId,
+      page,
+      data: {
+        thing1: { value: storeName },
+        thing7: { value: thing7 },
+        amount5: { value: amountYuan },
+        thing4: { value: thing4 },
+        thing8: { value: thing8 }
+      }
+    });
+    console.log('【订阅消息】退款进度已发送', refund.orderId);
+  } catch (err) {
+    const code = err.errCode || err.errcode;
+    console.warn('【订阅消息】退款进度发送失败', code, err.errMsg || err.errmsg || err.message);
+    // 43101=用户未订阅该模板，需在弹窗中勾选「退款进度通知」并允许
+  }
+}
+
+/**
+ * 发送取消订单的退款通知（取消订单=退款，与申请退款共用同一模板）
+ * 由 orderManage.cancelOrder 在退款成功后调用
+ */
+async function sendRefundNotificationForCancel(data) {
+  const { orderId } = data || {};
+  if (!orderId) return { code: 400, message: '缺少orderId', data: null };
+  try {
+    const orderRes = await db.collection('orders').doc(orderId).get();
+    const order = orderRes.data;
+    if (!order || !order.userOpenid) return { code: 200, message: 'ok', data: null };
+    const refundLike = {
+      orderId,
+      refundAmount: order.amountPayable != null ? order.amountPayable : order.amountTotal,
+      refundReasonText: '用户取消订单',
+      selectedItems: order.items || []
+    };
+    await sendRefundResultSubscribeMessage(order.userOpenid, refundLike, order, '退款成功');
+    return { code: 200, message: 'ok', data: null };
+  } catch (e) {
+    console.warn('【订阅消息】取消订单退款通知发送失败', e.message);
+    return { code: 200, message: 'ok', data: null };
+  }
+}
 
 exports.main = async (event, context) => {
   const { action, data } = event;
@@ -37,11 +113,15 @@ exports.main = async (event, context) => {
       
       // 获取退款详情
       case 'getRefundDetail':
-        return await getRefundDetail(data, OPENID);
+        return await getRefundDetail(event, OPENID);
       
       // 更新退款状态（商家/管理员操作）
       case 'updateRefundStatus':
-        return await updateRefundStatus(data, OPENID);
+        return await updateRefundStatus(event, OPENID);
+      
+      // 发送取消订单的退款通知（由 orderManage 调用，取消订单=退款，需发订阅消息）
+      case 'sendRefundNotificationForCancel':
+        return await sendRefundNotificationForCancel(data);
       
       default:
         return {
@@ -123,11 +203,28 @@ async function createRefund(data, openid) {
       };
     }
 
-    // 验证订单状态（只有已完成的订单可以申请退款）
-    if (order.orderStatus !== 'completed') {
+    // 骑手取餐后（配送中、已完成）不允许申请退款
+    if (order.orderStatus === 'delivering') {
       return {
         code: 400,
-        message: '只有已完成的订单可以申请退款',
+        message: '骑手已确认取餐正在配送，无法申请退款',
+        data: null
+      };
+    }
+    if (order.orderStatus === 'completed' && order.riderOpenid) {
+      return {
+        code: 400,
+        message: '骑手已取餐并完成配送，无法申请退款',
+        data: null
+      };
+    }
+
+    // 仅允许骑手未取餐前申请：pending、confirmed、preparing、ready
+    const allowedBeforeRider = ['pending', 'confirmed', 'preparing', 'ready'];
+    if (!allowedBeforeRider.includes(order.orderStatus)) {
+      return {
+        code: 400,
+        message: '当前订单状态不允许申请退款',
         data: null
       };
     }
@@ -279,14 +376,67 @@ async function createRefund(data, openid) {
       data: refundData
     });
 
+    const refundId = result._id;
     console.log('【创建退款申请】成功，退款单号:', refundNo);
+
+    // 骑手未取餐前：自动通过并立即退款、发通知
+    const autoApproveStatuses = ['pending', 'confirmed', 'preparing', 'ready'];
+    if (autoApproveStatuses.includes(order.orderStatus)) {
+      try {
+        const payRes = await cloud.callFunction({
+          name: 'paymentManage',
+          data: { action: 'refundOrder', data: { orderId, refundAmount: refundAmount } }
+        });
+        const payResult = payRes.result;
+        if (payResult && payResult.code === 200 && !payResult.data?.skipped) {
+          const fullRefund = { _id: refundId, ...refundData, orderId };
+          await processRefundDeduction(fullRefund, order);
+          await db.collection('refunds').doc(refundId).update({
+            data: {
+              status: 'completed',
+              processed: true,
+              processedAt: db.serverDate(),
+              completedAt: db.serverDate(),
+              updatedAt: db.serverDate()
+            }
+          });
+          await db.collection('orders').doc(orderId).update({
+            data: {
+              refundStatus: 'refunded',
+              orderStatus: 'cancelled',
+              updatedAt: db.serverDate()
+            }
+          });
+          sendRefundResultSubscribeMessage(order.userOpenid, fullRefund, order, '退款成功').catch(() => {});
+          return {
+            code: 200,
+            message: '退款成功',
+            data: { refundId, refundNo }
+          };
+        }
+        if (payResult && payResult.code !== 200) {
+          return {
+            code: 500,
+            message: payResult.message || '退款失败',
+            data: null
+          };
+        }
+      } catch (e) {
+        console.error('【创建退款申请】自动退款失败:', e);
+        return {
+          code: 500,
+          message: '退款失败: ' + (e.message || '系统异常'),
+          data: null
+        };
+      }
+    }
 
     return {
       code: 200,
       message: '退款申请已提交',
       data: {
-        refundId: result._id,
-        refundNo: refundNo
+        refundId,
+        refundNo
       }
     };
 
@@ -332,7 +482,16 @@ async function getRefundList(data, openid) {
     // 格式化数据
     const list = result.data.map(refund => {
       return {
-        ...refund,
+        _id: refund._id,
+        refundNo: refund.refundNo,
+        orderId: refund.orderId,
+        userId: refund.userId,
+        amount: refund.amount,
+        reason: refund.reason,
+        status: refund.status,
+        images: refund.images,
+        selectedItems: refund.selectedItems,
+        remark: refund.remark,
         createdAt: formatDate(refund.createdAt),
         updatedAt: formatDate(refund.updatedAt)
       };
@@ -362,9 +521,13 @@ async function getRefundList(data, openid) {
 /**
  * 获取退款详情
  */
-async function getRefundDetail(data, openid) {
+async function getRefundDetail(event, openid) {
   try {
-    const { refundId, isAdmin } = data;
+    const data = event.data || {};
+    const { refundId } = data;
+
+    const sess = await verifyAdminSession(db, extractAdminSessionToken(event));
+    const isRealAdmin = sess.ok;
 
     if (!refundId) {
       return {
@@ -386,8 +549,8 @@ async function getRefundDetail(data, openid) {
 
     const refund = result.data;
 
-    // 验证权限：管理员可以查看所有退款，普通用户只能查看自己的退款
-    if (!isAdmin && refund.userOpenid !== openid) {
+    // 验证权限：管理员会话可查看所有退款，普通用户只能查看自己的退款
+    if (!isRealAdmin && refund.userOpenid !== openid) {
       return {
         code: 403,
         message: '无权查看此退款申请',
@@ -397,7 +560,17 @@ async function getRefundDetail(data, openid) {
 
     // 格式化日期
     const formattedRefund = {
-      ...refund,
+      _id: refund._id,
+      refundNo: refund.refundNo,
+      orderId: refund.orderId,
+      userId: refund.userId,
+      userOpenid: refund.userOpenid,
+      amount: refund.amount,
+      reason: refund.reason,
+      status: refund.status,
+      images: refund.images,
+      selectedItems: refund.selectedItems,
+      remark: refund.remark,
       createdAt: formatDate(refund.createdAt),
       updatedAt: formatDate(refund.updatedAt),
       approvedAt: refund.approvedAt ? formatDate(refund.approvedAt) : null,
@@ -426,8 +599,9 @@ async function getRefundDetail(data, openid) {
 /**
  * 更新退款状态（商家/管理员操作）
  */
-async function updateRefundStatus(data, openid) {
+async function updateRefundStatus(event, openid) {
   try {
+    const data = event.data || {};
     const { refundId, status, remark } = data;
 
     if (!refundId || !status) {
@@ -580,7 +754,16 @@ async function updateRefundStatus(data, openid) {
       }
     }
     
-    // 方法3：检查是否是管理员
+    // 方法3：管理员会话（Web/小程序管理端）
+    if (!hasPermission) {
+      const sess = await verifyAdminSession(db, extractAdminSessionToken(event));
+      if (sess.ok) {
+        hasPermission = true;
+        console.log('【更新退款状态】权限验证通过：管理员会话');
+      }
+    }
+
+    // 方法4：兼容旧 admins 集合（openid）
     if (!hasPermission) {
       try {
         const adminResult = await db.collection('admins')
@@ -589,7 +772,7 @@ async function updateRefundStatus(data, openid) {
         
         if (adminResult.data && adminResult.data.length > 0) {
           hasPermission = true;
-          console.log('【更新退款状态】权限验证通过：管理员权限');
+          console.log('【更新退款状态】权限验证通过：admins 集合');
         }
       } catch (err) {
         console.warn('【更新退款状态】查询管理员信息失败:', err);
@@ -762,6 +945,15 @@ async function updateRefundStatus(data, openid) {
     }
 
     console.log('【更新退款状态】成功，退款ID:', refundId, '状态:', status);
+
+    const userOpenid = order.userOpenid || refund.userOpenid;
+    if (userOpenid && (status === 'approved' || status === 'rejected' || status === 'completed')) {
+      let resultText = status === 'rejected' ? '退款已拒绝' : '退款成功';
+      if (status === 'rejected' && (order.orderStatus === 'delivering' || (order.orderStatus === 'completed' && order.riderOpenid))) {
+        resultText = '您的餐已送出，拒绝退款';
+      }
+      sendRefundResultSubscribeMessage(userOpenid, refund, order, resultText).catch(() => {});
+    }
 
     return {
       code: 200,

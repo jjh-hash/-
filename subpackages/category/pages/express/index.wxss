@@ -1,6 +1,5 @@
-/* 页面基础样式 */
 .page {
-  background-color: #f5f5f5;
+  background-color: var(--color-bg-page);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -8,18 +7,17 @@
 
 /* 状态栏 */
 .status-bar {
-  background: #fff;
+  background: var(--color-primary);
   padding: 0 12px;
 }
-
 
 /* 导航栏 */
 .nav-bar {
   display: flex;
   align-items: center;
   padding: 8px 16px;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  background: var(--color-primary);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
 }
 
 .back-btn {
@@ -33,14 +31,14 @@
 
 .back-icon {
   font-size: 18px;
-  color: #333;
+  color: #fff;
 }
 
 .title {
   flex: 1;
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: #fff;
   text-align: center;
 }
 
@@ -52,13 +50,13 @@
 
 .more-btn {
   font-size: 16px;
-  color: #333;
+  color: #fff;
   transform: rotate(90deg);
 }
 
 .target-btn {
   font-size: 16px;
-  color: #333;
+  color: #fff;
 }
 
 /* 内容区域 */
@@ -67,11 +65,38 @@
   padding-bottom: 80px;
 }
 
+/* 去任务大厅入口 */
+.task-hall-entry {
+  display: flex;
+  align-items: center;
+  background: var(--color-bg-card);
+  margin: 0 12px 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border-left: 4px solid var(--color-primary);
+}
+.task-hall-entry .task-hall-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-right: 8px;
+}
+.task-hall-entry .task-hall-desc {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.task-hall-entry .task-hall-arrow {
+  font-size: 14px;
+  color: var(--color-text-placeholder);
+}
+
 /* 横幅 */
 .banner {
-  background: linear-gradient(135deg, #8b5cf6, #4a90e2);
+  background: linear-gradient(135deg, var(--color-primary) 0%, rgba(255, 184, 0, 0.85) 100%);
   margin: 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   height: 160px;
   position: relative;
   overflow: hidden;
@@ -109,10 +134,11 @@
   position: absolute;
   bottom: 20px;
   left: 20px;
-  background: #ffd700;
+  background: rgba(255, 255, 255, 0.95);
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-tag);
   z-index: 2;
+  box-shadow: var(--shadow-card);
 }
 
 .ribbon::before {
@@ -125,7 +151,7 @@
   height: 0;
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
-  border-right: 6px solid #ffd700;
+  border-right: 6px solid rgba(255, 255, 255, 0.95);
 }
 
 .ribbon::after {
@@ -138,13 +164,13 @@
   height: 0;
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
-  border-left: 6px solid #ffd700;
+  border-left: 6px solid rgba(255, 255, 255, 0.95);
 }
 
 .ribbon-text {
   font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .package-icon {
@@ -156,7 +182,7 @@
 .package-body {
   width: 100%;
   height: 100%;
-  background: #ffd700;
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 8px;
   position: relative;
   display: flex;
@@ -168,7 +194,7 @@
 .package-top {
   width: 60px;
   height: 20px;
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 4px 4px 0 0;
   position: absolute;
   top: 10px;
@@ -185,17 +211,18 @@
 .line {
   width: 40px;
   height: 2px;
-  background: #000;
+  background: var(--color-text);
   border-radius: 1px;
 }
 
 /* 表单区域 */
 .form-section {
-  background: #fff;
+  background: var(--color-bg-card);
   margin: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   padding: 10px 12px;
   margin-bottom: 6px;
+  box-shadow: var(--shadow-card);
 }
 
 .section-header {
@@ -218,24 +245,24 @@
 }
 
 .location-icon {
-  background: #f0f0f0;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
 }
 
 .delivery-icon {
-  background: #8b5cf6;
+  background: var(--color-primary);
 }
 
 .image-icon {
-  background: #8b5cf6;
+  background: var(--color-primary);
 }
 
 .code-icon {
-  background: #8b5cf6;
+  background: var(--color-primary);
 }
 
 .address-icon {
-  background: #8b5cf6;
+  background: var(--color-primary);
 }
 
 .section-content {
@@ -247,12 +274,12 @@
 
 .address-text {
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .address-placeholder {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 /* 联系信息显示 */
@@ -278,7 +305,7 @@
 .contact-name {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .contact-details {
@@ -290,24 +317,24 @@
 
 .contact-item {
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .section-title {
   flex: 1;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .arrow {
   font-size: 16px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .optional {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 /* 包裹列表 */
@@ -322,8 +349,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  background: #f8f9fa;
-  border-radius: 6px;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
 }
 
 .package-info {
@@ -346,18 +373,18 @@
 .package-name {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .package-description {
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .package-price {
   font-size: 14px;
   font-weight: 600;
-  color: #ff4757;
+  color: var(--color-danger);
 }
 
 .package-actions {
@@ -368,8 +395,8 @@
 .add-btn {
   width: 32px;
   height: 32px;
-  background: #f0f0f0;
-  border-radius: 6px;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-btn);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -377,7 +404,7 @@
 
 .add-icon {
   font-size: 18px;
-  color: #666;
+  color: var(--color-primary);
 }
 
 .quantity-control {
@@ -389,19 +416,20 @@
 .quantity-btn {
   width: 28px;
   height: 28px;
-  background: #f0f0f0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .quantity-text {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
   min-width: 20px;
   text-align: center;
 }
@@ -416,9 +444,9 @@
 .upload-btn {
   width: 60px;
   height: 60px;
-  background: #f5f5f5;
-  border: 2px dashed #ccc;
-  border-radius: 6px;
+  background: var(--color-bg-page);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-btn);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -426,7 +454,7 @@
 
 .plus-icon {
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .uploaded-image {
@@ -448,7 +476,7 @@
   right: -4px;
   width: 20px;
   height: 20px;
-  background: #ff4757;
+  background: var(--color-danger);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -464,43 +492,42 @@
 .pickup-code-input {
   width: 100%;
   padding: 8px 12px;
-  background: #f5f5f5;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--color-border);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   height: 36px;
   line-height: 20px;
-  /* 关键：设置盒模型为border-box，使width包含padding和border */
   box-sizing: border-box;
 }
 
 .code-placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 /* 寝室号输入 */
 .dormitory-input-wrapper {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-border);
 }
 
 .dormitory-input {
   width: 100%;
   padding: 8px 12px;
-  background: #f5f5f5;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--color-border);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   height: 36px;
   line-height: 20px;
   box-sizing: border-box;
 }
 
 .dormitory-placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 /* 订单时间设置 */
@@ -518,11 +545,11 @@
 .duration-input {
   flex: 1;
   padding: 8px 12px;
-  background: #f5f5f5;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--color-border);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   height: 36px;
   line-height: 20px;
   box-sizing: border-box;
@@ -532,49 +559,50 @@
   align-items: center;
   gap: 4px;
   padding: 8px 12px;
-  background: #f5f5f5;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--color-border);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   min-width: 80px;
 }
 .duration-unit .arrow {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 .timeout-display {
   padding: 8px 12px;
-  background: #f0f7ff;
-  border-radius: 6px;
-  border-left: 3px solid #1677ff;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-btn);
+  border-left: 3px solid var(--color-primary);
 }
 .timeout-value {
   font-size: 14px;
-  color: #1677ff;
+  color: var(--color-primary);
   font-weight: 500;
 }
 .timeout-tip {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 .timeout-icon {
-  background: #ff9800;
+  background: var(--color-warning);
 }
 
 /* 总价显示 */
 .total-price {
-  background: #fff;
+  background: var(--color-bg-card);
   margin: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   padding: 10px 12px;
   text-align: right;
+  box-shadow: var(--shadow-card);
 }
 
 .total-text {
   font-size: 18px;
   font-weight: 600;
-  color: #ff4757;
+  color: var(--color-primary);
 }
 
 .safe-area-bottom {
@@ -588,19 +616,23 @@
   right: 0;
   bottom: 0;
   padding: 12px;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
+  background: var(--color-bg-card);
+  border-top: 1px solid var(--color-border);
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
 .order-btn {
   width: 100%;
   height: 48px;
-  background: #333;
+  background: var(--color-primary);
   border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.order-btn:active {
+  opacity: 0.9;
 }
 
 .order-text {

@@ -1,24 +1,20 @@
 /* pages/admin-dashboard/index.wxss */
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding-bottom: 100rpx; /* 为原生tabBar留出空间 */
+  background: var(--color-bg-page);
+  padding-bottom: 100rpx;
 }
 
-/* 状态栏 */
-.status-bar {
-  background: #667eea;
-}
+.status-bar { background: var(--color-primary); }
 
-/* 导航栏 */
 .nav-bar {
   height: 88rpx;
-  background: #667eea;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 30rpx;
-  color: white;
+  color: #fff;
 }
 
 .back-btn {
@@ -56,7 +52,7 @@
   display: block;
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 20rpx;
   padding-left: 10rpx;
 }
@@ -68,25 +64,13 @@
 }
 
 .stat-card {
-  background: white;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 30rpx;
   display: flex;
   align-items: center;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
-  border-left: 6rpx solid #667eea;
-}
-
-.stat-card.success {
-  border-left-color: #4CAF50;
-}
-
-.stat-card.warning {
-  border-left-color: #FF9800;
-}
-
-.stat-card.info {
-  border-left-color: #2196F3;
+  box-shadow: var(--shadow-card);
+  border-left: 6rpx solid var(--color-primary);
 }
 
 .stat-icon {
@@ -110,27 +94,17 @@
 .stat-number {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--color-text);
   line-height: 1.2;
 }
 
-.stat-label {
-  font-size: 24rpx;
-  color: #666;
-}
+.stat-label { font-size: 24rpx; color: var(--color-text-secondary); }
 
-.stat-trend {
-  font-size: 22rpx;
-  font-weight: 500;
-}
+.stat-trend { font-size: 22rpx; font-weight: 500; }
 
-.stat-trend.positive {
-  color: #4CAF50;
-}
+.stat-trend.positive { color: var(--color-success); }
 
-.stat-trend.negative {
-  color: #f44336;
-}
+.stat-trend.negative { color: var(--color-danger); }
 
 /* 用户活跃度分析 */
 .analytics-section {
@@ -144,10 +118,10 @@
 
 .analytics-card {
   flex: 1;
-  background: white;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 30rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .card-header {
@@ -157,36 +131,26 @@
   margin-bottom: 20rpx;
 }
 
-.card-title {
-  font-size: 26rpx;
-  color: #666;
-}
+.card-title { font-size: 26rpx; color: var(--color-text-secondary); }
 
 .card-value {
   font-size: 36rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--color-text);
 }
 
 .card-chart {
-  background: #f8f9fa;
-  border-radius: 12rpx;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-card);
   padding: 20rpx;
   text-align: center;
 }
 
-.chart-text {
-  font-size: 24rpx;
-  font-weight: 500;
-}
+.chart-text { font-size: 24rpx; font-weight: 500; }
 
-.chart-text.positive {
-  color: #4CAF50;
-}
+.chart-text.positive { color: var(--color-success); }
 
-.chart-text.negative {
-  color: #f44336;
-}
+.chart-text.negative { color: var(--color-danger); }
 
 /* 订单概况 */
 .order-overview-section {
@@ -200,10 +164,10 @@
 }
 
 .order-stat-card {
-  background: white;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 30rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .order-stat-header {
@@ -213,15 +177,12 @@
   margin-bottom: 15rpx;
 }
 
-.order-stat-title {
-  font-size: 26rpx;
-  color: #666;
-}
+.order-stat-title { font-size: 26rpx; color: var(--color-text-secondary); }
 
 .order-stat-value {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--color-text);
 }
 
 .order-stat-trend {
@@ -233,29 +194,17 @@
   font-weight: 500;
 }
 
-.trend-text.positive {
-  color: #4CAF50;
-}
+.trend-text.positive { color: var(--color-success); }
 
-.trend-text.warning {
-  color: #FF9800;
-}
+.trend-text.warning { color: var(--color-warning); }
 
-.trend-text.success {
-  color: #4CAF50;
-}
+.trend-text.success { color: var(--color-success); }
 
-.trend-text.info {
-  color: #2196F3;
-}
+.trend-text.info { color: var(--color-primary); }
 
-.trend-text.negative {
-  color: #f44336;
-}
+.trend-text.negative { color: var(--color-danger); }
 
-.chart-text.negative {
-  color: #f44336;
-}
+.chart-text.negative { color: var(--color-danger); }
 
 /* 收入趋势 */
 .revenue-trend-section {
@@ -263,12 +212,11 @@
 }
 
 .revenue-chart {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 40rpx;
-  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10rpx);
-  border: 1rpx solid rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-card);
+  border: 1rpx solid var(--color-border);
 }
 
 .chart-header {
@@ -281,7 +229,7 @@
 .chart-title {
   font-size: 32rpx;
   font-weight: 700;
-  color: #333;
+  color: var(--color-text);
   position: relative;
 }
 
@@ -292,40 +240,31 @@
   left: 0;
   width: 60rpx;
   height: 4rpx;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  background: var(--color-primary);
   border-radius: 2rpx;
 }
 
-.chart-legend {
-  display: flex;
-  gap: 20rpx;
-}
+.chart-legend { display: flex; gap: 20rpx; }
 
 .legend-item {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--color-primary-light);
   padding: 8rpx 16rpx;
-  border-radius: 20rpx;
+  border-radius: var(--radius-tag);
 }
 
 .legend-color {
   width: 20rpx;
   height: 20rpx;
   border-radius: 50%;
-  box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2rpx 8rpx rgba(255, 184, 0, 0.3);
 }
 
-.legend-color.primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-}
+.legend-color.primary { background: var(--color-primary); }
 
-.legend-text {
-  font-size: 24rpx;
-  color: #667eea;
-  font-weight: 600;
-}
+.legend-text { font-size: 24rpx; color: var(--color-primary); font-weight: 600; }
 
 .chart-content {
   height: 200rpx;
@@ -343,7 +282,7 @@
 
 .chart-bar {
   flex: 1;
-  background: linear-gradient(to top, #667eea, #764ba2);
+  background: linear-gradient(to top, var(--color-primary), rgba(255, 184, 0, 0.85));
   border-radius: 8rpx 8rpx 0 0;
   margin: 0 6rpx;
   position: relative;
@@ -352,25 +291,25 @@
   justify-content: center;
   min-height: 20rpx;
   transition: all 0.3s ease;
-  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4rpx 12rpx rgba(255, 184, 0, 0.25);
 }
 
 .chart-bar:hover {
   transform: translateY(-2rpx);
-  box-shadow: 0 6rpx 16rpx rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6rpx 16rpx rgba(255, 184, 0, 0.35);
 }
 
 .bar-value {
   position: absolute;
   top: -40rpx;
   font-size: 20rpx;
-  color: #333;
+  color: var(--color-text);
   font-weight: 600;
   white-space: nowrap;
   background: rgba(255, 255, 255, 0.9);
   padding: 4rpx 8rpx;
-  border-radius: 12rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .chart-labels {
@@ -383,16 +322,16 @@
   flex: 1;
   text-align: center;
   font-size: 24rpx;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
   margin: 0 6rpx;
   padding: 8rpx 4rpx;
-  background: rgba(102, 102, 102, 0.05);
-  border-radius: 8rpx;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
   transition: all 0.3s ease;
 }
 
 .chart-label:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }

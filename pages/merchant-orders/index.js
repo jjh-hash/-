@@ -1,12 +1,10 @@
 Page({
   data:{
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
-    activeTab: 0,
     bottomActive: 'orders',
     orders: [],
-    loading: false, // 初始状态为false，允许首次加载
-    refreshing: false, // 下拉刷新状态
-    tabs: ['待确认', '制作中', '待配送', '已完成'],
+    loading: false,
+    refreshing: false,
     watchOrder: null,        // watch监听器
     refreshTimer: null,      // 防抖定时器
     reconnectTimer: null,    // 重连定时器
@@ -30,44 +28,12 @@ Page({
 
   onShow() {
     console.log('【商家订单页面】页面显示，刷新订单');
-    // 根据当前选中的标签重新加载订单
-    const { activeTab } = this.data;
-    let status = null;
-    let filterRefund = false;
-    
-    switch(activeTab) {
-      case 0: // 全部
-        status = null;
-        filterRefund = false;
-        break;
-      case 1: // 待确认
-        status = 'pending';
-        filterRefund = false;
-        break;
-      case 2: // 已完成
-        status = 'completed';
-        filterRefund = false;
-        break;
-      case 3: // 已取消
-        status = 'cancelled';
-        filterRefund = false;
-        break;
-      case 4: // 待退款
-        status = null;
-        filterRefund = true;
-        break;
-    }
-    
-    this.loadOrders(status, filterRefund);
-    
-    // 重新启动订单监听
+    this.loadOrders();
     this.startOrderWatch();
-    
-    // 如果watch未连接，启动轮询作为保障
     setTimeout(() => {
       if (!this.data.watchConnected && !this.data.pollingActive) {
         console.log('【商家订单页面】Watch未连接，启动轮询保障');
-        this.startPolling(status, filterRefund);
+        this.startPolling();
       }
     }, 2000);
   },
@@ -99,28 +65,10 @@ Page({
     }
   },
 
-  // 手动刷新
   onManualRefresh() {
     console.log('【商家订单页面】手动刷新');
-    const { activeTab } = this.data;
-    let status = null;
-    let filterRefund = false;
-    
-    switch(activeTab) {
-      case 0: status = null; filterRefund = false; break;
-      case 1: status = 'pending'; filterRefund = false; break;
-      case 2: status = 'completed'; filterRefund = false; break;
-      case 3: status = 'cancelled'; filterRefund = false; break;
-      case 4: status = null; filterRefund = true; break;
-    }
-    
-    this.loadOrders(status, filterRefund);
-    
-    wx.showToast({
-      title: '刷新成功',
-      icon: 'success',
-      duration: 1000
-    });
+    this.loadOrders();
+    wx.showToast({ title: '刷新成功', icon: 'success', duration: 1000 });
   },
 
   // 启动订单实时监听
@@ -139,14 +87,7 @@ Page({
       
       if (!storeId) {
         console.warn('【商家订单页面】无法启动订单监听：缺少店铺ID，降级到轮询');
-        const { activeTab } = this.data;
-        let status = null;
-        let filterRefund = false;
-        this.getStatusFromTab(activeTab, (s, f) => {
-          status = s;
-          filterRefund = f;
-        });
-        this.startPolling(status, filterRefund);
+        this.startPolling();
         return;
       }
       
@@ -185,32 +126,8 @@ Page({
       console.log('【商家订单页面】Watch监听已启动');
     } catch (error) {
       console.error('【商家订单页面】启动订单监听失败:', error);
-      // 启动失败，降级到轮询
-      const { activeTab } = this.data;
-      let status = null;
-      let filterRefund = false;
-      this.getStatusFromTab(activeTab, (s, f) => {
-        status = s;
-        filterRefund = f;
-      });
-      this.startPolling(status, filterRefund);
+      this.startPolling();
     }
-  },
-
-  // 从标签获取状态
-  getStatusFromTab(activeTab, callback) {
-    let status = null;
-    let filterRefund = false;
-    
-    switch(activeTab) {
-      case 0: status = null; filterRefund = false; break;
-      case 1: status = 'pending'; filterRefund = false; break;
-      case 2: status = 'completed'; filterRefund = false; break;
-      case 3: status = 'cancelled'; filterRefund = false; break;
-      case 4: status = null; filterRefund = true; break;
-    }
-    
-    callback(status, filterRefund);
   },
 
   // 处理订单变化（防抖+滚动检测）
@@ -227,21 +144,12 @@ Page({
       return;
     }
     
-    // 检查用户是否在滚动（3秒内滚动过，则延迟刷新）
     const timeSinceScroll = now - (this.data.lastScrollTime || 0);
     if (timeSinceScroll < 3000) {
       console.log('【商家订单页面】用户正在浏览，延迟刷新');
-      // 延迟到用户停止滚动后3秒再刷新
       if (this.data.refreshTimer) {
         clearTimeout(this.data.refreshTimer);
       }
-      const { activeTab } = this.data;
-      let status = null;
-      let filterRefund = false;
-      this.getStatusFromTab(activeTab, (s, f) => {
-        status = s;
-        filterRefund = f;
-      });
       this.data.refreshTimer = setTimeout(() => {
         this.handleOrderChange();
       }, 3000 - timeSinceScroll + 2000);
@@ -266,23 +174,12 @@ Page({
     
     console.log('【商家订单页面】检测到订单变化，自动刷新');
     this.setData({ lastRefreshTime: now });
-    
-    const { activeTab } = this.data;
-    let status = null;
-    let filterRefund = false;
-    this.getStatusFromTab(activeTab, (s, f) => {
-      status = s;
-      filterRefund = f;
-    });
-    
-    // 延迟刷新，避免频繁刷新
     if (this.data.refreshTimer) {
       clearTimeout(this.data.refreshTimer);
     }
-    
     this.data.refreshTimer = setTimeout(() => {
       if (!this.data.loading) {
-        this.loadOrders(status, filterRefund);
+        this.loadOrders();
       }
     }, 500);
   },
@@ -296,14 +193,7 @@ Page({
     
     if (reconnectCount >= maxReconnect) {
       console.warn('【商家订单页面】Watch重连次数已达上限，降级到轮询');
-      const { activeTab } = this.data;
-      let status = null;
-      let filterRefund = false;
-      this.getStatusFromTab(activeTab, (s, f) => {
-        status = s;
-        filterRefund = f;
-      });
-      this.startPolling(status, filterRefund);
+      this.startPolling();
       return;
     }
     
@@ -320,22 +210,15 @@ Page({
     }, delay);
   },
 
-  // 启动智能轮询（降级方案）
-  startPolling(status = null, filterRefund = false) {
-    // 如果已经在轮询，不重复启动
+  startPolling() {
     if (this.data.pollingActive) {
       return;
     }
-    
     console.log('【商家订单页面】启动智能轮询');
     this.setData({ pollingActive: true });
-    
-    // 立即执行一次
-    this.pollOrders(status, filterRefund);
-    
-    // 设置定时轮询
+    this.pollOrders();
     this.data.pollingTimer = setInterval(() => {
-      this.pollOrders(status, filterRefund);
+      this.pollOrders();
     }, this.getPollingInterval());
   },
 
@@ -349,48 +232,30 @@ Page({
     console.log('【商家订单页面】轮询已停止');
   },
 
-  // 轮询订单
-  pollOrders(status = null, filterRefund = false) {
-    // 检查是否有进行中的订单
+  pollOrders() {
     const hasActiveOrders = this.data.orders.some(order => {
       const orderStatus = order.orderStatus;
-      return orderStatus === 'pending' || orderStatus === 'confirmed' || 
+      return orderStatus === 'pending' || orderStatus === 'confirmed' ||
              orderStatus === 'preparing' || orderStatus === 'delivering';
     });
-    
-    // 如果没有进行中的订单，停止轮询
     if (!hasActiveOrders) {
       console.log('【商家订单页面】没有进行中的订单，停止轮询');
       this.stopPolling();
       return;
     }
-    
-    // 检查用户是否在滚动（3秒内滚动过，则跳过本次刷新）
     const now = Date.now();
     const timeSinceScroll = now - (this.data.lastScrollTime || 0);
     if (timeSinceScroll < 3000) {
       console.log('【商家订单页面】用户正在浏览，跳过轮询刷新');
       return;
     }
-    
-    // 检查滚动位置：如果不在顶部，跳过刷新
     if (this.data.scrollTop > 100) {
       console.log('【商家订单页面】用户已滚动，跳过轮询刷新');
       return;
     }
-    
-    // 如果不在加载中，则刷新订单
     if (!this.data.loading) {
       console.log('【商家订单页面】轮询刷新订单');
-      // 从当前标签获取状态
-      const { activeTab } = this.data;
-      let currentStatus = null;
-      let currentFilterRefund = false;
-      this.getStatusFromTab(activeTab, (s, f) => {
-        currentStatus = s;
-        currentFilterRefund = f;
-      });
-      this.loadOrders(currentStatus, currentFilterRefund);
+      this.loadOrders();
     }
   },
 
@@ -447,56 +312,30 @@ Page({
     }
   },
 
-  // 下拉刷新
   onPullDownRefresh() {
     console.log('【商家订单页面】下拉刷新');
-    // 设置刷新状态
     this.setData({ refreshing: true });
-    
-    const { activeTab } = this.data;
-    let status = null;
-    let filterRefund = false;
-    
-    switch(activeTab) {
-      case 0: status = null; filterRefund = false; break;
-      case 1: status = 'pending'; filterRefund = false; break;
-      case 2: status = 'completed'; filterRefund = false; break;
-      case 3: status = 'cancelled'; filterRefund = false; break;
-      case 4: status = null; filterRefund = true; break;
-    }
-    
-    // 下拉刷新时不显示loading，使用下拉刷新的原生动画
-    this.loadOrders(status, filterRefund, true).finally(() => {
-      // 停止刷新动画
+    this.loadOrders(true).finally(() => {
       this.setData({ refreshing: false });
-      wx.showToast({
-        title: '刷新成功',
-        icon: 'success',
-        duration: 1000
-      });
+      wx.showToast({ title: '刷新成功', icon: 'success', duration: 1000 });
     });
   },
 
-  // 加载订单列表
-  async loadOrders(status = null, filterRefund = false, isPullRefresh = false) {
-    // 如果已经在加载中，则跳过（避免重复请求）
+  // 加载订单列表（仅已支付订单）
+  async loadOrders(isPullRefresh = false) {
     if (this.data.loading) {
       return Promise.resolve();
     }
-    
     this.setData({ loading: true });
 
     try {
-      // 下拉刷新时不显示loading，使用下拉刷新的原生动画
       if (!isPullRefresh) {
         wx.showLoading({ title: '加载中...' });
       }
 
-      // 获取当前登录的商家信息
       const merchantInfo = wx.getStorageSync('merchantInfo');
       const merchantId = merchantInfo?._id || null;
       const storeId = merchantInfo?.storeId || null;
-      
       console.log('【商家订单页面】当前商家信息:', { merchantId, storeId });
       
       const res = await wx.cloud.callFunction({
@@ -505,10 +344,10 @@ Page({
           action: 'getMerchantOrders',
           data: {
             page: 1,
-            pageSize: 100, // 增加数量以确保能获取所有订单
-            status: status, // 传递状态参数
-            merchantId: merchantId, // 传递商家ID，优先使用
-            storeId: storeId // 传递店铺ID
+            pageSize: 100,
+            merchantId: merchantId,
+            storeId: storeId,
+            payStatus: 'paid'
           }
         }
       });
@@ -691,40 +530,6 @@ Page({
     return classMap[status] || 'normal';
   },
 
-  onTabTap(e){
-    const tabIndex = Number(e.currentTarget.dataset.index);
-    this.setData({ activeTab: tabIndex });
-    
-    // 根据tab索引获取对应状态
-    let status = null;
-    let filterRefund = false;
-    
-    switch(tabIndex) {
-      case 0: // 全部
-        status = null;
-        filterRefund = false;
-        break;
-      case 1: // 待确认
-        status = 'pending';
-        filterRefund = false;
-        break;
-      case 2: // 已完成
-        status = 'completed';
-        filterRefund = false;
-        break;
-      case 3: // 已取消
-        status = 'cancelled';
-        filterRefund = false;
-        break;
-      case 4: // 待退款
-        status = null; // 不限制订单状态，只筛选有退款申请的
-        filterRefund = true;
-        break;
-    }
-    
-    // 重新加载对应状态的订单
-    this.loadOrders(status, filterRefund);
-  },
   // 联系用户
   onContactUser(e) {
     const orderId = e.currentTarget.dataset.id;
@@ -823,23 +628,8 @@ Page({
           icon: 'success'
         });
         
-        // 关闭详情弹窗
         this.setData({ showDetail: false });
-        
-        // 刷新订单列表，保持当前标签状态
-        const { activeTab } = this.data;
-        let status = null;
-        let filterRefund = false;
-        
-        switch(activeTab) {
-          case 0: status = null; filterRefund = false; break;
-          case 1: status = 'pending'; filterRefund = false; break;
-          case 2: status = 'completed'; filterRefund = false; break;
-          case 3: status = 'cancelled'; filterRefund = false; break;
-          case 4: status = null; filterRefund = true; break;
-        }
-        
-        this.loadOrders(status, filterRefund);
+        this.loadOrders();
       } else {
         wx.showToast({
           title: res.result?.message || '操作失败',
@@ -1265,23 +1055,8 @@ Page({
           icon: 'success'
         });
 
-        // 关闭详情弹窗
         this.setData({ showDetail: false });
-
-        // 刷新订单列表，保持当前标签状态
-        const { activeTab } = this.data;
-        let status = null;
-        let filterRefund = false;
-        
-        switch(activeTab) {
-          case 0: status = null; filterRefund = false; break;
-          case 1: status = 'pending'; filterRefund = false; break;
-          case 2: status = 'completed'; filterRefund = false; break;
-          case 3: status = 'cancelled'; filterRefund = false; break;
-          case 4: status = null; filterRefund = true; break;
-        }
-        
-        this.loadOrders(status, filterRefund);
+        this.loadOrders();
       } else {
         wx.showToast({
           title: res.result?.message || '操作失败',

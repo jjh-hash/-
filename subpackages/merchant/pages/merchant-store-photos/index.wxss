@@ -1,21 +1,22 @@
+/* 商家相册 - 设计系统 */
 .page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .status-bar {
   width: 100%;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .nav-bar {
   height: 44px;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 var(--space-page);
 }
 
 .nav-left {
@@ -28,13 +29,13 @@
 
 .back-icon {
   font-size: 24px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 300;
 }
 
 .nav-title {
   font-size: 18px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 600;
 }
 
@@ -48,19 +49,19 @@
 
 .add-icon {
   font-size: 20px;
-  color: #1677ff;
+  color: var(--color-primary);
   font-weight: 300;
 }
 
 .content {
-  padding: 16px;
+  padding: var(--space-page);
 }
 
 .category-tabs {
   display: flex;
-  background: #fff;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-btn);
+  margin-bottom: var(--space-block);
   overflow: hidden;
 }
 
@@ -69,14 +70,14 @@
   padding: 12px 8px;
   text-align: center;
   font-size: 14px;
-  color: #666;
-  background: #fff;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-card);
   transition: all 0.3s ease;
 }
 
 .tab-item.active {
-  color: #1677ff;
-  background: #f0f5ff;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
   font-weight: 500;
 }
 
@@ -88,8 +89,8 @@
 
 .photo-item {
   position: relative;
-  background: #fff;
-  border-radius: 8px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-btn);
   overflow: hidden;
   aspect-ratio: 1;
 }

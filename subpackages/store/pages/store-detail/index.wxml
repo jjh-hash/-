@@ -1,33 +1,40 @@
 <view class="page">
-  <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px">
-  </view>
-
-  <!-- 头部导航 -->
-  <view class="header">
-    <view class="back-btn" bindtap="onBackTap">
-      <text class="back-icon">←</text>
+  <!-- 骨架屏：店铺详情加载中 -->
+  <block wx:if="{{storeDetailLoading}}">
+    <view class="skeleton-store-card">
+      <view class="skeleton-logo"></view>
+      <view class="skeleton-info">
+        <view class="skeleton-line skeleton-title"></view>
+        <view class="skeleton-line skeleton-stats"></view>
+        <view class="skeleton-line skeleton-announce"></view>
+      </view>
     </view>
-    <view class="header-title">店铺信息</view>
-    <view class="more-btn" bindtap="onMoreTap">
-      <text class="more-icon">⋮</text>
+    <view class="skeleton-tab-wrap">
+      <view class="skeleton-tab"></view>
+      <view class="skeleton-tab"></view>
+      <view class="skeleton-tab"></view>
     </view>
-  </view>
-
-  <!-- 店铺信息卡片 -->
-  <view class="store-card">
-    <view class="store-info">
-      <view class="store-name">{{storeInfo.name}}</view>
-      <view class="announcement" wx:if="{{storeInfo.announcement}}">
-        <text class="announcement-icon">📢</text>
-        <view class="announcement-wrapper">
-          <view class="announcement-scroll {{announcementScroll ? 'scrolling' : ''}}" style="animation-duration: {{announcementDuration}}s;">
-            <text class="announcement-text">公告: {{storeInfo.announcement}}</text>
-            <text class="announcement-text" wx:if="{{announcementScroll}}">公告: {{storeInfo.announcement}}</text>
+    <view class="skeleton-tip"></view>
+    <view class="skeleton-main">
+      <view class="skeleton-sidebar">
+        <view class="skeleton-cat" wx:for="{{[1,2,3,4,5,6]}}" wx:key="*this"></view>
+      </view>
+      <view class="skeleton-product-list">
+        <view class="skeleton-product-item" wx:for="{{[1,2,3,4,5]}}" wx:key="*this">
+          <view class="skeleton-product-img"></view>
+          <view class="skeleton-product-info">
+            <view class="skeleton-line skeleton-name"></view>
+            <view class="skeleton-line skeleton-meta"></view>
+            <view class="skeleton-line skeleton-price"></view>
           </view>
         </view>
       </view>
     </view>
+  </block>
+
+  <!-- 真实内容：店铺信息卡片（美团式） -->
+  <block wx:if="{{!storeDetailLoading}}">
+  <view class="store-card">
     <view class="store-logo">
       <image 
         class="logo-image" 
@@ -36,19 +43,42 @@
         binderror="onLogoError"
       />
     </view>
+    <view class="store-info">
+      <view class="store-header">
+        <view class="store-name">{{storeInfo.name}}</view>
+        <view class="store-stats">
+          <text class="store-stat-item">评分 {{storeInfo.ratingAvg || storeInfo.overallRating || '0'}}</text>
+          <text class="store-stat-item">月售{{storeInfo.monthlySales || storeInfo.sales || 0}}</text>
+          <text class="store-stat-item">配送¥{{storeInfo.deliveryFee || 0}}</text>
+          <text class="store-stat-item">起送¥{{storeInfo.minOrder || 0}}</text>
+        </view>
+      </view>
+      <view class="announcement" wx:if="{{storeInfo.announcement}}">
+        <text class="announcement-label">公告</text>
+        <view class="announcement-wrapper">
+          <view class="announcement-scroll {{announcementScroll ? 'scrolling' : ''}}" style="animation-duration: {{announcementDuration}}s;">
+            <text class="announcement-text">公告: {{storeInfo.announcement}}</text>
+            <text class="announcement-text" wx:if="{{announcementScroll}}">公告: {{storeInfo.announcement}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 
-  <!-- 标签页导航 -->
-  <view class="tab-nav">
-    <block wx:for="{{tabs}}" wx:key="index">
-      <view 
-        class="tab-item {{index === activeTab ? 'active' : ''}}"
-        bindtap="onTabTap"
-        data-index="{{index}}"
-      >
-        {{item}}
-      </view>
-    </block>
+  <!-- 标签页导航（美团式：点菜 评价 商家 + 温馨提示） -->
+  <view class="tab-nav-wrap">
+    <view class="tab-nav">
+      <block wx:for="{{tabs}}" wx:key="index">
+        <view 
+          class="tab-item {{index === activeTab ? 'active' : ''}}"
+          bindtap="onTabTap"
+          data-index="{{index}}"
+        >
+          {{item}}
+        </view>
+      </block>
+    </view>
+    <view class="tab-warm-tip">温馨提示：请适量点餐</view>
   </view>
 
   <!-- 主内容区域 -->
@@ -67,35 +97,39 @@
       </block>
     </view>
 
-    <!-- 右侧商品列表 -->
+    <!-- 右侧商品列表（美团式：图左，名/月售/价格+选规格或加购同排） -->
     <view class="product-content">
       <block wx:for="{{displayProducts}}" wx:key="id">
         <view class="product-item">
-          <image class="product-image" src="{{item.image || item.coverUrl}}" mode="aspectFill" />
+          <image class="product-image" src="{{item.image || item.coverUrl}}" mode="aspectFill" lazy-load />
           <view class="product-info">
             <view class="product-name">{{item.name}}</view>
-            <view class="product-price">¥{{item.price}}</view>
-          </view>
-          <view class="product-actions">
-            <!-- 规格选择：有规格的商品始终显示选规格按钮 -->
-            <view class="spec-btn" wx:if="{{item.hasSpec}}" bindtap="onSelectSpec" data-id="{{item.id}}">
-              <text class="spec-text">选规格</text>
-              <!-- 显示总数量角标 -->
-              <view class="spec-badge" wx:if="{{item.quantity > 0}}">{{item.quantity}}</view>
-            </view>
-            <!-- 数量选择器：没有规格的商品才显示加减按钮 -->
-            <view class="quantity-selector" wx:elif="{{item.quantity > 0}}">
-              <view class="quantity-btn" bindtap="onRemoveFromCart" data-id="{{item.id}}">
-                <text class="quantity-icon">-</text>
+            <view class="product-meta">月售{{item.sales || 0}}</view>
+            <view class="product-bottom-row">
+              <view class="product-price-wrap">
+                <text class="product-price">¥{{item.price}}</text>
               </view>
-              <view class="quantity-number">{{item.quantity}}</view>
-              <view class="quantity-btn" bindtap="onAddToCart" data-id="{{item.id}}">
-                <text class="quantity-icon">+</text>
+              <view class="product-actions">
+                <!-- 有规格：选规格按钮（美团位） -->
+                <view class="spec-btn" wx:if="{{item.hasSpec}}" bindtap="onSelectSpec" data-id="{{item.id}}">
+                  <text class="spec-text">选规格</text>
+                  <view class="spec-badge" wx:if="{{item.quantity > 0}}">{{item.quantity}}</view>
+                </view>
+                <!-- 无规格且已加购：加减 -->
+                <view class="quantity-selector" wx:elif="{{item.quantity > 0}}">
+                  <view class="quantity-btn" bindtap="onRemoveFromCart" data-id="{{item.id}}">
+                    <text class="quantity-icon">-</text>
+                  </view>
+                  <view class="quantity-number">{{item.quantity}}</view>
+                  <view class="quantity-btn" bindtap="onAddToCart" data-id="{{item.id}}">
+                    <text class="quantity-icon">+</text>
+                  </view>
+                </view>
+                <!-- 无规格未加购：加号 -->
+                <view class="add-btn" wx:else bindtap="onAddToCart" data-id="{{item.id}}">
+                  <text class="add-icon">+</text>
+                </view>
               </view>
-            </view>
-            <!-- 添加按钮：没有规格且数量为0的商品 -->
-            <view class="add-btn" wx:else bindtap="onAddToCart" data-id="{{item.id}}">
-              <text class="add-icon">+</text>
             </view>
           </view>
         </view>
@@ -126,7 +160,7 @@
         <view class="review-item">
           <!-- 用户信息 -->
           <view class="user-info">
-            <image class="user-avatar" src="{{item.userAvatar}}" mode="aspectFill" />
+            <image class="user-avatar" src="{{item.userAvatar}}" mode="aspectFill" lazy-load />
             <view class="user-details">
               <view class="user-name">{{item.userName}}</view>
               <view class="user-rating">
@@ -147,6 +181,7 @@
                    wx:key="index"
                    src="{{img}}" 
                    mode="aspectFill"
+                   lazy-load
                    data-images="{{item.images}}"
                    data-index="{{index}}"
                    bindtap="onPreviewReviewImage" />
@@ -229,21 +264,27 @@
       <text class="loading-text">加载中...</text>
     </view>
   </scroll-view>
+  </block>
 
-  <!-- 底部购物车栏（仅在点餐标签时显示） -->
-  <view class="cart-bar" wx:if="{{activeTab === 0 && cartItems.length === 0}}">
-    <view class="cart-info">
-      <view class="cart-icon">🛒</view>
-      <text class="delivery-fee">配送费{{storeInfo.deliveryFee}}元</text>
+  <!-- 底部购物车栏（未选菜品时，与结算栏同风格：左图标+文案，右起送） -->
+  <view class="cart-bar" wx:if="{{!storeDetailLoading && activeTab === 0 && cartItems.length === 0}}">
+    <view class="cart-bar-left">
+      <view class="cart-bar-icon-wrap">
+        <image class="cart-bar-delivery-icon" src="{{deliveryBoyIcon}}" mode="aspectFit" />
+      </view>
+      <view class="cart-bar-info">
+        <view class="cart-bar-hint">去选菜品</view>
+        <view class="cart-bar-fee">配送费{{storeInfo.deliveryFee}}元</view>
+      </view>
     </view>
-    <view class="min-order">¥{{storeInfo.minOrder}}起送</view>
+    <view class="cart-bar-right">¥{{storeInfo.minOrder}}起送</view>
   </view>
 
-  <!-- 购物车结算栏 - 未达到起送金额（仅在点餐标签时显示） -->
-  <view class="checkout-bar checkout-bar-gray" wx:if="{{activeTab === 0 && cartItems.length > 0 && cartTotal < storeInfo.minOrder}}">
+  <!-- 购物车结算栏 - 未达到起送金额（图二式：左图标+金额对齐，右按钮） -->
+  <view class="checkout-bar checkout-bar-gray" wx:if="{{!storeDetailLoading && activeTab === 0 && cartItems.length > 0 && cartTotal < storeInfo.minOrder}}">
     <view class="cart-summary" bindtap="onToggleCartSummary">
       <view class="cart-icon-wrapper">
-        <view class="cart-icon">🛒</view>
+        <image class="cart-delivery-icon" src="{{deliveryBoyIcon}}" mode="aspectFit" />
         <view class="cart-badge">{{cartItems.length}}</view>
       </view>
       <view class="total-info">
@@ -252,15 +293,16 @@
       </view>
     </view>
     <view class="checkout-section checkout-section-gray" bindtap="onToggleCartSummary">
-      <text class="checkout-text">¥{{storeInfo.minOrder}}起送</text>
+      <text class="checkout-text" wx:if="{{minOrderGap}}">还差¥{{minOrderGap}}起送</text>
+      <text class="checkout-text" wx:else>¥{{storeInfo.minOrder}}起送</text>
     </view>
   </view>
 
-  <!-- 购物车结算栏 - 达到起送金额（仅在点餐标签时显示） -->
-  <view class="checkout-bar checkout-bar-blue" wx:if="{{activeTab === 0 && cartItems.length > 0 && cartTotal >= storeInfo.minOrder}}">
+  <!-- 购物车结算栏 - 达到起送金额（图二式：左图标+金额对齐，右按钮） -->
+  <view class="checkout-bar checkout-bar-blue" wx:if="{{!storeDetailLoading && activeTab === 0 && cartItems.length > 0 && cartTotal >= storeInfo.minOrder}}">
     <view class="cart-summary" bindtap="onToggleCartSummary">
       <view class="cart-icon-wrapper">
-        <view class="cart-icon">🛒</view>
+        <image class="cart-delivery-icon" src="{{deliveryBoyIcon}}" mode="aspectFit" />
         <view class="cart-badge">{{cartItems.length}}</view>
       </view>
       <view class="total-info">
@@ -286,11 +328,12 @@
         </view>
       </view>
 
-      <!-- 可滚动内容区域 -->
+      <!-- 可滚动内容区域（内层限定宽度，避免右侧裁剪并居中） -->
       <scroll-view class="spec-popup-content" scroll-y>
+        <view class="spec-popup-inner">
         <!-- 商品信息 -->
         <view class="product-section">
-          <image class="product-image" src="{{currentProduct.image || currentProduct.coverUrl}}" mode="aspectFill" />
+          <image class="product-image" src="{{currentProduct.image || currentProduct.coverUrl}}" mode="aspectFill" lazy-load />
           <view class="product-details">
             <view class="product-name">{{currentProduct.name}}</view>
             <view class="product-price">¥{{currentProduct.price}}</view>
@@ -320,6 +363,7 @@
             </view>
           </view>
         </block>
+        </view>
       </scroll-view>
 
       <!-- 数量选择（固定在底部） -->
@@ -396,7 +440,7 @@
       <scroll-view scroll-y class="cart-items-scroll">
         <block wx:for="{{cartItems}}" wx:key="cartItemId">
           <view class="cart-item-detailed">
-            <image class="item-image" src="{{item.image || item.coverUrl}}" mode="aspectFill" />
+            <image class="item-image" src="{{item.image || item.coverUrl}}" mode="aspectFill" lazy-load />
             <view class="item-info-detailed">
               <view class="item-name-detailed">{{item.name}}</view>
               <view class="item-spec-detailed" wx:if="{{item.selectedSpecs && item.selectedSpecs.length > 0}}">

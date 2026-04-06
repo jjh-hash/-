@@ -19,38 +19,41 @@ Page({
     this.loadUserInfo();
   },
 
+  // 默认占位：未设置时展示，用户可自行修改
+  DEFAULT_NICKNAME: '微信用户',
+  DEFAULT_AVATAR: '/pages/小标/我的.png',
+
   /**
-   * 加载用户信息
+   * 加载用户信息（无数据时使用默认占位，用户可自行修改后保存）
    */
   loadUserInfo() {
     const app = getApp();
     let userInfo = null;
-    
+
     if (app.globalData.isLoggedIn && app.globalData.userInfo) {
       userInfo = app.globalData.userInfo;
     } else {
-      // 从本地存储获取
       userInfo = wx.getStorageSync('userInfo');
     }
 
-    if (userInfo) {
-      // 查找校区索引
-      let campusIndex = -1;
-      if (userInfo.campus) {
-        const index = this.data.campusList.findIndex(item => item.value === userInfo.campus);
-        campusIndex = index >= 0 ? index : -1;
-      }
-      
-      this.setData({
-        tempNickname: userInfo.nickname || '',
-        tempAvatar: userInfo.avatar || '',
-        tempCampus: userInfo.campus || '',
-        campusIndex: campusIndex,
-        tempCollege: userInfo.college || '',
-        tempMajor: userInfo.major || '',
-        tempPhone: userInfo.phone || ''
-      });
+    const defaultNickname = this.DEFAULT_NICKNAME;
+    const defaultAvatar = this.DEFAULT_AVATAR;
+
+    let campusIndex = -1;
+    if (userInfo && userInfo.campus) {
+      const index = this.data.campusList.findIndex(item => item.value === userInfo.campus);
+      campusIndex = index >= 0 ? index : -1;
     }
+
+    this.setData({
+      tempNickname: (userInfo && userInfo.nickname) ? userInfo.nickname : defaultNickname,
+      tempAvatar: (userInfo && userInfo.avatar) ? userInfo.avatar : defaultAvatar,
+      tempCampus: (userInfo && userInfo.campus) ? userInfo.campus : '',
+      campusIndex,
+      tempCollege: (userInfo && userInfo.college) ? userInfo.college : '',
+      tempMajor: (userInfo && userInfo.major) ? userInfo.major : '',
+      tempPhone: (userInfo && userInfo.phone) ? userInfo.phone : ''
+    });
   },
 
   /**
@@ -278,11 +281,11 @@ Page({
   /**
    * 保存用户信息
    */
-  async onSave() {
+  async saveUserInfo() {
     const { tempNickname, tempAvatar, tempCampus, tempCollege, tempMajor, tempPhone } = this.data;
+    const nickname = (tempNickname && tempNickname.trim()) ? tempNickname.trim() : this.DEFAULT_NICKNAME;
 
-    // 验证昵称
-    if (!tempNickname || tempNickname.trim() === '') {
+    if (!nickname) {
       wx.showToast({
         title: '请输入昵称',
         icon: 'none'
@@ -290,7 +293,7 @@ Page({
       return;
     }
 
-    if (tempNickname.trim().length > 20) {
+    if (nickname.length > 20) {
       wx.showToast({
         title: '昵称不能超过20个字符',
         icon: 'none'
@@ -298,16 +301,12 @@ Page({
       return;
     }
 
-    // 验证手机号格式（如果填写了）
-    if (tempPhone && tempPhone.trim() !== '') {
-      const phoneRegex = /^1[3-9]\d{9}$/;
-      if (!phoneRegex.test(tempPhone.trim())) {
-        wx.showToast({
-          title: '请输入正确的手机号',
-          icon: 'none'
-        });
-        return;
-      }
+    if (tempPhone && tempPhone.length !== 11) {
+      wx.showToast({
+        title: '请输入11位手机号',
+        icon: 'none'
+      });
+      return;
     }
 
     wx.showLoading({
@@ -316,63 +315,36 @@ Page({
     });
 
     try {
-      console.log('=== 准备保存用户信息 ===');
-      console.log('昵称:', tempNickname.trim());
-      console.log('头像URL:', tempAvatar);
-      console.log('校区:', tempCampus.trim() || '');
-      console.log('学院:', tempCollege.trim() || '');
-      console.log('专业:', tempMajor.trim() || '');
-      console.log('电话:', tempPhone.trim() || '');
-
-      // 调用云函数更新用户信息
       const result = await wx.cloud.callFunction({
         name: 'updateUserInfo',
         data: {
-          nickname: tempNickname.trim(),
+          nickname,
           avatar: tempAvatar || '',
-          campus: tempCampus.trim() || '',
-          college: tempCollege.trim() || '',
-          major: tempMajor.trim() || '',
-          phone: tempPhone.trim() || ''
+          campus: tempCampus || '',
+          college: tempCollege || '',
+          major: tempMajor || '',
+          phone: tempPhone || ''
         }
       });
 
-      console.log('=== 云函数返回结果 ===');
-      console.log('返回结果:', result);
-
       wx.hideLoading();
 
-      if (result.result.code === 0) {
+      if (result.result && result.result.code === 0) {
         const updatedUserInfo = result.result.data.userInfo;
-        
-        console.log('更新后的用户信息:', updatedUserInfo);
-        
-        // 更新本地存储
         wx.setStorageSync('userInfo', updatedUserInfo);
-        console.log('本地存储已更新');
-        
-        // 更新全局数据
         const app = getApp();
-        app.globalData.userInfo = updatedUserInfo;
-        app.globalData.isLoggedIn = true;
-        console.log('全局数据已更新');
-        
+        if (app.globalData) {
+          app.globalData.userInfo = updatedUserInfo;
+          app.globalData.isLoggedIn = true;
+        }
         wx.showToast({
           title: '保存成功',
-          icon: 'success',
-          duration: 2000
+          icon: 'success'
         });
-
-        // 延迟返回，确保提示显示
-        setTimeout(() => {
-          wx.navigateBack();
-        }, 1500);
       } else {
-        console.error('云函数返回错误:', result.result);
         wx.showToast({
-          title: result.result.message || '保存失败',
-          icon: 'none',
-          duration: 2000
+          title: (result.result && result.result.message) || '保存失败',
+          icon: 'none'
         });
       }
     } catch (error) {
@@ -380,8 +352,7 @@ Page({
       console.error('保存用户信息失败:', error);
       wx.showToast({
         title: '保存失败，请重试',
-        icon: 'none',
-        duration: 2000
+        icon: 'none'
       });
     }
   }

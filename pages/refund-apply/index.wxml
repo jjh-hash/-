@@ -1,16 +1,4 @@
 <view class="page">
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="back" bindtap="onBack">◀</text>
-      <text class="title">申请退款</text>
-      <view class="icons">
-        <text class="dot">•</text>
-        <text class="battery">▮</text>
-      </view>
-    </view>
-  </view>
 
   <scroll-view scroll-y class="content">
     <!-- 退款原因 -->

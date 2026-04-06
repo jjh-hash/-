@@ -1,10 +1,4 @@
 <view class="page {{showDetail ? 'sheet-open' : ''}}">
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-  <view class="nav">
-    <text class="title">任务大厅</text>
-    <view class="nav-icons"></view>
-  </view>
-
   <!-- 搜索框 -->
   <view class="search-section">
     <view class="search-box">
@@ -145,28 +139,50 @@
 
   <!-- 订单列表 -->
   <scroll-view scroll-y class="list">
-    <!-- 加载状态 -->
-    <view wx:if="{{loading}}" class="loading-container">
-      <text>加载中...</text>
+    <!-- 首次加载骨架屏 -->
+    <view wx:if="{{loading && orders.length === 0}}" class="order-skeleton-list">
+      <block wx:for="{{[1,2,3,4,5]}}" wx:key="*this">
+        <view class="order-card">
+          <view class="order-header">
+            <view class="order-header-left">
+              <view class="order-avatar ds-skeleton" style="width:40px;height:40px;border-radius:50%;"></view>
+              <view class="ds-skeleton-line" style="width:72px;height:24px;border-radius:12px;"></view>
+            </view>
+            <view class="order-header-right">
+              <view class="ds-skeleton-line" style="width:60px;height:14px;margin-bottom:6px;"></view>
+              <view class="ds-skeleton-line" style="width:50px;height:20px;border-radius:12px;"></view>
+            </view>
+          </view>
+          <view class="order-content" style="padding:8px 0;">
+            <view class="ds-skeleton-line" style="width:100%;margin-bottom:6px;"></view>
+            <view class="ds-skeleton-line" style="width:80%;margin-bottom:4px;"></view>
+            <view class="ds-skeleton-line" style="width:60%;"></view>
+          </view>
+          <view class="order-footer" style="padding-top:8px;border-top:1px solid var(--color-border);">
+            <view class="ds-skeleton-line" style="width:60px;height:14px;"></view>
+          </view>
+        </view>
+      </block>
     </view>
     
     <!-- 空状态 -->
-    <view wx:elif="{{orders.length === 0 && !loading}}" class="empty-container">
-      <view class="empty-illustration">
+    <view wx:elif="{{orders.length === 0 && !loading}}" class="empty-wrap">
+      <view class="empty-icon-wrap">
         <text class="empty-icon">📋</text>
       </view>
-      <text class="empty-text">暂无任务!</text>
+      <text class="empty-title">暂无任务</text>
+      <text class="empty-desc">稍后再来看看，或去发布代拿/跑腿/陪玩</text>
     </view>
     
     <!-- 订单列表 -->
- <block wx:elif="{{!loading && orders.length > 0}}">
+ <block wx:elif="{{orders.length > 0}}">
       <block wx:for="{{orders}}" wx:key="id">
         <view class="order-card" bindtap="onOpenDetail" data-id="{{item.id}}">
           <!-- 订单头部：头像、类型、截止时间、状态 -->
           <view class="order-header">
             <view class="order-header-left">
               <!-- 用户头像 -->
-              <image class="order-avatar" src="{{item.userInfo && item.userInfo.avatarUrl ? item.userInfo.avatarUrl : (item.address && item.address.avatar ? item.address.avatar : '/pages/小标/默认头像.png')}}" mode="aspectFill"></image>
+              <image class="order-avatar" src="{{item.userInfo && item.userInfo.avatarUrl ? item.userInfo.avatarUrl : (item.address && item.address.avatar ? item.address.avatar : '/pages/小标/默认头像.png')}}" mode="aspectFill" lazy-load></image>
               <!-- 订单类型标签 -->
               <view class="order-type-tag {{item.orderType}}">
                 <text>{{item.orderTypeText}}</text>
@@ -226,7 +242,7 @@
               <text class="special-value price">¥{{item.bounty.toFixed(2)}}</text>
             </view>
             <view class="special-images" wx:if="{{item.images && item.images.length > 0}}">
-              <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="special-image" src="{{img}}" mode="aspectFill" />
+              <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="special-image" src="{{img}}" mode="aspectFill" lazy-load />
             </view>
           </view>
 
@@ -257,7 +273,7 @@
                 </text>
               </view>
               <view class="special-images" wx:if="{{item.images && item.images.length > 0}}">
-                <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="special-image" src="{{img}}" mode="aspectFill" />
+                <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="special-image" src="{{img}}" mode="aspectFill" lazy-load />
               </view>
             </block>
           </view>
@@ -266,7 +282,7 @@
           <view class="items" wx:if="{{item.orderType !== 'gaming' && item.orderType !== 'reward' && item.orderType !== 'express'}}">
             <block wx:for="{{item.items}}" wx:key="productId" wx:for-item="product">
               <view class="item">
-                <image class="thumb" src="{{product.image}}" mode="aspectFill" wx:if="{{product.image}}" />
+                <image class="thumb" src="{{product.image}}" mode="aspectFill" lazy-load wx:if="{{product.image}}" />
                 <view class="meta">
                   <text class="name">{{product.productName}}</text>
                   <text class="spec" wx:if="{{product.spec}}">{{product.spec}}</text>
@@ -344,8 +360,9 @@
                 <text>接单</text>
                 <text class="btn-time" wx:if="{{currentTime}}">{{currentTime}}</text>
               </view>
-              <!-- 等待用户确认 -->
-              <view class="action-btn waiting" wx:if="{{item.orderStatus === 'waiting_user_confirm'}}">等待确认</view>
+              <!-- 等待用户确认：接单者看到“等待确认”，下单者看到“确认完成” -->
+              <view class="action-btn waiting" wx:if="{{item.orderStatus === 'waiting_user_confirm' && item.userOpenid !== currentUserOpenid}}">等待确认</view>
+              <view class="action-btn success" bindtap="onUserConfirmComplete" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'waiting_user_confirm' && item.userOpenid === currentUserOpenid && currentUserOpenid}}" catchtap="stopPropagation">确认完成</view>
               <!-- 已完成 -->
               <view class="action-btn completed" wx:if="{{item.orderStatus === 'completed'}}">已完成</view>
               <!-- 已取消 -->
@@ -354,6 +371,10 @@
           </view>
         </view>
       </block>
+      <view class="load-more-footer" wx:if="{{orders.length > 0}}">
+        <text wx:if="{{loading && hasMoreOrders}}">加载更多...</text>
+        <text wx:elif="{{!hasMoreOrders}}">没有更多了</text>
+      </view>
     </block>
     
     <view class="safe-area-bottom"></view>
@@ -369,7 +390,7 @@
     <view class="sheet-items">
       <block wx:for="{{detail.items}}" wx:key="name">
         <view class="s-item">
-          <image class="s-thumb" src="{{item.img}}" mode="aspectFill" />
+          <image class="s-thumb" src="{{item.img}}" mode="aspectFill" lazy-load />
           <view class="s-meta">
             <text class="s-name">{{item.name}}</text>
             <text class="s-price">¥{{item.price}}</text>
@@ -430,8 +451,9 @@
       <view class="btn success" bindtap="onCompleteOrder" data-id="{{detail.id}}" wx:if="{{(detail.orderStatus === 'confirmed_by_receiver' || detail.orderStatus === 'in_progress') && detail.receiverOpenid === currentUserOpenid && currentUserOpenid}}">完成订单</view>
       <!-- 待接单：只有别人发的订单才显示接单按钮，不能接自己的订单 -->
       <view class="btn primary" bindtap="onConfirmOrder" wx:if="{{detail.orderStatus === 'pending' && detail.userOpenid && detail.userOpenid !== currentUserOpenid && currentUserOpenid}}">接单</view>
-      <!-- 等待用户确认 -->
-      <view class="btn waiting" wx:if="{{detail.orderStatus === 'waiting_user_confirm'}}">等待确认</view>
+      <!-- 等待用户确认：下单者可点击确认完成 -->
+      <view class="btn waiting" wx:if="{{detail.orderStatus === 'waiting_user_confirm' && detail.userOpenid !== currentUserOpenid}}">等待确认</view>
+      <view class="btn success" bindtap="onUserConfirmComplete" data-order-id="{{detail.id}}" wx:if="{{detail.orderStatus === 'waiting_user_confirm' && detail.userOpenid === currentUserOpenid && currentUserOpenid}}">确认完成</view>
       <!-- 已完成 -->
       <view class="btn completed" wx:if="{{detail.orderStatus === 'completed'}}">已完成</view>
       <!-- 已取消 -->
@@ -496,29 +518,4 @@
     </view>
   </view>
 
-  <!-- 底部导航 -->
-  <view class="tabbar">
-    <view class="t-item {{bottomActive==='home'?'active':''}}" bindtap="onBottomTap" data-tab="home">
-      <image class="t-img" src="{{bottomActive==='home'? '/pages/小标/shouye-copy.png' : '/pages/小标/shouye.png'}}" mode="aspectFit" />
-      <text class="t-txt">首页</text>
-    </view>
-    <view class="t-item {{bottomActive==='order'?'active':''}}" bindtap="onBottomTap" data-tab="order">
-      <image class="t-img" src="{{bottomActive==='order'? '/pages/小标/dingdan-copy.png' : '/pages/小标/dingdan.png'}}" mode="aspectFit" />
-      <text class="t-txt">订单</text>
-    </view>
-    <!-- 接单功能正在开发中，已注释 -->
-    <!-- <view class="t-item {{bottomActive==='receive'?'active':''}}" bindtap="onBottomTap" data-tab="receive">
-      <image class="t-img" src="{{bottomActive==='receive'? '/pages/小标/接单 (1).png' : '/pages/小标/接单.png'}}" mode="aspectFit" />
-      <text class="t-txt">接单</text>
-    </view> -->
-    <!-- 消息功能正在开发中，已注释 -->
-    <!-- <view class="t-item {{bottomActive==='message'?'active':''}}" bindtap="onBottomTap" data-tab="message">
-      <image class="t-img" src="{{bottomActive==='message'? '/pages/小标/消息 (1).png' : '/pages/小标/消息.png'}}" mode="aspectFit" />
-      <text class="t-txt">消息</text>
-    </view> -->
-    <view class="t-item {{bottomActive==='profile'?'active':''}}" bindtap="onBottomTap" data-tab="profile">
-      <image class="t-img" src="{{bottomActive==='profile'? '/pages/小标/wode-copy.png' : '/pages/小标/wode.png'}}" mode="aspectFit" />
-      <text class="t-txt">我的</text>
-    </view>
-  </view>
 </view>

@@ -1,6 +1,7 @@
+/* 骑手设置 - 设计系统 */
 .page {
   min-height: 100vh;
-  background: #F5F6F8;
+  background: var(--color-bg-page);
 }
 
 .status-bar {
@@ -39,35 +40,36 @@
 }
 
 .content {
-  padding: 16px;
+  padding: var(--space-page);
   padding-bottom: 40px;
 }
 
 /* 区块 */
 .section {
-  background: #fff;
-  border-radius: 12px;
-  margin-bottom: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  margin-bottom: var(--space-block);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--space-block);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .close-btn {
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   width: 24px;
   height: 24px;
   display: flex;
@@ -80,8 +82,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--space-block);
+  border-bottom: 1px solid var(--color-border);
   min-height: 60px;
   cursor: pointer;
 }
@@ -101,26 +103,26 @@
 .setting-label {
   font-size: 15px;
   font-weight: 500;
-  color: #333;
+  color: var(--color-text);
 }
 
 .setting-value-inline {
   font-size: 14px;
-  color: #ff9800;
+  color: var(--color-warning);
   font-weight: 500;
   margin-top: 2px;
 }
 
 .setting-desc {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
   line-height: 1.4;
   margin-top: 4px;
 }
 
 .setting-link {
   font-size: 12px;
-  color: #1976d2;
+  color: var(--color-primary);
   margin-top: 4px;
 }
 
@@ -132,12 +134,12 @@
 
 .setting-value {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .arrow {
   font-size: 14px;
-  color: #ccc;
+  color: var(--color-text-placeholder);
 }
 
 /* 弹窗 */
@@ -155,8 +157,8 @@
 }
 
 .modal-content {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   width: 80%;
   max-width: 400px;
   max-height: 70vh;
@@ -169,19 +171,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--space-block);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .modal-close {
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   width: 24px;
   height: 24px;
   display: flex;
@@ -198,14 +200,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--space-block);
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .picker-item:active {
-  background-color: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .picker-item:last-child {
@@ -214,12 +216,12 @@
 
 .picker-label {
   font-size: 15px;
-  color: #333;
+  color: var(--color-text);
 }
 
 .picker-check {
   font-size: 18px;
-  color: #ff9800;
+  color: var(--color-warning);
   font-weight: 600;
 }
 

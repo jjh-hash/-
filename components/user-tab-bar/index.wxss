@@ -1,0 +1,33 @@
+/* 与系统 tabBar 尺寸一致（约 50px 高），避免分包页与主包页切换时底部栏「变大」 */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-bg-card);
+  display: flex;
+  justify-content: space-around;
+  padding: 5px 0 calc(5px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-border);
+  z-index: 100;
+}
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+.tab.active {
+  color: var(--color-primary);
+}
+.t-icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 2px;
+}
+.t-text {
+  font-size: 10px;
+}

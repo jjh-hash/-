@@ -1,142 +1,90 @@
+const log = require('../../../../utils/logger.js');
+const subscribeMessage = require('../../../../utils/subscribeMessage.js');
+
 Page({
   data:{
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
-    activeTab: 0,
     bottomActive: 'orders',
     orders: [],
     loading: false, // 初始状态为false，允许首次加载
     refreshing: false, // 下拉刷新状态
-    tabs: ['全部', '待确认', '待支付', '已完成', '已取消', '待退款'],
-    watchOrder: null,        // watch监听器
-    refreshTimer: null,      // 防抖定时器
-    reconnectTimer: null,    // 重连定时器
-    pollingTimer: null,      // 轮询定时器
-    scrollTimer: null,       // 滚动检测定时器
+    watchOrder: null,        // watch监听器（需在 stopOrderWatch 中 close）
     reconnectCount: 0,       // 重连次数
     watchConnected: false,   // watch是否连接
     pollingActive: false,    // 是否在轮询
     lastRefreshTime: 0,      // 上次刷新时间
     lastScrollTime: 0,       // 上次滚动时间
     isScrolling: false,     // 是否正在滚动
-    scrollTop: 0,            // 当前滚动位置
-    filterUnpaid: false      // 是否筛选未支付订单
+    scrollTop: 0,           // 当前滚动位置
+    confirmingPaymentId: null, // 确认支付防重复
+    loadError: false,
+    errorMessage: ''
   },
 
   onLoad() {
-    console.log('【商家订单页面】页面加载');
+    log.log('【商家订单页面】页面加载');
+    subscribeMessage.preloadMerchantNewOrderTemplateId();
     this.loadOrders();
     // 启动订单实时监听
     this.startOrderWatch();
   },
 
-  onShow() {
-    console.log('【商家订单页面】页面显示，刷新订单');
-    // 根据当前选中的标签重新加载订单
-    const { activeTab } = this.data;
-    let status = null;
-    let filterRefund = false;
-    let filterUnpaid = false;
-    
-    switch(activeTab) {
-      case 0: // 全部
-        status = null;
-        filterRefund = false;
-        filterUnpaid = false;
-        break;
-      case 1: // 待确认
-        status = 'pending';
-        filterRefund = false;
-        filterUnpaid = false;
-        break;
-      case 2: // 待支付
-        status = null;
-        filterRefund = false;
-        filterUnpaid = true;
-        break;
-      case 3: // 已完成
-        status = 'completed';
-        filterRefund = false;
-        filterUnpaid = false;
-        break;
-      case 4: // 已取消
-        status = 'cancelled';
-        filterRefund = false;
-        filterUnpaid = false;
-        break;
-      case 5: // 待退款
-        status = null;
-        filterRefund = true;
-        filterUnpaid = false;
-        break;
+  async onRequestNewOrderNotify() {
+    let tid = subscribeMessage.getNewOrderTemplateId();
+    if (!tid) {
+      wx.showLoading({ title: '加载中...', mask: true });
+      tid = await subscribeMessage.preloadMerchantNewOrderTemplateId();
+      wx.hideLoading();
+      if (!tid) {
+        wx.showToast({ title: '未配置新订单模板，请联系管理员', icon: 'none' });
+        return;
+      }
     }
-    
-    this.setData({ filterUnpaid: filterUnpaid });
-    this.loadOrders(status, filterRefund, false, filterUnpaid);
-    
-    // 重新启动订单监听
+    subscribeMessage.triggerSubscribeSync(tid)
+      .then((res) => {
+        if (res && res[tid] === 'accept') {
+          wx.showToast({ title: '已开启新订单提醒', icon: 'success' });
+        }
+      })
+      .catch(() => {});
+  },
+
+  onShow() {
+    log.log('【商家订单页面】页面显示，刷新订单');
+    this.loadOrders();
     this.startOrderWatch();
-    
-    // 如果watch未连接，启动轮询作为保障
     setTimeout(() => {
       if (!this.data.watchConnected && !this.data.pollingActive) {
-        console.log('【商家订单页面】Watch未连接，启动轮询保障');
-        this.startPolling(status, filterRefund);
+        log.log('【商家订单页面】Watch未连接，启动轮询保障');
+        this.startPolling();
       }
     }, 2000);
   },
 
   onHide() {
-    console.log('【商家订单页面】页面隐藏，停止订单监听和轮询');
-    // 停止订单监听和轮询
+    log.log('【商家订单页面】页面隐藏，停止订单监听和轮询');
     this.stopOrderWatch();
     this.stopPolling();
+    this._clearTimers();
   },
 
   onUnload() {
-    console.log('【商家订单页面】页面卸载，停止订单监听和轮询');
-    // 停止订单监听和轮询
+    log.log('【商家订单页面】页面卸载，停止订单监听和轮询');
     this.stopOrderWatch();
     this.stopPolling();
-    // 清理所有定时器
-    if (this.data.refreshTimer) {
-      clearTimeout(this.data.refreshTimer);
-      this.data.refreshTimer = null;
-    }
-    if (this.data.reconnectTimer) {
-      clearTimeout(this.data.reconnectTimer);
-      this.data.reconnectTimer = null;
-    }
-    if (this.data.scrollTimer) {
-      clearTimeout(this.data.scrollTimer);
-      this.data.scrollTimer = null;
-    }
+    this._clearTimers();
   },
 
-  // 手动刷新
+  _clearTimers() {
+    if (this._refreshTimer) { clearTimeout(this._refreshTimer); this._refreshTimer = null; }
+    if (this._reconnectTimer) { clearTimeout(this._reconnectTimer); this._reconnectTimer = null; }
+    if (this._scrollTimer) { clearTimeout(this._scrollTimer); this._scrollTimer = null; }
+  },
+
   onManualRefresh() {
-    console.log('【商家订单页面】手动刷新');
-    const { activeTab } = this.data;
-    let status = null;
-    let filterRefund = false;
-    
-    let filterUnpaid = false;
-    switch(activeTab) {
-      case 0: status = null; filterRefund = false; filterUnpaid = false; break;
-      case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
-      case 2: status = null; filterRefund = false; filterUnpaid = true; break;
-      case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
-      case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
-      case 5: status = null; filterRefund = true; filterUnpaid = false; break;
-    }
-    
-    this.setData({ filterUnpaid: filterUnpaid });
-    this.loadOrders(status, filterRefund, false, filterUnpaid);
-    
-    wx.showToast({
-      title: '刷新成功',
-      icon: 'success',
-      duration: 1000
-    });
+    log.log('【商家订单页面】手动刷新');
+    this.loadOrders();
+    wx.showToast({ title: '刷新成功', icon: 'success', duration: 1000 });
   },
 
   // 启动订单实时监听
@@ -154,21 +102,12 @@ Page({
       const storeId = merchantInfo?.storeId || null;
       
       if (!storeId) {
-        console.warn('【商家订单页面】无法启动订单监听：缺少店铺ID，降级到轮询');
-        const { activeTab } = this.data;
-        let status = null;
-        let filterRefund = false;
-        let filterUnpaid = false;
-        this.getStatusFromTab(activeTab, (s, f, u) => {
-          status = s;
-          filterRefund = f;
-          filterUnpaid = u;
-        });
-        this.startPolling(status, filterRefund, filterUnpaid);
+        log.warn('【商家订单页面】无法启动订单监听：缺少店铺ID，降级到轮询');
+        this.startPolling();
         return;
       }
       
-      console.log('【商家订单页面】启动订单实时监听，店铺ID:', storeId);
+      log.log('【商家订单页面】启动订单实时监听，店铺ID:', storeId);
       
       const db = wx.cloud.database();
       
@@ -179,12 +118,12 @@ Page({
         })
         .watch({
           onChange: (snapshot) => {
-            console.log('【商家订单页面】订单数据变化:', snapshot);
+            log.log('【商家订单页面】订单数据变化:', snapshot);
             
             // 标记watch已连接
             if (!this.data.watchConnected) {
               this.setData({ watchConnected: true });
-              console.log('【商家订单页面】Watch连接成功');
+              log.log('【商家订单页面】Watch连接成功');
               // 连接成功后停止轮询
               this.stopPolling();
             }
@@ -195,44 +134,16 @@ Page({
             }
           },
           onError: (err) => {
-            console.error('【商家订单页面】订单监听错误:', err);
+            log.error('【商家订单页面】订单监听错误:', err);
             this.handleWatchError(err);
           }
         });
         
-      console.log('【商家订单页面】Watch监听已启动');
+      log.log('【商家订单页面】Watch监听已启动');
     } catch (error) {
-      console.error('【商家订单页面】启动订单监听失败:', error);
-      // 启动失败，降级到轮询
-      const { activeTab } = this.data;
-      let status = null;
-      let filterRefund = false;
-      let filterUnpaid = false;
-      this.getStatusFromTab(activeTab, (s, f, u) => {
-        status = s;
-        filterRefund = f;
-        filterUnpaid = u;
-      });
-      this.startPolling(status, filterRefund, filterUnpaid);
+      log.error('【商家订单页面】启动订单监听失败:', error);
+      this.startPolling();
     }
-  },
-
-  // 从标签获取状态
-  getStatusFromTab(activeTab, callback) {
-    let status = null;
-    let filterRefund = false;
-    let filterUnpaid = false;
-    
-    switch(activeTab) {
-      case 0: status = null; filterRefund = false; filterUnpaid = false; break;
-      case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
-      case 2: status = null; filterRefund = false; filterUnpaid = true; break;
-      case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
-      case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
-      case 5: status = null; filterRefund = true; filterUnpaid = false; break;
-    }
-    
-    callback(status, filterRefund, filterUnpaid);
   },
 
   // 处理订单变化（防抖+滚动检测）
@@ -240,45 +151,29 @@ Page({
     // 防抖：1秒内最多刷新1次
     const now = Date.now();
     if (now - this.data.lastRefreshTime < 1000) {
-      console.log('【商家订单页面】防抖：跳过本次刷新');
+      log.log('【商家订单页面】防抖：跳过本次刷新');
       return;
     }
     
     if (this.data.loading) {
-      console.log('【商家订单页面】正在加载中，跳过刷新');
+      log.log('【商家订单页面】正在加载中，跳过刷新');
       return;
     }
     
-    // 检查用户是否在滚动（3秒内滚动过，则延迟刷新）
     const timeSinceScroll = now - (this.data.lastScrollTime || 0);
     if (timeSinceScroll < 3000) {
-      console.log('【商家订单页面】用户正在浏览，延迟刷新');
-      // 延迟到用户停止滚动后3秒再刷新
-      if (this.data.refreshTimer) {
-        clearTimeout(this.data.refreshTimer);
-      }
-      const { activeTab } = this.data;
-      let status = null;
-      let filterRefund = false;
-      let filterUnpaid = false;
-      this.getStatusFromTab(activeTab, (s, f, u) => {
-        status = s;
-        filterRefund = f;
-        filterUnpaid = u;
-      });
-      this.data.refreshTimer = setTimeout(() => {
+      log.log('【商家订单页面】用户正在浏览，延迟刷新');
+      if (this._refreshTimer) { clearTimeout(this._refreshTimer); }
+      this._refreshTimer = setTimeout(() => {
         this.handleOrderChange();
       }, 3000 - timeSinceScroll + 2000);
       return;
     }
     
-    // 检查滚动位置：如果不在顶部（滚动超过100px），延迟刷新
     if (this.data.scrollTop > 100) {
-      console.log('【商家订单页面】用户已滚动，延迟刷新');
-      if (this.data.refreshTimer) {
-        clearTimeout(this.data.refreshTimer);
-      }
-      this.data.refreshTimer = setTimeout(() => {
+      log.log('【商家订单页面】用户已滚动，延迟刷新');
+      if (this._refreshTimer) { clearTimeout(this._refreshTimer); }
+      this._refreshTimer = setTimeout(() => {
         // 再次检查是否还在滚动
         const timeSinceLastScroll = Date.now() - (this.data.lastScrollTime || 0);
         if (timeSinceLastScroll >= 3000) {
@@ -288,27 +183,13 @@ Page({
       return;
     }
     
-    console.log('【商家订单页面】检测到订单变化，自动刷新');
+    log.log('【商家订单页面】检测到订单变化，自动刷新');
     this.setData({ lastRefreshTime: now });
     
-    const { activeTab } = this.data;
-    let status = null;
-    let filterRefund = false;
-    let filterUnpaid = false;
-    this.getStatusFromTab(activeTab, (s, f, u) => {
-      status = s;
-      filterRefund = f;
-      filterUnpaid = u;
-    });
-    
-    // 延迟刷新，避免频繁刷新
-    if (this.data.refreshTimer) {
-      clearTimeout(this.data.refreshTimer);
-    }
-    
-    this.data.refreshTimer = setTimeout(() => {
+    if (this._refreshTimer) { clearTimeout(this._refreshTimer); }
+    this._refreshTimer = setTimeout(() => {
       if (!this.data.loading) {
-        this.loadOrders(status, filterRefund, false, filterUnpaid);
+        this.loadOrders();
       }
     }, 500);
   },
@@ -321,17 +202,8 @@ Page({
     const maxReconnect = 3;
     
     if (reconnectCount >= maxReconnect) {
-      console.warn('【商家订单页面】Watch重连次数已达上限，降级到轮询');
-      const { activeTab } = this.data;
-      let status = null;
-      let filterRefund = false;
-      let filterUnpaid = false;
-      this.getStatusFromTab(activeTab, (s, f, u) => {
-        status = s;
-        filterRefund = f;
-        filterUnpaid = u;
-      });
-      this.startPolling(status, filterRefund, filterUnpaid);
+      log.warn('【商家订单页面】Watch重连次数已达上限，降级到轮询');
+      this.startPolling();
       return;
     }
     
@@ -339,46 +211,37 @@ Page({
     const intervals = [1000, 3000, 5000];
     const delay = intervals[reconnectCount] || 5000;
     
-    console.log(`【商家订单页面】Watch错误，${delay/1000}秒后尝试重连（${reconnectCount + 1}/${maxReconnect}）`);
+    log.log(`【商家订单页面】Watch错误，${delay/1000}秒后尝试重连（${reconnectCount + 1}/${maxReconnect}）`);
     
     this.setData({ reconnectCount: reconnectCount + 1 });
     
-    this.data.reconnectTimer = setTimeout(() => {
+    this._reconnectTimer = setTimeout(() => {
       this.startOrderWatch();
     }, delay);
   },
 
-  // 启动智能轮询（降级方案）
-  startPolling(status = null, filterRefund = false, filterUnpaid = false) {
-    // 如果已经在轮询，不重复启动
+  startPolling() {
     if (this.data.pollingActive) {
       return;
     }
-    
-    console.log('【商家订单页面】启动智能轮询');
+    log.log('【商家订单页面】启动智能轮询');
     this.setData({ pollingActive: true });
-    
-    // 立即执行一次
-    this.pollOrders(status, filterRefund, filterUnpaid);
-    
-    // 设置定时轮询
-    this.data.pollingTimer = setInterval(() => {
-      this.pollOrders(status, filterRefund, filterUnpaid);
+    this.pollOrders();
+    this._pollingTimer = setInterval(() => {
+      this.pollOrders();
     }, this.getPollingInterval());
   },
 
-  // 停止轮询
   stopPolling() {
-    if (this.data.pollingTimer) {
-      clearInterval(this.data.pollingTimer);
-      this.data.pollingTimer = null;
+    if (this._pollingTimer) {
+      clearInterval(this._pollingTimer);
+      this._pollingTimer = null;
     }
     this.setData({ pollingActive: false });
-    console.log('【商家订单页面】轮询已停止');
+    log.log('【商家订单页面】轮询已停止');
   },
 
-  // 轮询订单
-  pollOrders(status = null, filterRefund = false, filterUnpaid = false) {
+  pollOrders() {
     // 检查是否有进行中的订单
     const hasActiveOrders = this.data.orders.some(order => {
       const orderStatus = order.orderStatus;
@@ -388,7 +251,7 @@ Page({
     
     // 如果没有进行中的订单，停止轮询
     if (!hasActiveOrders) {
-      console.log('【商家订单页面】没有进行中的订单，停止轮询');
+      log.log('【商家订单页面】没有进行中的订单，停止轮询');
       this.stopPolling();
       return;
     }
@@ -397,30 +260,19 @@ Page({
     const now = Date.now();
     const timeSinceScroll = now - (this.data.lastScrollTime || 0);
     if (timeSinceScroll < 3000) {
-      console.log('【商家订单页面】用户正在浏览，跳过轮询刷新');
+      log.log('【商家订单页面】用户正在浏览，跳过轮询刷新');
       return;
     }
     
     // 检查滚动位置：如果不在顶部，跳过刷新
     if (this.data.scrollTop > 100) {
-      console.log('【商家订单页面】用户已滚动，跳过轮询刷新');
+      log.log('【商家订单页面】用户已滚动，跳过轮询刷新');
       return;
     }
     
-    // 如果不在加载中，则刷新订单
     if (!this.data.loading) {
-      console.log('【商家订单页面】轮询刷新订单');
-      // 从当前标签获取状态
-      const { activeTab } = this.data;
-      let currentStatus = null;
-      let currentFilterRefund = false;
-      let currentFilterUnpaid = false;
-      this.getStatusFromTab(activeTab, (s, f, u) => {
-        currentStatus = s;
-        currentFilterRefund = f;
-        currentFilterUnpaid = u;
-      });
-      this.loadOrders(currentStatus, currentFilterRefund, false, currentFilterUnpaid);
+      log.log('【商家订单页面】轮询刷新订单');
+      this.loadOrders();
     }
   },
 
@@ -448,68 +300,40 @@ Page({
       isScrolling: true
     });
     
-    // 停止滚动后3秒，标记为静止
-    if (this.data.scrollTimer) {
-      clearTimeout(this.data.scrollTimer);
-    }
-    this.data.scrollTimer = setTimeout(() => {
+    if (this._scrollTimer) { clearTimeout(this._scrollTimer); }
+    this._scrollTimer = setTimeout(() => {
       this.setData({ isScrolling: false });
     }, 3000);
   },
 
-  // 停止订单监听
   stopOrderWatch() {
     if (this.data.watchOrder) {
       try {
         this.data.watchOrder.close();
-        console.log('【商家订单页面】订单监听已停止');
+        log.log('【商家订单页面】订单监听已停止');
       } catch (error) {
-        console.error('【商家订单页面】停止订单监听失败:', error);
+        log.error('【商家订单页面】停止订单监听失败:', error);
       }
       this.data.watchOrder = null;
     }
     this.setData({ watchConnected: false });
-    
-    // 清理重连定时器
-    if (this.data.reconnectTimer) {
-      clearTimeout(this.data.reconnectTimer);
-      this.data.reconnectTimer = null;
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
     }
   },
 
-  // 下拉刷新
   onPullDownRefresh() {
-    console.log('【商家订单页面】下拉刷新');
-    // 设置刷新状态
+    log.log('【商家订单页面】下拉刷新');
     this.setData({ refreshing: true });
-    
-    const { activeTab } = this.data;
-    let status = null;
-    let filterRefund = false;
-    
-    switch(activeTab) {
-      case 0: status = null; filterRefund = false; break;
-      case 1: status = 'pending'; filterRefund = false; break;
-      case 2: status = 'completed'; filterRefund = false; break;
-      case 3: status = 'cancelled'; filterRefund = false; break;
-      case 4: status = null; filterRefund = true; break;
-    }
-    
-    // 下拉刷新时不显示loading，使用下拉刷新的原生动画
-    this.loadOrders(status, filterRefund, true).finally(() => {
-      // 停止刷新动画
+    this.loadOrders(true).finally(() => {
       this.setData({ refreshing: false });
-      wx.showToast({
-        title: '刷新成功',
-        icon: 'success',
-        duration: 1000
-      });
+      wx.showToast({ title: '刷新成功', icon: 'success', duration: 1000 });
     });
   },
 
-  // 加载订单列表
-  async loadOrders(status = null, filterRefund = false, isPullRefresh = false, filterUnpaid = false) {
-    // 如果已经在加载中，则跳过（避免重复请求）
+  // 加载订单列表（仅已支付订单）
+  async loadOrders(isPullRefresh = false) {
     if (this.data.loading) {
       return Promise.resolve();
     }
@@ -517,17 +341,15 @@ Page({
     this.setData({ loading: true });
 
     try {
-      // 下拉刷新时不显示loading，使用下拉刷新的原生动画
       if (!isPullRefresh) {
         wx.showLoading({ title: '加载中...' });
       }
 
-      // 获取当前登录的商家信息
       const merchantInfo = wx.getStorageSync('merchantInfo');
       const merchantId = merchantInfo?._id || null;
       const storeId = merchantInfo?.storeId || null;
       
-      console.log('【商家订单页面】当前商家信息:', { merchantId, storeId });
+      log.log('【商家订单页面】当前商家信息:', { merchantId, storeId });
       
       const res = await wx.cloud.callFunction({
         name: 'orderManage',
@@ -535,10 +357,10 @@ Page({
           action: 'getMerchantOrders',
           data: {
             page: 1,
-            pageSize: 100, // 增加数量以确保能获取所有订单
-            status: status, // 传递状态参数
-            merchantId: merchantId, // 传递商家ID，优先使用
-            storeId: storeId // 传递店铺ID
+            pageSize: 100,
+            merchantId: merchantId,
+            storeId: storeId,
+            payStatus: 'paid' // 仅展示已支付订单
           }
         }
       });
@@ -548,7 +370,7 @@ Page({
         wx.hideLoading();
       }
 
-      console.log('【商家订单页面】云函数返回结果:', res.result);
+      log.log('【商家订单页面】云函数返回结果:', res.result);
 
       if (res.result && res.result.code === 200) {
         let orders = res.result.data.list.map(order => ({
@@ -632,7 +454,7 @@ Page({
             
             // 如果平台服务费为0或异常（大于商品金额），尝试重新计算
             if ((feeNum === 0 || feeNum > goodsNum) && goodsNum > 0) {
-              console.warn('【订单列表】平台服务费异常，尝试重新计算:', { 
+              log.warn('【订单列表】平台服务费异常，尝试重新计算:', { 
                 originalRawFee: rawFee, 
                 originalRawGoods: rawGoods,
                 convertedFeeNum: feeNum,
@@ -657,29 +479,13 @@ Page({
           paymentProof: (order.paymentProof !== undefined && order.paymentProof !== null && order.paymentProof !== '') ? order.paymentProof : '' // 支付凭证的云存储fileID，确保正确保存
         }));
 
-        // 如果筛选退款订单，只显示有退款申请的订单
-        if (filterRefund) {
-          orders = orders.filter(order => {
-            return order.refundInfo && 
-                   (order.refundInfo.status === 'pending' || 
-                    order.refundInfo.status === 'processing' || 
-                    order.refundInfo.status === 'approved');
-          });
-        }
-
-        // 如果筛选未支付订单，只显示未支付的订单
-        if (filterUnpaid) {
-          orders = orders.filter(order => {
-            return order.payStatus === 'unpaid';
-          });
-        }
-
         this.setData({
           orders: orders,
-          loading: false
+          loading: false,
+          loadError: false
         });
 
-        console.log('【商家订单页面】订单加载成功，共', orders.length, '条');
+        log.log('【商家订单页面】订单加载成功，共', orders.length, '条');
       } else {
         wx.showToast({
           title: res.result?.message || '加载失败',
@@ -689,17 +495,17 @@ Page({
       }
 
     } catch (error) {
-      // 下拉刷新时不隐藏loading（因为没显示）
       if (!isPullRefresh) {
         wx.hideLoading();
       }
-      console.error('【商家订单页面】加载异常:', error);
-      wx.showToast({
-        title: '加载失败',
-        icon: 'none'
-      });
-      this.setData({ loading: false });
+      log.error('【商家订单页面】加载异常:', error);
+      this.setData({ loadError: true, errorMessage: error.message || '加载失败', loading: false });
     }
+  },
+
+  onRetryLoad() {
+    this.setData({ loadError: false });
+    this.loadOrders();
   },
 
   // 获取状态文本
@@ -730,40 +536,6 @@ Page({
     return classMap[status] || 'normal';
   },
 
-  onTabTap(e){
-    const tabIndex = Number(e.currentTarget.dataset.index);
-    this.setData({ activeTab: tabIndex });
-    
-    // 根据tab索引获取对应状态
-    let status = null;
-    let filterRefund = false;
-    
-    switch(tabIndex) {
-      case 0: // 全部
-        status = null;
-        filterRefund = false;
-        break;
-      case 1: // 待确认
-        status = 'pending';
-        filterRefund = false;
-        break;
-      case 2: // 已完成
-        status = 'completed';
-        filterRefund = false;
-        break;
-      case 3: // 已取消
-        status = 'cancelled';
-        filterRefund = false;
-        break;
-      case 4: // 待退款
-        status = null; // 不限制订单状态，只筛选有退款申请的
-        filterRefund = true;
-        break;
-    }
-    
-    // 重新加载对应状态的订单
-    this.loadOrders(status, filterRefund);
-  },
   // 联系用户
   onContactUser(e) {
     const orderId = e.currentTarget.dataset.id;
@@ -799,10 +571,10 @@ Page({
     wx.makePhoneCall({
       phoneNumber: contactPhone,
       success: () => {
-        console.log('【联系用户】拨打电话成功:', contactPhone);
+        log.log('【联系用户】拨打电话成功:', contactPhone);
       },
       fail: (err) => {
-        console.error('【联系用户】拨打电话失败:', err);
+        log.error('【联系用户】拨打电话失败:', err);
         wx.showToast({
           title: '拨打电话失败',
           icon: 'none'
@@ -829,14 +601,14 @@ Page({
       }
     }
     
-    console.log('【商家订单页面】确认支付，orderId:', orderId);
+    log.log('【商家订单页面】确认支付，orderId:', orderId);
     
     if (!orderId) {
       wx.showToast({
         title: '缺少订单ID',
         icon: 'none'
       });
-      console.error('【商家订单页面】无法获取订单ID');
+      log.error('【商家订单页面】无法获取订单ID');
       return;
     }
 
@@ -855,6 +627,8 @@ Page({
       content: `确认收到订单 ${order.orderNo} 的款项 ¥${order.amountTotal} 吗？`,
       success: async (res) => {
         if (res.confirm) {
+          if (this.data.confirmingPaymentId) return;
+          this.setData({ confirmingPaymentId: orderId });
           try {
             wx.showLoading({ title: '处理中...' });
 
@@ -870,6 +644,7 @@ Page({
             });
 
             wx.hideLoading();
+            this.setData({ confirmingPaymentId: null });
 
             if (result.result && result.result.code === 200) {
               wx.showToast({
@@ -877,25 +652,8 @@ Page({
                 icon: 'success'
               });
               
-              // 关闭详情弹窗
               this.setData({ showDetail: false });
-              
-              // 刷新订单列表，保持当前标签状态
-              const { activeTab } = this.data;
-              let status = null;
-              let filterRefund = false;
-              let filterUnpaid = false;
-              
-              switch(activeTab) {
-                case 0: status = null; filterRefund = false; filterUnpaid = false; break;
-                case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
-                case 2: status = null; filterRefund = false; filterUnpaid = true; break;
-                case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
-                case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
-                case 5: status = null; filterRefund = true; filterUnpaid = false; break;
-              }
-              
-              this.loadOrders(status, filterRefund, false, filterUnpaid);
+              this.loadOrders();
             } else {
               wx.showToast({
                 title: result.result?.message || '操作失败',
@@ -905,7 +663,8 @@ Page({
 
           } catch (error) {
             wx.hideLoading();
-            console.error('【商家订单页面】确认支付异常:', error);
+            this.setData({ confirmingPaymentId: null });
+            log.error('【商家订单页面】确认支付异常:', error);
             wx.showToast({
               title: '操作失败',
               icon: 'none'
@@ -948,7 +707,7 @@ Page({
       return;
     }
     
-    console.log('【查看支付凭证】订单ID:', orderId, '凭证fileID:', proofFileId);
+    log.log('【查看支付凭证】订单ID:', orderId, '凭证fileID:', proofFileId);
     
     // 使用 wx.previewImage 预览支付凭证图片
     // 注意：预览图片不会影响页面数据，返回后数据应该保持不变
@@ -956,12 +715,12 @@ Page({
       current: proofFileId, // 当前显示图片的fileID
       urls: [proofFileId], // 需要预览的图片链接列表
       success: () => {
-        console.log('【查看支付凭证】预览成功');
+        log.log('【查看支付凭证】预览成功');
         // 预览成功后，确保订单数据中的 paymentProof 字段仍然存在
         // 不需要做任何操作，因为预览图片不会修改页面数据
       },
       fail: (err) => {
-        console.error('【查看支付凭证】预览失败:', err);
+        log.error('【查看支付凭证】预览失败:', err);
         wx.showToast({
           title: '预览失败',
           icon: 'none'
@@ -988,14 +747,14 @@ Page({
       }
     }
     
-    console.log('【商家订单页面】拒绝出餐，orderId:', orderId);
+    log.log('【商家订单页面】拒绝出餐，orderId:', orderId);
     
     if (!orderId) {
       wx.showToast({
         title: '缺少订单ID',
         icon: 'none'
       });
-      console.error('【商家订单页面】无法获取订单ID');
+      log.error('【商家订单页面】无法获取订单ID');
       return;
     }
 
@@ -1049,25 +808,8 @@ Page({
                 icon: 'success'
               });
               
-              // 关闭详情弹窗
               this.setData({ showDetail: false });
-              
-              // 刷新订单列表，保持当前标签状态
-              const { activeTab } = this.data;
-              let status = null;
-              let filterRefund = false;
-              let filterUnpaid = false;
-              
-              switch(activeTab) {
-                case 0: status = null; filterRefund = false; filterUnpaid = false; break;
-                case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
-                case 2: status = null; filterRefund = false; filterUnpaid = true; break;
-                case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
-                case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
-                case 5: status = null; filterRefund = true; filterUnpaid = false; break;
-              }
-              
-              this.loadOrders(status, filterRefund, false, filterUnpaid);
+              this.loadOrders();
             } else {
               wx.showToast({
                 title: result.result?.message || '操作失败',
@@ -1077,7 +819,7 @@ Page({
 
           } catch (error) {
             wx.hideLoading();
-            console.error('【商家订单页面】拒绝出餐异常:', error);
+            log.error('【商家订单页面】拒绝出餐异常:', error);
             wx.showToast({
               title: '操作失败',
               icon: 'none'
@@ -1106,14 +848,14 @@ Page({
       }
     }
     
-    console.log('【商家订单页面】确认订单，orderId:', orderId);
+    log.log('【商家订单页面】确认订单，orderId:', orderId);
     
     if (!orderId) {
       wx.showToast({
         title: '缺少订单ID',
         icon: 'none'
       });
-      console.error('【商家订单页面】无法获取订单ID');
+      log.error('【商家订单页面】无法获取订单ID');
       return;
     }
 
@@ -1151,25 +893,8 @@ Page({
           icon: 'success'
         });
         
-        // 关闭详情弹窗
         this.setData({ showDetail: false });
-        
-        // 刷新订单列表，保持当前标签状态
-        const { activeTab } = this.data;
-        let status = null;
-        let filterRefund = false;
-        let filterUnpaid = false;
-        
-        switch(activeTab) {
-          case 0: status = null; filterRefund = false; filterUnpaid = false; break;
-          case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
-          case 2: status = null; filterRefund = false; filterUnpaid = true; break;
-          case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
-          case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
-          case 5: status = null; filterRefund = true; filterUnpaid = false; break;
-        }
-        
-        this.loadOrders(status, filterRefund, false, filterUnpaid);
+        this.loadOrders();
       } else {
         wx.showToast({
           title: res.result?.message || '操作失败',
@@ -1179,7 +904,7 @@ Page({
 
     } catch (error) {
       wx.hideLoading();
-      console.error('【商家订单页面】确认订单异常:', error);
+      log.error('【商家订单页面】确认订单异常:', error);
       wx.showToast({
         title: '操作失败',
         icon: 'none'
@@ -1205,14 +930,14 @@ Page({
       }
     }
     
-    console.log('【商家订单页面】已出餐，orderId:', orderId);
+    log.log('【商家订单页面】已出餐，orderId:', orderId);
     
     if (!orderId) {
       wx.showToast({
         title: '缺少订单ID',
         icon: 'none'
       });
-      console.error('【商家订单页面】无法获取订单ID');
+      log.error('【商家订单页面】无法获取订单ID');
       return;
     }
 
@@ -1250,25 +975,8 @@ Page({
           icon: 'success'
         });
         
-        // 关闭详情弹窗（如果打开）
         this.setData({ showDetail: false });
-        
-        // 刷新订单列表，保持当前标签状态
-        const { activeTab } = this.data;
-        let status = null;
-        let filterRefund = false;
-        let filterUnpaid = false;
-        
-        switch(activeTab) {
-          case 0: status = null; filterRefund = false; filterUnpaid = false; break;
-          case 1: status = 'pending'; filterRefund = false; filterUnpaid = false; break;
-          case 2: status = null; filterRefund = false; filterUnpaid = true; break;
-          case 3: status = 'completed'; filterRefund = false; filterUnpaid = false; break;
-          case 4: status = 'cancelled'; filterRefund = false; filterUnpaid = false; break;
-          case 5: status = null; filterRefund = true; filterUnpaid = false; break;
-        }
-        
-        this.loadOrders(status, filterRefund, false, filterUnpaid);
+        this.loadOrders();
       } else {
         wx.showToast({
           title: res.result?.message || '操作失败',
@@ -1278,7 +986,7 @@ Page({
 
     } catch (error) {
       wx.hideLoading();
-      console.error('【商家订单页面】出餐异常:', error);
+      log.error('【商家订单页面】出餐异常:', error);
       wx.showToast({
         title: '操作失败',
         icon: 'none'
@@ -1290,7 +998,7 @@ Page({
     const order = this.data.orders.find(o=>o.id===id);
     
     if (!order) {
-      console.error('【商家订单页面】订单不存在，id:', id);
+      log.error('【商家订单页面】订单不存在，id:', id);
       return;
     }
     
@@ -1387,7 +1095,7 @@ Page({
         
         // 如果平台服务费为0或异常（大于商品金额），尝试重新计算
         if ((feeNum === 0 || feeNum > goodsNum) && goodsNum > 0) {
-          console.warn('【订单详情】平台服务费异常，尝试重新计算:', { 
+          log.warn('【订单详情】平台服务费异常，尝试重新计算:', { 
             originalRawFee: rawFee, 
             originalRawGoods: rawGoods,
             convertedFeeNum: feeNum,
@@ -1533,7 +1241,7 @@ Page({
     
     // 验证日期是否有效
     if (isNaN(d.getTime())) {
-      console.warn('【格式化日期时间】无效的日期:', dateStr);
+      log.warn('【格式化日期时间】无效的日期:', dateStr);
       return '';
     }
     
@@ -1623,23 +1331,8 @@ Page({
           icon: 'success'
         });
 
-        // 关闭详情弹窗
         this.setData({ showDetail: false });
-
-        // 刷新订单列表，保持当前标签状态
-        const { activeTab } = this.data;
-        let status = null;
-        let filterRefund = false;
-        
-        switch(activeTab) {
-          case 0: status = null; filterRefund = false; break;
-          case 1: status = 'pending'; filterRefund = false; break;
-          case 2: status = 'completed'; filterRefund = false; break;
-          case 3: status = 'cancelled'; filterRefund = false; break;
-          case 4: status = null; filterRefund = true; break;
-        }
-        
-        this.loadOrders(status, filterRefund);
+        this.loadOrders();
       } else {
         wx.showToast({
           title: res.result?.message || '操作失败',
@@ -1648,7 +1341,7 @@ Page({
       }
     } catch (error) {
       wx.hideLoading();
-      console.error('【商家订单页面】更新退款状态异常:', error);
+      log.error('【商家订单页面】更新退款状态异常:', error);
       wx.showToast({
         title: '操作失败',
         icon: 'none'
@@ -1663,12 +1356,12 @@ Page({
       wx.navigateTo({
         url: `/subpackages/merchant/pages/merchant-refund-detail/index?orderId=${orderId}`,
         fail: (err) => {
-          console.error('跳转到商家退款详情页面失败:', err);
+          log.error('跳转到商家退款详情页面失败:', err);
           // 如果subpackage路径失败，尝试主包路径
           wx.navigateTo({
             url: `/pages/merchant-refund-detail/index?orderId=${orderId}`,
             fail: (err2) => {
-              console.error('跳转到商家退款详情页面失败（主包路径）:', err2);
+              log.error('跳转到商家退款详情页面失败（主包路径）:', err2);
               wx.showToast({
                 title: '跳转失败',
                 icon: 'none'

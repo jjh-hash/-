@@ -290,17 +290,16 @@ Page({
 
       if (res.result && res.result.code === 200) {
         wx.showToast({
-          title: '订单提交成功',
+          title: '发布成功，已为您打开任务大厅',
           icon: 'success',
           duration: 2000
         });
 
-        // 延迟跳转到订单页面
         setTimeout(() => {
-          wx.redirectTo({
-            url: '/pages/order/index'
+          wx.reLaunch({
+            url: '/subpackages/order/pages/receive-order/index'
           });
-        }, 2000);
+        }, 1500);
       } else {
         wx.showToast({
           title: res.result?.message || '订单提交失败',

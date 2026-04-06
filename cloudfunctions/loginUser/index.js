@@ -1,15 +1,21 @@
 // 微信用户登录云函数
 const cloud = require('wx-server-sdk');
 
-// 初始化云开发环境
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
 const db = cloud.database();
 
+const isDev = process.env.NODE_ENV !== 'production';
+const log = {
+  log: isDev ? (...a) => console.log(...a) : () => {},
+  warn: isDev ? (...a) => console.warn(...a) : () => {},
+  error: (...a) => console.error(...a)
+};
+
 exports.main = async (event, context) => {
-  console.log('登录请求参数:', event);
+  log.log('登录请求参数:', event);
   
   try {
     const { code } = event;
@@ -27,7 +33,7 @@ exports.main = async (event, context) => {
     const wxContext = cloud.getWXContext();
     const { OPENID, APPID, UNIONID } = wxContext;
     
-    console.log('微信上下文信息:', { OPENID, APPID, UNIONID });
+    log.log('微信上下文信息:', { OPENID, APPID, UNIONID });
 
     // 3. 验证登录凭证（可选，小程序环境下OPENID已经足够）
     try {
@@ -35,14 +41,14 @@ exports.main = async (event, context) => {
         jsCode: code
       });
       
-      console.log('微信登录验证结果:', loginResult);
+      log.log('微信登录验证结果:', loginResult);
       
       // 验证返回的openid是否与上下文一致
       if (loginResult.openid !== OPENID) {
-        console.warn('OpenID不一致:', loginResult.openid, OPENID);
+        log.warn('OpenID不一致:', loginResult.openid, OPENID);
       }
     } catch (error) {
-      console.warn('登录凭证验证失败，但继续使用上下文OpenID:', error);
+      log.warn('登录凭证验证失败，但继续使用上下文OpenID:', error);
     }
 
     // 4. 查询或创建用户信息
@@ -68,16 +74,16 @@ exports.main = async (event, context) => {
           }
         });
         
-        console.log('用户已存在，更新登录时间:', userInfo.nickname);
-        console.log('用户头像:', userInfo.avatar);
-        console.log('用户昵称:', userInfo.nickname);
+        log.log('用户已存在，更新登录时间:', userInfo.nickname);
+        log.log('用户头像:', userInfo.avatar);
+        log.log('用户昵称:', userInfo.nickname);
       } else {
-        // 新用户，创建用户记录
+        // 新用户，创建用户记录（默认昵称、头像、手机号，用户可稍后在设置页自行修改）
         const newUserData = {
           openid: OPENID,
           unionid: UNIONID || '',
           nickname: '微信用户',
-          avatar: '',
+          avatar: '/pages/小标/我的.png',
           phone: '',
           email: '',
           campus: '',
@@ -92,16 +98,15 @@ exports.main = async (event, context) => {
           data: newUserData
         });
         
-        userInfo = {
-          _id: createResult._id,
-          ...newUserData
-        };
+        userInfo = Object.assign({}, newUserData, {
+          _id: createResult._id
+        });
         
         isNewUser = true;
-        console.log('新用户创建成功:', userInfo);
+        log.log('新用户创建成功:', userInfo);
       }
     } catch (error) {
-      console.error('用户信息处理失败:', error);
+      log.error('用户信息处理失败:', error);
       return {
         code: 5000,
         message: '用户信息处理失败',
@@ -125,7 +130,7 @@ exports.main = async (event, context) => {
         }
       });
     } catch (error) {
-      console.warn('登录日志记录失败:', error);
+      log.warn('登录日志记录失败:', error);
     }
 
     // 7. 返回登录结果
@@ -154,7 +159,7 @@ exports.main = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('登录云函数执行失败:', error);
+    log.error('登录云函数执行失败:', error);
     
     return {
       code: 5000,

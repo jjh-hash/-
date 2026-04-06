@@ -1,15 +1,7 @@
 <!--pages/secondhand-publish/index.wxml-->
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <view class="back-btn" bindtap="onBackTap">
-      <text class="back-icon">←</text>
-    </view>
-    <text class="title">发布闲置</text>
-  </view>
 
   <scroll-view scroll-y class="content">
     <!-- 商品图片 -->

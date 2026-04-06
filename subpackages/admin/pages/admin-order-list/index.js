@@ -1,4 +1,6 @@
 // pages/admin-order-list/index.js
+const log = require('../../../../utils/logger.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -14,7 +16,7 @@ Page({
       { id: 'all', name: '全部', icon: '🛍️' },
       { id: 'restaurant', name: '餐饮', icon: '🍽️' },
       { id: 'gaming', name: '游戏陪玩', icon: '🎮' },
-      { id: 'reward', name: '悬赏', icon: '💰' },
+      { id: 'reward', name: '跑腿', icon: '💰' },
       { id: 'express', name: '代拿快递', icon: '📦' }
     ],
     // 状态筛选列表
@@ -30,7 +32,7 @@ Page({
   },
 
   onLoad() {
-    console.log('订单管理页面加载');
+    log.log('订单管理页面加载');
     this.verifyAdminAccess();
     this.loadOrderList();
   },
@@ -79,7 +81,7 @@ Page({
         }
       });
       
-      console.log('【订单管理】云函数返回:', res.result);
+      log.log('【订单管理】云函数返回:', res.result);
       
       if (res.result && res.result.code === 0) {
         let { list, hasMore } = res.result.data;
@@ -114,7 +116,7 @@ Page({
           loading: false
         });
         
-        console.log('【订单管理】订单列表加载成功，共', formattedList.length, '条');
+        log.log('【订单管理】订单列表加载成功，共', formattedList.length, '条');
       } else {
         // 使用模拟数据
         this.setData({
@@ -124,7 +126,7 @@ Page({
         });
       }
     } catch (error) {
-      console.error('加载订单列表失败:', error);
+      log.error('加载订单列表失败:', error);
       // 使用模拟数据
       this.setData({
         orderList: this.getMockOrderList(),
@@ -311,7 +313,7 @@ Page({
         }
       });
       
-      console.log('【取消订单】返回:', res.result);
+      log.log('【取消订单】返回:', res.result);
       
       if (res.result && res.result.code === 200 || res.result.code === 0) {
         // 记录操作日志
@@ -330,7 +332,7 @@ Page({
         });
       }
     } catch (error) {
-      console.error('取消订单失败:', error);
+      log.error('取消订单失败:', error);
       wx.showToast({
         title: '操作失败',
         icon: 'none'
@@ -355,7 +357,7 @@ Page({
         }
       });
       
-      console.log('【完成订单】返回:', res.result);
+      log.log('【完成订单】返回:', res.result);
       
       if (res.result && res.result.code === 200 || res.result.code === 0) {
         // 记录操作日志
@@ -374,7 +376,7 @@ Page({
         });
       }
     } catch (error) {
-      console.error('完成订单失败:', error);
+      log.error('完成订单失败:', error);
       wx.showToast({
         title: '操作失败',
         icon: 'none'
@@ -401,7 +403,7 @@ Page({
         }
       });
     } catch (error) {
-      console.error('记录操作日志失败:', error);
+      log.error('记录操作日志失败:', error);
     }
   },
 

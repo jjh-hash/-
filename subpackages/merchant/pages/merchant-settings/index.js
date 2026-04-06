@@ -6,15 +6,8 @@ Page({
     deliveryArea: '校园内配送',
     minOrderAmount: '20.00',
     
-    // 订单管理
-    autoAccept: false,
-    
     // 通知设置
     pushEnabled: true,
-    soundEnabled: true,
-    
-    // 安全设置
-    loginVerification: false,
     
     // 系统设置
     version: '1.0.0'
@@ -98,18 +91,6 @@ Page({
       case 'min-order':
         this.showMinOrderPicker();
         break;
-      case 'order-reminder':
-        this.showOrderReminderSettings();
-        break;
-      case 'print-settings':
-        this.showPrintSettings();
-        break;
-      case 'payment-methods':
-        this.showPaymentMethods();
-        break;
-      case 'settlement':
-        this.showSettlementSettings();
-        break;
       case 'change-password':
         this.showChangePassword();
         break;
@@ -124,50 +105,10 @@ Page({
     }
   },
 
-  // 自动接单开关
-  onAutoAcceptChange(e) {
-    this.setData({ autoAccept: e.detail.value });
-    this.saveSetting('autoAccept', e.detail.value);
-  },
-
   // 推送开关
   onPushChange(e) {
     this.setData({ pushEnabled: e.detail.value });
     this.saveSetting('pushEnabled', e.detail.value);
-  },
-
-  // 声音开关
-  onSoundChange(e) {
-    this.setData({ soundEnabled: e.detail.value });
-    this.saveSetting('soundEnabled', e.detail.value);
-  },
-
-  // 登录验证开关
-  onLoginVerificationChange(e) {
-    this.setData({ loginVerification: e.detail.value });
-    this.saveSetting('loginVerification', e.detail.value);
-  },
-
-  // 清理缓存
-  onClearCache() {
-    wx.showModal({
-      title: '清理缓存',
-      content: '确定要清理缓存吗？这将删除临时文件，但不会影响您的数据。',
-      success: (res) => {
-        if (res.confirm) {
-          wx.showLoading({ title: '清理中...' });
-          
-          // 模拟清理缓存
-          setTimeout(() => {
-            wx.hideLoading();
-            wx.showToast({
-              title: '清理完成',
-              icon: 'success'
-            });
-          }, 1500);
-        }
-      }
-    });
   },
 
   // 退出登录
@@ -394,44 +335,6 @@ Page({
         icon: 'none'
       });
     }
-  },
-
-  // 订单提醒设置
-  showOrderReminderSettings() {
-    wx.showToast({
-      title: '正在开发中',
-      icon: 'none'
-    });
-  },
-
-  // 打印设置
-  showPrintSettings() {
-    wx.showToast({
-      title: '正在开发中',
-      icon: 'none'
-    });
-  },
-
-  // 支付方式
-  showPaymentMethods() {
-    wx.showModal({
-      title: '支付方式',
-      content: '当前支持微信支付和校园卡支付。',
-      showCancel: false,
-      confirmText: '知道了'
-    });
-  },
-
-  // 结算设置
-  showSettlementSettings() {
-    wx.showActionSheet({
-      itemList: ['日结算', '周结算', '月结算'],
-      success: (res) => {
-        const cycles = ['日结算', '周结算', '月结算'];
-        this.setData({ settlementCycle: cycles[res.tapIndex] });
-        this.saveSetting('settlementCycle', cycles[res.tapIndex]);
-      }
-    });
   },
 
   // 修改密码

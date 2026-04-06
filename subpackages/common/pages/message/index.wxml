@@ -1,12 +1,7 @@
 <!--pages/message/index.wxml-->
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <text class="title">消息</text>
-  </view>
 
   <scroll-view 
     scroll-y 

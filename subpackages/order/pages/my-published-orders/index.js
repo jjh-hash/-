@@ -1,3 +1,4 @@
+// 入口约定：本页仅从「任务大厅」进入（任务大厅浮动按钮「我发布的」）；返回时栈长为 1 则 reLaunch 回任务大厅，否则 navigateBack。
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -174,7 +175,7 @@ Page({
   getOrderTypeText(orderType) {
     const typeMap = {
       'gaming': '游戏陪玩',
-      'reward': '悬赏',
+      'reward': '跑腿',
       'express': '代拿快递'
     };
     return typeMap[orderType] || '未知';
@@ -757,6 +758,7 @@ Page({
   },
 
   // 返回
+  // 返回：有栈则返回上一页（通常为任务大厅），否则 reLaunch 到任务大厅，与入口约定一致
   onBack() {
     const pages = getCurrentPages();
     if (pages.length > 1) {

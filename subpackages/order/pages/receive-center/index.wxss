@@ -1,0 +1,34 @@
+.page { min-height: 100vh; background: var(--color-bg-page); }
+.main-tabs { display: flex; background: var(--color-bg-card); padding: 0 var(--space-page); border-bottom: 1px solid var(--color-border); }
+.main-tab { flex: 1; text-align: center; padding: 14px; font-size: 15px; color: var(--color-text-secondary); }
+.main-tab.active { color: var(--color-primary); font-weight: 600; border-bottom: 2px solid var(--color-primary); }
+.tab-content { height: calc(100vh - 50px); padding: var(--space-page); }
+.task-actions { margin-bottom: 16px; }
+.btn-primary { background: var(--color-primary); color: #fff; border-radius: var(--radius-btn); }
+.btn-link { background: transparent; color: var(--color-primary); font-size: 14px; margin-top: 8px; }
+.task-list { display: flex; flex-direction: column; gap: 12px; }
+.task-card { background: var(--color-bg-card); border-radius: var(--radius-card); padding: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; box-shadow: var(--shadow-card); }
+.task-type { font-size: 14px; font-weight: 600; color: var(--color-text); }
+.task-amount { font-size: 18px; font-weight: 600; color: var(--color-primary); }
+.task-order-no { font-size: 12px; color: var(--color-text-placeholder); width: 100%; margin-top: 4px; }
+.task-btn { padding: 6px 14px; background: var(--color-primary); color: #fff; border-radius: 16px; font-size: 13px; }
+.empty-tip, .loading-tip { text-align: center; color: var(--color-text-secondary); font-size: 14px; margin-top: 24px; }
+.sub-tabs { display: flex; margin-bottom: 12px; }
+.sub-tab { flex: 1; text-align: center; padding: 10px; font-size: 14px; color: var(--color-text-secondary); }
+.sub-tab.active { color: var(--color-primary); font-weight: 600; }
+.banner.tip { background: var(--color-primary-light); padding: 12px var(--space-page); border-radius: var(--radius-btn); font-size: 13px; color: var(--color-text); margin-bottom: 12px; }
+.banner.tip .btn-link { display: inline-block; margin-top: 8px; }
+.delivery-tip { background: var(--color-bg-card); padding: 16px; border-radius: var(--radius-card); font-size: 14px; color: var(--color-text-secondary); }
+.delivery-tip .btn-link { display: block; margin-top: 8px; }
+.delivery-actions { margin-top: 12px; }
+.delivery-loading { text-align: center; color: var(--color-text-secondary); font-size: 14px; padding: 24px; }
+.delivery-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.delivery-card { background: var(--color-bg-card); border-radius: var(--radius-card); padding: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; box-shadow: var(--shadow-card); }
+.delivery-store { font-size: 14px; font-weight: 600; color: var(--color-text); }
+.delivery-order-no { font-size: 12px; color: var(--color-text-placeholder); width: 100%; margin-top: 4px; }
+.delivery-price { font-size: 18px; font-weight: 600; color: var(--color-primary); }
+.delivery-btn { padding: 6px 14px; background: var(--color-primary); color: #fff; border-radius: 16px; font-size: 13px; }
+.delivery-empty { text-align: center; color: var(--color-text-placeholder); font-size: 14px; padding: 24px; }
+.task-skeleton-list, .delivery-skeleton-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.task-skeleton-list .ds-skeleton-line, .delivery-skeleton-list .ds-skeleton-line { flex-shrink: 0; }
+.task-error-retry, .delivery-error-retry { text-align: center; padding: 24px; display: flex; flex-direction: column; align-items: center; }

@@ -1,5 +1,6 @@
 // pages/admin-settings/index.js
 const adminLog = require('../../utils/adminLog');
+const { verifyAdminPage } = require('../../utils/verifyAdminPage.js');
 
 Page({
   data: {
@@ -11,7 +12,8 @@ Page({
       deliveryFee: 3, // 配送费（元）
       minOrderAmountLimit: 20, // 最低订单金额下限（元）
       estimatedDeliveryMinutes: 30, // 预计送达时间（分钟）
-      orderTimeoutMinutes: 15 // 订单超时时间（分钟）
+      orderTimeoutMinutes: 15, // 订单超时时间（分钟）
+      depositAmount: 100 // 校园兼职保证金（元），缴纳满30天后可申请退还
     },
     
     // 邀请码列表
@@ -40,6 +42,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!verifyAdminPage()) return;
     console.log('系统设置页面加载', options);
     
     // 检查是否有特殊操作参数
@@ -80,7 +83,8 @@ Page({
               deliveryFee: (config.deliveryFee || 300) / 100, // 转换为元
               minOrderAmountLimit: (config.minOrderAmountLimit || 2000) / 100, // 转换为元
               estimatedDeliveryMinutes: config.estimatedDeliveryMinutes || 30,
-              orderTimeoutMinutes: config.orderTimeoutMinutes || 15
+              orderTimeoutMinutes: config.orderTimeoutMinutes || 15,
+              depositAmount: (config.depositAmount !== undefined ? config.depositAmount : 10000) / 100 // 校园兼职保证金（元）
             }
           });
         }
@@ -182,6 +186,11 @@ Page({
         placeholder = '请输入分钟数';
         currentValue = String(config.orderTimeoutMinutes);
         break;
+      case 'depositAmount':
+        title = '修改校园兼职保证金';
+        placeholder = '请输入金额（元），如 100';
+        currentValue = String(config.depositAmount);
+        break;
       default:
         return;
     }
@@ -231,6 +240,15 @@ Page({
           break;
         case 'orderTimeoutMinutes':
           updateData.orderTimeoutMinutes = value;
+          break;
+        case 'depositAmount':
+          const depositYuan = parseFloat(value);
+          if (isNaN(depositYuan) || depositYuan < 0) {
+            wx.hideLoading();
+            wx.showToast({ title: '请输入有效金额（元）', icon: 'none' });
+            return;
+          }
+          updateData.depositAmount = depositYuan;
           break;
         default:
           wx.hideLoading();

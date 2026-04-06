@@ -1,7 +1,1 @@
-{
-  "navigationBarTitleText": "个人信息",
-  "navigationStyle": "custom",
-  "enablePullDownRefresh": true,
-  "backgroundTextStyle": "dark"
-}
-
+{"navigationBarTitleText":"个人信息","enablePullDownRefresh":true,"backgroundTextStyle":"dark"}

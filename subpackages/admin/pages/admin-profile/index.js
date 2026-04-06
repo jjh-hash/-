@@ -1,4 +1,7 @@
 // pages/admin-profile/index.js
+const log = require('../../../../utils/logger.js');
+const { verifyAdminPage } = require('../../utils/verifyAdminPage.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -31,7 +34,8 @@ Page({
   },
 
   onLoad() {
-    console.log('管理员信息页面加载');
+    if (!verifyAdminPage()) return;
+    log.log('管理员信息页面加载');
     this.loadRecentLogs();
     this.initUptime();
     this.initSystemInfo();
@@ -45,10 +49,9 @@ Page({
   },
 
   onUnload() {
-    // 页面卸载时清除定时器
-    if (this.data.uptimeTimer) {
-      clearInterval(this.data.uptimeTimer);
-      this.setData({ uptimeTimer: null });
+    if (this._uptimeTimer) {
+      clearInterval(this._uptimeTimer);
+      this._uptimeTimer = null;
     }
   },
 
@@ -68,12 +71,12 @@ Page({
         const accountInfo = wx.getAccountInfoSync();
         if (accountInfo && accountInfo.miniProgram && accountInfo.miniProgram.version) {
           version = `v${accountInfo.miniProgram.version}`;
-          console.log('【系统信息】从微信API获取版本号:', version);
+          log.log('【系统信息】从微信API获取版本号:', version);
         } else {
-          console.log('【系统信息】微信API未返回版本号（可能是开发版/体验版），使用默认值 v0.7.0');
+          log.log('【系统信息】微信API未返回版本号（可能是开发版/体验版），使用默认值 v0.7.0');
         }
       } catch (error) {
-        console.warn('【系统信息】获取微信版本号失败:', error);
+        log.warn('【系统信息】获取微信版本号失败:', error);
       }
 
       // 2. 从云配置获取系统信息
@@ -90,7 +93,7 @@ Page({
         // 如果微信API没有获取到版本号，尝试从云配置读取
         if (version === 'v0.7.0' && config.appVersion) {
           version = config.appVersion.startsWith('v') ? config.appVersion : `v${config.appVersion}`;
-          console.log('【系统信息】从云配置获取版本号:', version);
+          log.log('【系统信息】从云配置获取版本号:', version);
         }
         
         // 格式化构建时间（使用部署时间或当前时间）
@@ -98,7 +101,7 @@ Page({
           const deployDate = new Date(config.deploymentTime);
           if (!isNaN(deployDate.getTime())) {
             buildTime = this.formatDate(deployDate);
-            console.log('【系统信息】从云配置获取构建时间:', buildTime);
+            log.log('【系统信息】从云配置获取构建时间:', buildTime);
           }
         }
       }
@@ -106,7 +109,7 @@ Page({
       // 如果没有构建时间，使用当前时间
       if (!buildTime) {
         buildTime = this.formatDate(new Date());
-        console.log('【系统信息】使用当前时间作为构建时间:', buildTime);
+        log.log('【系统信息】使用当前时间作为构建时间:', buildTime);
       }
 
       this.setData({
@@ -115,7 +118,7 @@ Page({
         'systemInfo.environment': environment
       });
     } catch (error) {
-      console.error('【系统信息】获取配置失败:', error);
+      log.error('【系统信息】获取配置失败:', error);
       // 失败时使用默认值
       this.setData({
         'systemInfo.version': version,
@@ -146,51 +149,51 @@ Page({
         }
       });
 
-      console.log('【运行时长】云函数返回结果:', res.result);
+      log.log('【运行时长】云函数返回结果:', res.result);
 
       if (res.result && res.result.code === 200 && res.result.data) {
         const config = res.result.data;
-        console.log('【运行时长】配置数据:', config);
-        console.log('【运行时长】systemStartTime类型:', typeof config.systemStartTime, config.systemStartTime);
-        console.log('【运行时长】deploymentTime类型:', typeof config.deploymentTime, config.deploymentTime);
+        log.log('【运行时长】配置数据:', config);
+        log.log('【运行时长】systemStartTime类型:', typeof config.systemStartTime, config.systemStartTime);
+        log.log('【运行时长】deploymentTime类型:', typeof config.deploymentTime, config.deploymentTime);
         
         // 尝试获取系统启动时间
         if (config.systemStartTime) {
           startTime = this.parseDate(config.systemStartTime);
-          console.log('【运行时长】解析systemStartTime结果:', startTime);
+          log.log('【运行时长】解析systemStartTime结果:', startTime);
         }
         
         if (!startTime && config.deploymentTime) {
           startTime = this.parseDate(config.deploymentTime);
-          console.log('【运行时长】解析deploymentTime结果:', startTime);
+          log.log('【运行时长】解析deploymentTime结果:', startTime);
         }
       }
     } catch (error) {
-      console.error('【运行时长】获取配置失败:', error);
+      log.error('【运行时长】获取配置失败:', error);
     }
     
     // 如果仍然没有获取到启动时间，使用构建时间
     if (!startTime || isNaN(startTime) || startTime <= 0) {
-      console.log('【运行时长】使用构建时间作为后备方案');
+      log.log('【运行时长】使用构建时间作为后备方案');
       const buildTimeStr = this.data.systemInfo.buildTime + ' 00:00:00';
       const buildTime = new Date(buildTimeStr).getTime();
       if (!isNaN(buildTime) && buildTime > 0) {
         startTime = buildTime;
-        console.log('【运行时长】使用构建时间:', startTime, new Date(startTime));
+        log.log('【运行时长】使用构建时间:', startTime, new Date(startTime));
       } else {
         // 如果构建时间也无效，使用当前时间减去15天8小时（模拟数据）
         startTime = Date.now() - (15 * 24 + 8) * 60 * 60 * 1000;
-        console.log('【运行时长】使用模拟时间:', startTime, new Date(startTime));
+        log.log('【运行时长】使用模拟时间:', startTime, new Date(startTime));
       }
     }
 
     // 最终验证：确保startTime是有效的时间戳
     if (!startTime || isNaN(startTime) || startTime <= 0) {
-      console.error('【运行时长】所有方案都失败，使用默认值');
+      log.error('【运行时长】所有方案都失败，使用默认值');
       startTime = Date.now() - (15 * 24 + 8) * 60 * 60 * 1000;
     }
 
-    console.log('【运行时长】最终启动时间:', startTime, new Date(startTime));
+    log.log('【运行时长】最终启动时间:', startTime, new Date(startTime));
 
     // 直接设置startTime并立即更新
     this.setData({
@@ -200,41 +203,39 @@ Page({
     // 立即更新一次显示
     this.updateUptime();
     
-    // 设置定时器，每分钟更新一次
-    const timer = setInterval(() => {
+    // 设置定时器，每分钟更新一次（存于实例，onUnload 时清理）
+    this._uptimeTimer = setInterval(() => {
       this.updateUptime();
-    }, 60000); // 每分钟更新一次
-
-    this.setData({ uptimeTimer: timer });
+    }, 60000);
   },
 
   // 解析日期（处理各种日期格式）
   parseDate(dateValue) {
     if (!dateValue) {
-      console.log('【运行时长】parseDate: dateValue为空');
+      log.log('【运行时长】parseDate: dateValue为空');
       return null;
     }
     
-    console.log('【运行时长】parseDate: 输入类型:', typeof dateValue, '值:', dateValue);
+    log.log('【运行时长】parseDate: 输入类型:', typeof dateValue, '值:', dateValue);
     
     try {
       // 如果是Date对象
       if (dateValue instanceof Date) {
         const timestamp = dateValue.getTime();
-        console.log('【运行时长】parseDate: Date对象，返回:', timestamp);
+        log.log('【运行时长】parseDate: Date对象，返回:', timestamp);
         return timestamp;
       }
       
       // 如果是对象且有getTime方法
       if (typeof dateValue === 'object' && typeof dateValue.getTime === 'function') {
         const timestamp = dateValue.getTime();
-        console.log('【运行时长】parseDate: 对象有getTime方法，返回:', timestamp);
+        log.log('【运行时长】parseDate: 对象有getTime方法，返回:', timestamp);
         return timestamp;
       }
       
       // 如果是数字（时间戳）
       if (typeof dateValue === 'number') {
-        console.log('【运行时长】parseDate: 数字类型，返回:', dateValue);
+        log.log('【运行时长】parseDate: 数字类型，返回:', dateValue);
         return dateValue;
       }
       
@@ -242,10 +243,10 @@ Page({
       if (typeof dateValue === 'string') {
         const parsed = new Date(dateValue);
         if (!isNaN(parsed.getTime())) {
-          console.log('【运行时长】parseDate: 字符串解析成功，返回:', parsed.getTime());
+          log.log('【运行时长】parseDate: 字符串解析成功，返回:', parsed.getTime());
           return parsed.getTime();
         } else {
-          console.warn('【运行时长】parseDate: 字符串解析失败:', dateValue);
+          log.warn('【运行时长】parseDate: 字符串解析失败:', dateValue);
         }
       }
       
@@ -255,11 +256,11 @@ Page({
         try {
           const date = new Date(dateValue);
           if (!isNaN(date.getTime())) {
-            console.log('【运行时长】parseDate: 对象直接转换成功，返回:', date.getTime());
+            log.log('【运行时长】parseDate: 对象直接转换成功，返回:', date.getTime());
             return date.getTime();
           }
         } catch (e) {
-          console.warn('【运行时长】parseDate: 对象直接转换失败:', e);
+          log.warn('【运行时长】parseDate: 对象直接转换失败:', e);
         }
         
         // 尝试JSON序列化后再解析
@@ -267,27 +268,27 @@ Page({
           const dateStr = JSON.stringify(dateValue);
           const parsed = new Date(dateStr);
           if (!isNaN(parsed.getTime())) {
-            console.log('【运行时长】parseDate: JSON序列化后解析成功，返回:', parsed.getTime());
+            log.log('【运行时长】parseDate: JSON序列化后解析成功，返回:', parsed.getTime());
             return parsed.getTime();
           }
         } catch (e) {
-          console.warn('【运行时长】parseDate: JSON序列化后解析失败:', e);
+          log.warn('【运行时长】parseDate: JSON序列化后解析失败:', e);
         }
         
         // 尝试访问可能的日期字段
         if (dateValue.$date) {
           const timestamp = this.parseDate(dateValue.$date);
           if (timestamp) {
-            console.log('【运行时长】parseDate: 访问$date字段成功，返回:', timestamp);
+            log.log('【运行时长】parseDate: 访问$date字段成功，返回:', timestamp);
             return timestamp;
           }
         }
       }
       
-      console.warn('【运行时长】parseDate: 所有解析方式都失败，返回null');
+      log.warn('【运行时长】parseDate: 所有解析方式都失败，返回null');
       return null;
     } catch (error) {
-      console.error('【运行时长】日期解析异常:', error, dateValue);
+      log.error('【运行时长】日期解析异常:', error, dateValue);
       return null;
     }
   },
@@ -296,10 +297,10 @@ Page({
   updateUptime() {
     const startTime = this.data.systemInfo.startTime;
     
-    console.log('【运行时长】updateUptime被调用，startTime:', startTime);
+    log.log('【运行时长】updateUptime被调用，startTime:', startTime);
     
     if (!startTime || isNaN(startTime) || startTime <= 0) {
-      console.warn('【运行时长】startTime无效，显示"计算中..."');
+      log.warn('【运行时长】startTime无效，显示"计算中..."');
       this.setData({
         'systemInfo.uptime': '计算中...'
       });
@@ -310,7 +311,7 @@ Page({
     const diff = now - startTime; // 时间差（毫秒）
 
     if (diff < 0) {
-      console.warn('【运行时长】时间差为负数，使用默认值');
+      log.warn('【运行时长】时间差为负数，使用默认值');
       this.setData({
         'systemInfo.uptime': '计算中...'
       });
@@ -334,7 +335,7 @@ Page({
       uptimeText = `${minutes}分钟`;
     }
 
-    console.log('【运行时长】计算完成:', uptimeText, '时间差:', diff, '毫秒');
+    log.log('【运行时长】计算完成:', uptimeText, '时间差:', diff, '毫秒');
 
     this.setData({
       'systemInfo.uptime': uptimeText
@@ -352,7 +353,7 @@ Page({
         }
       });
 
-      console.log('日志接口返回:', res.result);
+      log.log('日志接口返回:', res.result);
 
       if (res.result && res.result.code === 200 && res.result.data && res.result.data.logs) {
         const logs = res.result.data.logs.map(log => ({
@@ -369,9 +370,9 @@ Page({
           displayLogs: logs.slice(0, 5)
         });
         
-        console.log('加载操作日志成功，共', logs.length, '条，显示前5条');
+        log.log('加载操作日志成功，共', logs.length, '条，显示前5条');
       } else {
-        console.log('使用模拟数据');
+        log.log('使用模拟数据');
         // 即使是模拟数据也限制显示
         const mockLogs = this.data.operationLogs.length > 0 ? this.data.operationLogs : [
           {
@@ -402,7 +403,7 @@ Page({
         });
       }
     } catch (error) {
-      console.error('加载操作日志失败:', error);
+      log.error('加载操作日志失败:', error);
       // 失败时使用模拟数据
       const mockLogs = [
         {

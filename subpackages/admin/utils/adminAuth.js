@@ -20,7 +20,7 @@ async function checkAdminAuth() {
           showCancel: false,
           success: () => {
             wx.reLaunch({
-              url: '/pages/admin-dashboard/index'
+              url: '/subpackages/admin/pages/admin-dashboard/index'
             });
           }
         });
@@ -40,7 +40,7 @@ async function checkAdminAuth() {
           showCancel: false,
           success: () => {
             wx.reLaunch({
-              url: '/pages/admin-dashboard/index'
+              url: '/subpackages/admin/pages/admin-dashboard/index'
             });
           }
         });

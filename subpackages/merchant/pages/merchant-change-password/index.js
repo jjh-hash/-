@@ -160,14 +160,18 @@ Page({
 
       if (res.result && res.result.code === 200) {
         wx.showToast({
-          title: '密码修改成功',
+          title: '密码已修改，请重新登录',
           icon: 'success',
           duration: 2000
         });
 
-        // 延迟返回
+        // 清除本地商家登录态，并跳转登录页
         setTimeout(() => {
-          wx.navigateBack();
+          wx.removeStorageSync('merchantInfo');
+          wx.removeStorageSync('isMerchant');
+          wx.reLaunch({
+            url: '/subpackages/merchant/pages/merchant-login/index'
+          });
         }, 2000);
       } else {
         wx.showToast({

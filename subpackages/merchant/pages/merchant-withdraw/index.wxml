@@ -1,0 +1,65 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  <view class="nav">
+    <view class="back" bindtap="onBack">返回</view>
+    <text class="title">提现</text>
+  </view>
+
+  <!-- 可提现余额 -->
+  <view class="balance-card">
+    <text class="balance-label">可提现余额（元）</text>
+    <text class="balance-amount">{{availableBalance}}</text>
+    <text class="balance-tip">最低提现 {{minWithdrawYuan}} 元</text>
+  </view>
+
+  <!-- 提现表单 -->
+  <view class="form-card">
+    <view class="form-item">
+      <text class="form-label">提现金额（元）</text>
+      <input
+        class="form-input"
+        type="digit"
+        placeholder="请输入提现金额"
+        value="{{amountInput}}"
+        bindinput="onAmountInput"
+      />
+    </view>
+    <view class="form-item">
+      <text class="form-label">备注（选填）</text>
+      <input
+        class="form-input"
+        placeholder="如：本月结算"
+        value="{{remark}}"
+        bindinput="onRemarkInput"
+      />
+    </view>
+    <view class="submit-row">
+      <button class="btn-submit" bindtap="onSubmit" disabled="{{submitting}}">{{ submitting ? '提交中…' : '申请提现' }}</button>
+    </view>
+    <view class="notice">
+      提现将即时打款至当前账号的微信零钱（企业付款到零钱）。若打款失败，记录将显示为「打款失败」并保留失败原因，可联系平台处理。
+    </view>
+  </view>
+
+  <!-- 提现记录 -->
+  <view class="section">
+    <text class="sec-title">提现记录</text>
+    <view wx:if="{{list.length === 0 && !loadingList}}" class="empty">暂无提现记录</view>
+    <view wx:elif="{{list.length > 0}}" class="record-list">
+      <view class="record-item" wx:for="{{list}}" wx:key="_id">
+        <view class="record-row">
+          <text class="record-amount">¥{{ item.amountYuan }}</text>
+          <text class="record-status {{ item.status }}">{{ item.statusText }}</text>
+        </view>
+        <view class="record-meta">
+          <text class="record-time">{{ item.createdAtStr }}</text>
+          <text wx:if="{{ item.adminRemark }}" class="record-remark">备注：{{ item.adminRemark }}</text>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{ hasMore && list.length > 0 }}" class="load-more" bindtap="loadMore">
+      {{ loadingList ? '加载中…' : '加载更多' }}
+    </view>
+  </view>
+  <view class="safe-area-bottom"></view>
+</view>

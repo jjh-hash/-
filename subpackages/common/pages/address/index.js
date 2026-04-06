@@ -9,6 +9,11 @@ Page({
   },
 
   onLoad(options) {
+    if (!getApp().globalData.isLoggedIn) {
+      wx.showToast({ title: '请先登录后管理地址', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 1500);
+      return;
+    }
     console.log('【地址列表页面】页面加载', options);
     // 检查是否从express页面、gaming页面或reward页面跳转过来
     if (options.from === 'express' || options.from === 'gaming' || options.from === 'reward') {
@@ -17,9 +22,9 @@ Page({
       });
     }
     // 检查是否从结算页面跳转过来
-    if (options.from === 'checkout') {
+    if (options.from === 'checkout' || options.from === 'unifiedCheckout') {
       this.setData({
-        fromCheckout: true // 表示需要选择地址并返回结算页面
+        fromCheckout: true // 表示需要选择地址并返回结算/统一结算页面
       });
     }
     this.loadAddresses();

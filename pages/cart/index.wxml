@@ -1,0 +1,54 @@
+<view class="page">
+  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+  <scroll-view wx:if="{{!isEmpty}}" scroll-y class="content" style="height: {{scrollHeight}}px;" show-scrollbar="{{false}}">
+    <view class="store-list">
+      <block wx:for="{{storeList}}" wx:key="storeId">
+        <view class="store-block">
+          <view class="store-header" bindtap="onGoStore" data-store-id="{{item.storeId}}">
+            <text class="store-name">{{item.storeInfo.name || '店铺'}}</text>
+            <text class="store-arrow">></text>
+          </view>
+          <view class="item-list">
+            <view class="item-row" wx:for="{{item.items}}" wx:for-item="it" wx:for-index="itIndex" wx:key="id">
+              <image class="item-img" src="{{it.image || it.coverUrl}}" mode="aspectFill" />
+              <view class="item-info">
+                <text class="item-name">{{it.name}}</text>
+                <text class="item-spec" wx:if="{{it.selectedSpecs || it.selectedSpec}}">规格</text>
+                <view class="item-bottom">
+                  <text class="item-price">¥{{it.finalPrice || it.price}}</text>
+                  <view class="quantity-wrap">
+                    <view class="qty-btn" catchtap="onDecrease" data-store-index="{{index}}" data-item-index="{{itIndex}}">-</view>
+                    <text class="qty-num">{{it.quantity}}</text>
+                    <view class="qty-btn" catchtap="onIncrease" data-store-index="{{index}}" data-item-index="{{itIndex}}">+</view>
+                  </view>
+                </view>
+              </view>
+              <view class="item-del" catchtap="onDeleteItem" data-store-index="{{index}}" data-item-index="{{itIndex}}">删除</view>
+            </view>
+          </view>
+          <view class="store-footer">
+            <view class="footer-tip" wx:if="{{item.cartTotal < (item.storeInfo.minOrder || 0)}}">
+              <text>还差 ¥{{(item.storeInfo.minOrder || 0) - item.cartTotal}} 起送</text>
+            </view>
+            <view class="footer-tip" wx:else>配送费 ¥{{item.storeInfo.deliveryFee || 0}}</view>
+            <view class="footer-total">小计 ¥{{item.cartTotal}}</view>
+            <view class="footer-btn {{item.cartTotal >= (item.storeInfo.minOrder || 0) ? 'active' : ''}}" bindtap="onCheckout" data-store-index="{{index}}">去结算</view>
+          </view>
+        </view>
+      </block>
+    </view>
+    <view class="unified-bar">
+      <text class="unified-total">合计 ¥{{totalAmountText}}</text>
+      <view class="unified-btn" bindtap="onUnifiedPay">统一付款</view>
+    </view>
+    <view class="safe-bottom"></view>
+  </scroll-view>
+  <view class="content" wx:else>
+    <view class="empty">
+      <text class="empty-icon">🛒</text>
+      <text class="empty-text">购物车是空的</text>
+      <text class="empty-desc">去首页加购商品，再来这里统一结算</text>
+      <navigator class="go-home" url="/pages/home/index" open-type="switchTab">去逛逛</navigator>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,10 @@
+{
+  "name": "campusPartnerManage",
+  "version": "1.0.0",
+  "description": "校园兼职：申请、缴纳保证金、状态查询、申请退还",
+  "main": "index.js",
+  "cloudfunctionRoot": true,
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

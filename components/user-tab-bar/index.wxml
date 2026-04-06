@@ -1,0 +1,26 @@
+<view class="tabbar">
+  <block wx:if="{{variant === 'task'}}">
+    <view
+      wx:for="{{tabsTask}}"
+      wx:key="key"
+      class="tab {{active === item.key ? 'active' : ''}}"
+      bindtap="onTabTap"
+      data-tab="{{item.key}}"
+    >
+      <image class="t-icon" src="{{active === item.key ? item.iconActive : item.icon}}" mode="aspectFit" />
+      <text class="t-text">{{item.label}}</text>
+    </view>
+  </block>
+  <block wx:else>
+    <view
+      wx:for="{{tabsUser}}"
+      wx:key="key"
+      class="tab {{active === item.key ? 'active' : ''}}"
+      bindtap="onTabTap"
+      data-tab="{{item.key}}"
+    >
+      <image class="t-icon" src="{{active === item.key ? item.iconActive : item.icon}}" mode="aspectFit" />
+      <text class="t-text">{{item.label}}</text>
+    </view>
+  </block>
+</view>
