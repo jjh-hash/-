@@ -1,12 +1,4 @@
 <view class="page">
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="back" bindtap="onBack">◀</text>
-      <text class="title">联系信息</text>
-    </view>
-  </view>
 
   <scroll-view scroll-y class="content">
     <!-- 联系方式编辑（选填一个即可） -->

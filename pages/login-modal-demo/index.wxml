@@ -1,8 +1,5 @@
 <!--pages/login-modal-demo/index.wxml-->
 <view class="container">
-  <view class="header">
-    <text class="title">登录弹窗功能演示</text>
-  </view>
 
   <!-- 登录状态显示 -->
   <view class="status-section">

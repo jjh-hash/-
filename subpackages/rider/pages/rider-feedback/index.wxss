@@ -1,17 +1,18 @@
+/* 骑手反馈 - 设计系统 */
 .page {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
   min-height: 100vh;
 }
 
 /* 导航栏 */
 .navbar {
-  background: #fff;
+  background: var(--color-bg-card);
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .navbar-content {
@@ -19,12 +20,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 var(--space-page);
 }
 
 .back-btn {
   font-size: 18px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 600;
 }
 
@@ -34,7 +35,7 @@
   transform: translateX(-50%);
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .placeholder {
@@ -44,26 +45,26 @@
 /* 内容区域 */
 .content {
   margin-top: 44px;
-  padding: 16px;
+  padding: var(--space-page);
 }
 
 /* 区块 */
 .section {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-btn);
+  padding: var(--space-block);
+  margin-bottom: var(--space-block);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 16px;
 }
 
 .required {
-  color: #ff4757;
+  color: var(--color-danger);
 }
 
 /* 反馈类型 */
@@ -76,9 +77,9 @@
 .type-item {
   flex: 1;
   min-width: calc(50% - 6px);
-  padding: 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: var(--space-block);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-btn);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -87,8 +88,8 @@
 }
 
 .type-item.active {
-  border-color: #1976d2;
-  background: #e3f2fd;
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 .type-icon {
@@ -97,12 +98,12 @@
 
 .type-text {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 500;
 }
 
 .type-item.active .type-text {
-  color: #1976d2;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -111,17 +112,17 @@
   width: 100%;
   min-height: 120px;
   padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   line-height: 1.5;
 }
 
 .char-count {
   text-align: right;
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
   margin-top: 8px;
 }
 
@@ -129,10 +130,10 @@
 .contact-input {
   width: 100%;
   padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
 }
 
 /* 图片容器 */
@@ -161,7 +162,7 @@
   right: -6px;
   width: 24px;
   height: 24px;
-  background: #ff4757;
+  background: var(--color-danger);
   color: #fff;
   border-radius: 50%;
   display: flex;
@@ -175,8 +176,8 @@
 .add-image-btn {
   width: 100px;
   height: 100px;
-  border: 2px dashed #ddd;
-  border-radius: 8px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-btn);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -186,17 +187,17 @@
 
 .add-icon {
   font-size: 32px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .add-text {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .image-tip {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
   margin-top: 8px;
 }
 
@@ -208,7 +209,7 @@
 .submit-btn {
   width: 100%;
   height: 48px;
-  background: #1976d2;
+  background: var(--color-primary);
   color: #fff;
   border-radius: 24px;
   font-size: 16px;
@@ -217,8 +218,8 @@
 }
 
 .submit-btn.disabled {
-  background: #ccc;
-  color: #999;
+  background: var(--color-text-placeholder);
+  color: var(--color-text-secondary);
 }
 
 .submit-btn::after {

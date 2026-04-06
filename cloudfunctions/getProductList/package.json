@@ -1,0 +1,1 @@
+{"name":"getProductList","version":"1.0.0","description":"首页菜品流：获取商品列表（含店铺信息）","main":"index.js","dependencies":{"wx-server-sdk":"~2.6.3"}}

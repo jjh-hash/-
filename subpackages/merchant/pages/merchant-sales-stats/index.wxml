@@ -1,14 +1,4 @@
 <view class="page">
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-  <view class="nav">
-    <view class="back" bindtap="onBack">◀</view>
-    <text class="title">销售统计</text>
-    <view class="year-selector" bindtap="onYearSelect">
-      <text class="calendar-icon">📅</text>
-      <text class="year-text">{{selectedYear}}</text>
-      <text class="arrow">▼</text>
-    </view>
-  </view>
 
   <!-- 销售概览 -->
   <view class="sales-overview">

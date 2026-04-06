@@ -5,48 +5,103 @@ Page({
       nickname: "微信用户",
       avatar: ""
     },
-    showUserInfoModal: false
+    showUserInfoModal: false,
+    menuSections: []
   },
 
   onLoad() {
-    // 页面加载时获取用户信息
+    this.buildMenuSections();
     this.loadUserInfo();
   },
 
   onShow() {
-    // 页面显示时刷新用户信息
+    this.buildMenuSections();
     this.loadUserInfo();
   },
 
   /**
-   * 加载用户信息
+   * 构建「我的」菜单（管理端已迁至 Web，不在此展示入口）
    */
-  loadUserInfo() {
-    const app = getApp();
-    if (app.globalData.isLoggedIn && app.globalData.userInfo) {
-      this.setData({
-        userInfo: app.globalData.userInfo
+  buildMenuSections() {
+    const hasUserToken = !!wx.getStorageSync('userToken');
+    const moreServiceItems = [
+      { type: 'campus-partner', icon: '/pages/小标/接单.png', text: '校园兼职' },
+      { type: 'switch-merchant', icon: '/pages/小标/商家.png', text: '商家端' }
+    ];
+    // 管理端已迁移至独立 Web 后台，不在学生端小程序展示入口（见 admin-web / 商家注册页管理员登录）
+    const menuSections = [
+      { title: '个人', cols: 3, items: [
+          { type: 'user-info', icon: '/pages/小标/姓名.png', text: '我的信息' },
+          { type: 'reviews', icon: '/pages/小标/待评价.png', text: '我的评价' },
+          { type: 'address', icon: '/pages/小标/地址.png', text: '我的地址' }
+        ]
+      },
+      { title: '帮助与关于', cols: 2, items: [
+          { type: 'about', icon: '/pages/小标/关于我们.png', text: '关于我们' },
+          { type: 'service', icon: '/pages/小标/联系客服.png', text: '联系客服' }
+        ]
+      },
+      { title: '法律与协议', cols: 2, items: [
+          { type: 'user-agreement', icon: '/pages/小标/关于我们.png', text: '用户协议' },
+          { type: 'privacy-policy', icon: '/pages/小标/设置.png', text: '隐私政策' }
+        ]
+      },
+      { title: '更多服务', cols: moreServiceItems.length === 3 ? 3 : 2, items: moreServiceItems }
+    ];
+    if (hasUserToken) {
+      menuSections.push({
+        title: '账号',
+        cols: 1,
+        items: [{ type: 'logout', icon: '/pages/小标/设置.png', text: '退出登录' }]
       });
+    }
+    this.setData({ menuSections });
+  },
+
+  /**
+   * 加载用户信息（若本地为默认且已登录，则从服务器拉取一次，避免清理缓存后头像昵称丢失）
+   */
+  async loadUserInfo() {
+    const app = getApp();
+    let userInfo = null;
+    if (app.globalData.isLoggedIn && app.globalData.userInfo) {
+      userInfo = app.globalData.userInfo;
     } else {
-      // 未登录，从本地存储获取
-      const userInfo = wx.getStorageSync('userInfo');
+      userInfo = wx.getStorageSync('userInfo');
       if (userInfo) {
-        this.setData({
-          userInfo: userInfo
-        });
+        app.globalData.userInfo = userInfo;
+        app.globalData.isLoggedIn = true;
+      }
+    }
+    if (userInfo) {
+      this.setData({ userInfo });
+    }
+    // 若当前显示为默认（微信用户/无头像）且本地有登录态，从服务器拉取最新用户信息并回写
+    const isDefault = !userInfo || !userInfo.nickname || userInfo.nickname === '微信用户' || !userInfo.avatar;
+    const hasToken = !!wx.getStorageSync('userToken');
+    if (isDefault && hasToken) {
+      try {
+        const res = await app.loginUser();
+        if (res && res.success && res.userInfo) {
+          wx.setStorageSync('userInfo', res.userInfo);
+          app.globalData.userInfo = res.userInfo;
+          this.setData({ userInfo: res.userInfo });
+        }
+      } catch (e) {
+        console.warn('从服务器恢复用户信息失败', e);
       }
     }
   },
 
   onTabTap(e) {
-    const tab = e.currentTarget.dataset.tab;
+    const tab = (e.detail && e.detail.tab) ? e.detail.tab : (e.currentTarget && e.currentTarget.dataset.tab);
     if (tab === 'home') {
       wx.reLaunch({
         url: '/pages/home/index'
       });
     } else if (tab === 'order') {
       wx.reLaunch({
-        url: '/subpackages/order/pages/receive-order/index'
+        url: '/subpackages/order/pages/order/index'
       });
     } else if (tab === 'receive') {
       // 接单功能正在开发中
@@ -74,9 +129,18 @@ Page({
   onMenuTap(e) {
     const type = e.currentTarget.dataset.type;
     switch(type) {
+      case 'campus-partner':
+        wx.navigateTo({
+          url: '/subpackages/common/pages/campus-partner/index',
+          fail: (err) => {
+            console.error('跳转校园兼职失败:', err);
+            wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+          }
+        });
+        break;
       case 'user-info':
         wx.navigateTo({
-          url: '/pages/user-info-setting/index'
+          url: '/subpackages/common/pages/user-info-setting/index'
         });
         break;
       case 'reviews':
@@ -84,12 +148,8 @@ Page({
           url: '/subpackages/store/pages/my-reviews/index'
         });
         break;
-      case 'my-orders':
-        wx.navigateTo({
-          url: '/subpackages/common/pages/my-orders/index'
-        });
-        break;
       case 'address':
+        if (!getApp().ensureLogin('请先登录后管理地址')) return;
         wx.navigateTo({ url: '/subpackages/common/pages/address/index' });
         break;
       case 'about':
@@ -98,12 +158,19 @@ Page({
         });
         break;
       case 'service':
-        wx.showModal({
-          title: '联系客服',
-          content: '+v 15890121731',
-          showCancel: false,
-          confirmText: '确定'
+        wx.makePhoneCall({
+          phoneNumber: '15890121731',
+          fail: (err) => {
+            console.error('拨打电话失败:', err);
+            wx.showToast({ title: '拨打失败，请重试', icon: 'none' });
+          }
         });
+        break;
+      case 'user-agreement':
+        wx.navigateTo({ url: '/subpackages/common/pages/user-agreement/index' });
+        break;
+      case 'privacy-policy':
+        wx.navigateTo({ url: '/subpackages/common/pages/privacy-policy/index' });
         break;
       case 'switch-merchant':
         // 切换到商家端，使用 reLaunch 清空页面栈
@@ -118,16 +185,30 @@ Page({
           }
         });
         break;
-      case 'switch-rider':
-        // 切换到骑手端
+      case 'admin':
+        // 管理端入口（未登录时由管理端页内校验并提示）
         wx.reLaunch({
-          url: '/subpackages/rider/pages/rider/index',
+          url: '/subpackages/admin/pages/admin-dashboard/index',
           fail: (err) => {
-            console.error('跳转到骑手端失败:', err);
-            wx.showToast({
-              title: '跳转失败，请重试',
-              icon: 'none'
-            });
+            console.error('跳转到管理端失败:', err);
+            wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+          }
+        });
+        break;
+      case 'logout':
+        wx.showModal({
+          title: '提示',
+          content: '确定要退出登录吗？',
+          success: (res) => {
+            if (res.confirm) {
+              const app = getApp();
+              app.logoutUser();
+              this.setData({
+                userInfo: { nickname: '微信用户', avatar: '' }
+              });
+              this.buildMenuSections();
+              wx.showToast({ title: '已退出登录', icon: 'none' });
+            }
           }
         });
         break;

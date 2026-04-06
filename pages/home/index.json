@@ -1,6 +1,9 @@
 {
   "navigationBarTitleText": "外卖",
   "navigationStyle": "custom",
+  "onReachBottomDistance": 50,
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
   "usingComponents": {
     "announcement-modal": "/components/announcement-modal/index"
   },
@@ -8,4 +11,3 @@
     "announcement-modal": "view"
   }
 }
-

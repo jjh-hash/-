@@ -1,23 +1,21 @@
 <view class="page">
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="back" bindtap="onBack">◀</text>
-      <text class="title">我的地址</text>
-    </view>
-  </view>
 
   <view class="content">
     <view class="empty" wx:if="{{addresses.length === 0}}">
-      <text class="empty-title">暂无地址</text>
-      <text class="empty-sub">点击下方按钮新增一个收货地址</text>
+      <view class="empty-icon-wrap">
+        <text class="empty-icon">📍</text>
+      </view>
+      <view class="empty-lines">
+        <text class="empty-title">暂无地址</text>
+        <text class="empty-sub">点击下方按钮新增一个收货地址</text>
+      </view>
     </view>
 
     <view class="list" wx:if="{{addresses.length > 0}}">
-      <scroll-view scroll-y class="scroll-view">
+      <scroll-view scroll-y class="scroll-view" enhanced="{{true}}" show-scrollbar="{{false}}">
+        <view class="scroll-inner">
         <block wx:for="{{addresses}}" wx:key="_id">
-          <view class="addr-item" bindtap="onSelectAddress" data-id="{{item._id}}">
+          <view class="addr-item {{item.isDefault ? 'addr-item-default' : ''}}" bindtap="onSelectAddress" data-id="{{item._id}}">
             <view class="addr-header">
               <view class="addr-name-row">
                 <text class="addr-name">{{item.name}}</text>
@@ -28,15 +26,19 @@
               </view>
             </view>
             <view class="addr-body">
-              <text class="addr-icon">📍</text>
-              <text class="addr-detail">{{item.detail}}</text>
+              <view class="addr-detail-wrap">
+                <text class="addr-icon">📍</text>
+                <text class="addr-detail">{{item.detail}}</text>
+              </view>
             </view>
             <view class="addr-footer">
-              <text class="addr-set-default" wx:if="{{!item.isDefault}}" catchtap="onSetDefault" data-id="{{item._id}}">设为默认</text>
-              <text class="addr-delete" catchtap="onDelete" data-id="{{item._id}}">删除</text>
+              <text class="addr-btn addr-set-default" wx:if="{{!item.isDefault}}" catchtap="onSetDefault" data-id="{{item._id}}">设为默认</text>
+              <text class="addr-btn addr-delete" catchtap="onDelete" data-id="{{item._id}}">删除</text>
             </view>
           </view>
         </block>
+        <view class="scroll-bottom-spacer"></view>
+        </view>
       </scroll-view>
     </view>
   </view>

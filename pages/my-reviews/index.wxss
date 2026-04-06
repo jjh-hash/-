@@ -1,50 +1,11 @@
+/* 我的评价 - 设计系统 */
 .page {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
   min-height: 100vh;
 }
 
-/* 导航栏 */
-.navbar {
-  background: #fff;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.navbar-content {
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-}
-
-.back-btn {
-  font-size: 18px;
-  color: #333;
-  font-weight: 600;
-}
-
-.navbar-title {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.placeholder {
-  width: 18px;
-}
-
-/* 内容区域 */
 .content {
-  margin-top: 44px;
-  padding: 16px;
+  padding: var(--space-page);
 }
 
 /* 加载中 */
@@ -52,51 +13,88 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 40px 0;
+  padding: 48px 0;
 }
 
 .loading-text {
   font-size: 14px;
-  color: #999;
+  color: var(--color-text-secondary);
 }
 
-/* 空状态 */
+/* 空状态：整体居中 */
 .empty-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 64px 24px;
+}
+
+.empty-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
 }
 
 .empty-icon {
-  font-size: 60px;
-  margin-bottom: 16px;
+  font-size: 40px;
+  line-height: 1;
+  display: block;
+  text-align: center;
+}
+
+.empty-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.empty-text,
+.empty-tip {
+  display: block;
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .empty-text {
   font-size: 16px;
-  color: #333;
-  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--color-text);
 }
 
 .empty-tip {
   font-size: 14px;
-  color: #999;
+  color: var(--color-text-secondary);
 }
 
 /* 评价列表 */
 .reviews-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-item);
 }
 
 .review-card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  padding: var(--space-block);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-fast);
+}
+
+.review-card:active {
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* 店铺头部 */
@@ -104,9 +102,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: var(--space-item);
+  padding-bottom: var(--space-item);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .store-info {
@@ -118,16 +116,16 @@
 .store-name {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .review-date {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-secondary);
 }
 
 .delete-btn {
-  padding: 4px 8px;
+  padding: 6px 10px;
 }
 
 .delete-icon {
@@ -144,7 +142,7 @@
 
 .rating-label {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .stars {
@@ -154,22 +152,22 @@
 
 .star {
   font-size: 14px;
-  color: #ddd;
+  color: var(--color-border);
 }
 
 .star.filled {
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .star.empty {
-  color: #ddd;
+  color: var(--color-border);
   opacity: 0.5;
 }
 
 /* 评价内容 */
 .review-content {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   line-height: 1.6;
   margin-bottom: 12px;
 }
@@ -185,29 +183,29 @@
 .review-image {
   width: 80px;
   height: 80px;
-  border-radius: 8px;
+  border-radius: var(--radius-btn);
   flex-shrink: 0;
 }
 
 /* 商家回复 */
 .merchant-reply {
-  background: #f8f9fa;
-  padding: 12px;
-  border-radius: 8px;
-  margin-top: 12px;
-  border-left: 3px solid #1976d2;
+  background: var(--color-primary-light);
+  padding: var(--space-item);
+  border-radius: var(--radius-btn);
+  margin-top: var(--space-item);
+  border-left: 3px solid var(--color-primary);
 }
 
 .merchant-reply-label {
   font-size: 14px;
-  color: #1976d2;
+  color: var(--color-primary);
   font-weight: 600;
   margin-bottom: 4px;
 }
 
 .merchant-reply-content {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 

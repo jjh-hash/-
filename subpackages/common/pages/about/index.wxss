@@ -1,46 +1,9 @@
+/* 关于我们 - 设计系统 */
 .page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--color-bg-page);
   display: flex;
   flex-direction: column;
-}
-
-.status-bar {
-  width: 100%;
-  background: #fff;
-}
-
-.nav-bar {
-  height: 44px;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-}
-
-.back-btn {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.back-icon {
-  font-size: 20px;
-  color: #333;
-}
-
-.nav-title {
-  font-size: 18px;
-  color: #333;
-  font-weight: 600;
-}
-
-.nav-right {
-  width: 44px;
 }
 
 .content {
@@ -49,20 +12,20 @@
 }
 
 .about-container {
-  padding: 20px;
+  padding: var(--space-page);
 }
 
 .about-content {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .about-text {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.8;
-  color: #333;
+  color: var(--color-text);
   text-align: justify;
   display: block;
 }

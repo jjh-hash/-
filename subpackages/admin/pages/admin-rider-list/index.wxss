@@ -1,16 +1,14 @@
 .page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
-.status-bar {
-  width: 100%;
-}
+.status-bar { width: 100%; }
 
 .nav-bar {
   height: 44px;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -20,21 +18,16 @@
 .back-btn {
   position: absolute;
   left: 12px;
-  color: #333;
+  color: var(--color-text);
   font-size: 18px;
 }
 
-.title {
-  font-size: 18px;
-  color: #333;
-  font-weight: 600;
-}
+.title { font-size: 18px; color: var(--color-text); font-weight: 600; }
 
-/* 搜索和筛选 */
 .filter-section {
-  background: #fff;
+  background: var(--color-bg-card);
   padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .search-box {
@@ -47,7 +40,7 @@
   flex: 1;
   height: 36px;
   padding: 0 12px;
-  background: #f5f5f5;
+  background: var(--color-bg-page);
   border-radius: 18px;
   font-size: 14px;
 }
@@ -55,9 +48,9 @@
 .search-btn {
   margin-left: 8px;
   padding: 8px 16px;
-  background: #1890ff;
+  background: var(--color-primary);
   color: #fff;
-  border-radius: 4px;
+  border-radius: var(--radius-btn);
   font-size: 14px;
 }
 
@@ -67,22 +60,16 @@
   padding: 8px 0;
 }
 
-.filter-label {
-  font-size: 14px;
-  color: #666;
-}
+.filter-label { font-size: 14px; color: var(--color-text-secondary); }
 
 .filter-value {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   margin-left: 8px;
 }
 
-.filter-arrow {
-  font-size: 12px;
-  color: #999;
-}
+.filter-arrow { font-size: 12px; color: var(--color-text-placeholder); }
 
 /* 内容区域 */
 .content {
@@ -94,7 +81,7 @@
   align-items: center;
   justify-content: center;
   padding: 60px 0;
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 14px;
 }
 
@@ -104,11 +91,11 @@
 }
 
 .rider-item {
-  background: #fff;
-  border-radius: 8px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .rider-header {
@@ -117,7 +104,7 @@
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .rider-info {
@@ -128,35 +115,31 @@
   display: block;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 4px;
 }
 
-.rider-phone {
-  display: block;
-  font-size: 14px;
-  color: #666;
-}
+.rider-phone { display: block; font-size: 14px; color: var(--color-text-secondary); }
 
 .rider-status {
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-tag);
   font-size: 12px;
 }
 
 .rider-status.status-pending {
-  background: #fff7e6;
-  color: #faad14;
+  background: rgba(250, 140, 22, 0.12);
+  color: var(--color-warning);
 }
 
 .rider-status.status-approved {
-  background: #f6ffed;
-  color: #52c41a;
+  background: var(--color-primary-light);
+  color: var(--color-success);
 }
 
 .rider-status.status-rejected {
-  background: #fff1f0;
-  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.12);
+  color: var(--color-danger);
 }
 
 .rider-details {
@@ -170,42 +153,32 @@
 }
 
 .detail-label {
-  color: #666;
+  color: var(--color-text-secondary);
   width: 80px;
   flex-shrink: 0;
 }
 
-.detail-value {
-  flex: 1;
-  color: #333;
-  word-break: break-all;
-}
+.detail-value { flex: 1; color: var(--color-text); word-break: break-all; }
 
 .rider-actions {
   display: flex;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-border);
 }
 
 .action-btn {
   flex: 1;
   height: 36px;
   line-height: 36px;
-  border-radius: 4px;
+  border-radius: var(--radius-btn);
   font-size: 14px;
   border: none;
 }
 
-.approve-btn {
-  background: #52c41a;
-  color: #fff;
-}
+.approve-btn { background: var(--color-success); color: #fff; }
 
-.reject-btn {
-  background: #ff4d4f;
-  color: #fff;
-}
+.reject-btn { background: var(--color-danger); color: #fff; }
 
 .action-btn::after {
   border: none;
@@ -218,8 +191,5 @@
   padding: 60px 0;
 }
 
-.empty-text {
-  color: #999;
-  font-size: 14px;
-}
+.empty-text { color: var(--color-text-placeholder); font-size: 14px; }
 

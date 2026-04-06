@@ -7,6 +7,7 @@ cloud.init({
 
 const db = cloud.database();
 const _ = db.command;
+const { extractAdminSessionToken, verifyAdminSession, deny } = require('./adminSession');
 
 exports.main = async (event, context) => {
   console.log('【系统管理】请求:', event);
@@ -14,6 +15,12 @@ exports.main = async (event, context) => {
   const { action, data } = event;
   
   try {
+    if (action !== 'healthCheck') {
+      const v = await verifyAdminSession(db, extractAdminSessionToken(event));
+      if (!v.ok) {
+        return deny(v);
+      }
+    }
     switch (action) {
       case 'getSystemStatus':
         return await getSystemStatus();
@@ -236,10 +243,9 @@ async function setMaintenanceMode(data) {
     if (configResult.data.length === 0) {
       // 创建新配置
       await db.collection('system_config').add({
-        data: {
-          ...maintenanceConfig,
+        data: Object.assign({}, maintenanceConfig, {
           createdAt: db.serverDate()
-        }
+        })
       });
     } else {
       // 更新现有配置

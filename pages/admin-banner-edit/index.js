@@ -1,4 +1,6 @@
 // pages/admin-banner-edit/index.js
+const { verifyAdminPage } = require('../../utils/verifyAdminPage.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -16,6 +18,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!verifyAdminPage()) return;
     const { mode, bannerId } = options;
     
     this.setData({

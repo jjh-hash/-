@@ -292,13 +292,15 @@ Page({
     }
   },
 
-  // 设置按钮
+  // 设置按钮（与首页「跑单设置」统一，跳转同一页）
   onSetting() {
-    wx.showToast({
-      title: '设置功能开发中',
-      icon: 'none'
+    wx.navigateTo({
+      url: '/subpackages/rider/pages/rider-settings/index',
+      fail: (err) => {
+        console.error('跳转到跑单设置失败:', err);
+        wx.showToast({ title: '跳转失败', icon: 'none' });
+      }
     });
-    // TODO: 跳转到设置页面
   },
 
   // 今日接单

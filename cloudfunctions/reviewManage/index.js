@@ -469,21 +469,18 @@ async function getMyReviews(openid) {
             .doc(review.storeId)
             .get();
           
-          return {
-            ...review,
+          return Object.assign({}, review, {
             storeName: storeResult.data ? storeResult.data.name : '店铺'
-          };
+          });
         } catch (err) {
-          return {
-            ...review,
+          return Object.assign({}, review, {
             storeName: '店铺'
-          };
+          });
         }
       }
-      return {
-        ...review,
+      return Object.assign({}, review, {
         storeName: '店铺'
-      };
+      });
     }));
 
     return {

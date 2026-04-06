@@ -1,19 +1,6 @@
 <view class="page">
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-  <view class="nav">
-    <text class="title">订单中心</text>
-  </view>
 
-  <!-- 顶部标签 -->
-  <view class="tabs">
-    <view class="tab {{activeTab===0?'active':''}}" data-index="0" bindtap="onTabTap">全部</view>
-    <view class="tab {{activeTab===1?'active':''}}" data-index="1" bindtap="onTabTap">待确认</view>
-    <view class="tab {{activeTab===2?'active':''}}" data-index="2" bindtap="onTabTap">已完成</view>
-    <view class="tab {{activeTab===3?'active':''}}" data-index="3" bindtap="onTabTap">已取消</view>
-    <view class="tab {{activeTab===4?'active':''}}" data-index="4" bindtap="onTabTap">待退款</view>
-  </view>
-
-  <!-- 订单列表 -->
+  <!-- 订单列表（仅展示已支付订单） -->
   <scroll-view 
     scroll-y 
     class="list"
@@ -39,7 +26,8 @@
           <view class="order-top">
             <text class="order-no">订单号：{{item.orderNo}}</text>
             <view class="status-wrapper">
-              <text class="status {{item.statusClass}}">{{item.statusText}}</text>
+              <text class="order-status-badge cancelled" wx:if="{{item.orderStatus === 'cancelled'}}">已取消</text>
+              <text class="pay-status-badge paid" wx:elif="{{item.payStatus === 'paid'}}">已支付</text>
               <text class="refund-status-badge approved" wx:if="{{item.refundInfo && item.refundInfo.status === 'approved'}}">已退款</text>
               <text class="refund-status-badge rejected" wx:if="{{item.refundInfo && item.refundInfo.status === 'rejected'}}">拒绝退款</text>
             </view>
@@ -85,8 +73,6 @@
           <view class="actions" catchtap="stopPropagation">
             <view class="btn ghost" bindtap="onContactUser" data-id="{{item.id}}">联系用户</view>
             <view class="btn refund" catchtap="onViewRefund" data-id="{{item.id}}" wx:if="{{item.refundInfo && (item.refundInfo.status === 'pending' || item.refundInfo.status === 'processing')}}">申请退款</view>
-            <view class="btn primary" catchtap="onConfirmOrder" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'pending'}}">确认订单</view>
-            <view class="btn success" catchtap="onCompleteOrder" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'confirmed'}}">已出餐</view>
             <view class="btn cancelled" wx:if="{{item.orderStatus === 'cancelled'}}">订单已取消</view>
           </view>
         </view>
@@ -101,7 +87,10 @@
   <view class="sheet {{showDetail? 'show':''}}" catchtouchmove="true">
     <view class="sheet-header">
       <text class="sheet-desk">{{detail.deskNo}}#</text>
-      <text class="sheet-status {{detail.orderStatus === 'cancelled' ? 'cancelled' : ''}}">{{detail.statusText}}</text>
+      <view class="sheet-status-wrapper">
+        <text class="order-status-badge cancelled" wx:if="{{detail.orderStatus === 'cancelled'}}">已取消</text>
+        <text class="pay-status-badge paid" wx:elif="{{detail.payStatus === 'paid'}}">已支付</text>
+      </view>
     </view>
     <scroll-view scroll-y class="sheet-items">
       <block wx:for="{{detail.items}}" wx:key="name">
@@ -229,8 +218,6 @@
     <view class="sheet-actions">
       <view class="btn ghost" bindtap="onContactUser" data-id="{{detail.id}}">联系用户</view>
       <view class="btn cancelled" wx:if="{{detail.orderStatus === 'cancelled'}}">订单已取消</view>
-      <view class="btn primary" bindtap="onConfirmOrder" wx:if="{{detail.orderStatus === 'pending'}}">确认订单</view>
-      <view class="btn success" bindtap="onCompleteOrder" wx:if="{{detail.orderStatus === 'confirmed'}}">制作完成</view>
       <!-- 退款申请操作按钮 -->
       <view class="refund-actions" wx:if="{{detail.refundInfo && detail.refundInfo.status === 'pending'}}">
         <view class="btn reject" bindtap="onRejectRefund">拒绝退款</view>

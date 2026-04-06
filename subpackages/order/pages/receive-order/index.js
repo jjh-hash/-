@@ -1,10 +1,15 @@
+const log = require('../../../../utils/logger.js');
+
 Page({
   data:{
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
-    bottomActive: 'order',
+    bottomActive: 'task-hall', // 任务大厅为独立页，当前 Tab 为「任务大厅」非「订单」
     orders: [],
     allOrders: [], // 存储所有订单用于筛选
-    loading: true,
+    loading: false, // 初始 false，避免 loadOrders 首行 if(this.data.loading)return 导致首次不请求
+    orderPage: 1,
+    orderPageSize: 20,
+    hasMoreOrders: true,
     searchKeyword: '', // 搜索关键词
     selectedService: '', // 选中的服务类型
     selectedStatus: '', // 选中的状态
@@ -13,13 +18,12 @@ Page({
     showServiceFilter: false, // 显示服务筛选弹窗
     showStatusFilter: false, // 显示状态筛选弹窗
     showLocationFilter: false, // 显示地点筛选弹窗
-    serviceOptions: ['全部服务', '游戏陪玩', '悬赏', '代拿快递'],
+    serviceOptions: ['全部服务', '游戏陪玩', '跑腿', '代拿快递'],
     statusOptions: ['全部', '待接单', '进行中', '已完成'],
     locationOptions: ['全部地点', '图书馆', '宿舍楼', '教学楼', '食堂', '体育馆', '其他地点'],
     genderOptions: ['全部性别', '男生', '女生'],
     currentUserOpenid: null, // 当前用户的openid
     currentTime: '', // 当前时间显示
-    timeTimer: null, // 定时器
     showContactInfo: false, // 显示联系信息弹窗
     contactInfo: { // 联系信息
       wechat: '', // 微信号
@@ -28,9 +32,8 @@ Page({
     }
   },
 
-  onLoad() {
-    console.log('【接单页面】页面加载');
-    // 获取当前用户openid
+  onLoad(options) {
+    this._pendingOrderId = options.orderId || null;
     this.getCurrentUserOpenid();
     this.loadOrders();
   },
@@ -41,7 +44,7 @@ Page({
       // 优先从本地存储获取
       const userInfo = wx.getStorageSync('userInfo');
       if (userInfo && userInfo.openid) {
-        console.log('【接单页面】从本地存储获取用户openid:', userInfo.openid);
+        log.log('【接单页面】从本地存储获取用户openid:', userInfo.openid);
         this.setData({
           currentUserOpenid: userInfo.openid
         });
@@ -51,7 +54,7 @@ Page({
       // 如果本地没有，尝试从全局数据获取
       const app = getApp();
       if (app.globalData.userInfo && app.globalData.userInfo.openid) {
-        console.log('【接单页面】从全局数据获取用户openid:', app.globalData.userInfo.openid);
+        log.log('【接单页面】从全局数据获取用户openid:', app.globalData.userInfo.openid);
         this.setData({
           currentUserOpenid: app.globalData.userInfo.openid
         });
@@ -66,43 +69,35 @@ Page({
         });
         if (res.result && res.result.code === 0 && res.result.data && res.result.data.userInfo) {
           const openid = res.result.data.userInfo.openid;
-          console.log('【接单页面】从云函数获取用户openid:', openid);
+          log.log('【接单页面】从云函数获取用户openid:', openid);
           this.setData({
             currentUserOpenid: openid
           });
         }
       } catch (err) {
-        console.error('【接单页面】从云函数获取用户openid失败:', err);
+        log.error('【接单页面】从云函数获取用户openid失败:', err);
       }
     } catch (error) {
-      console.error('【接单页面】获取用户openid失败:', error);
+      log.error('【接单页面】获取用户openid失败:', error);
     }
   },
 
   onShow() {
-    console.log('【接单页面】页面显示，刷新订单');
-    // 确保获取当前用户openid
     this.getCurrentUserOpenid();
-    // 更新当前时间
     this.updateCurrentTime();
-    // 检查并自动取消超时订单
     this.checkAndCancelExpiredOrders();
-    this.loadOrders();
-    // 启动定时器，每秒更新当前时间
-    if (this.data.timeTimer) {
-      clearInterval(this.data.timeTimer);
+    const now = Date.now();
+    if (!this._ordersLastLoadTime || now - this._ordersLastLoadTime > 30000 || this.data.orders.length === 0) {
+      this.loadOrders();
     }
-    const timer = setInterval(() => {
+    if (this._timeTimer) clearInterval(this._timeTimer);
+    this._timeTimer = setInterval(() => {
       this.updateCurrentTime();
-      // 更新订单列表中的倒计时显示
       this.updateExpiredAtDisplay();
     }, 1000);
-    this.setData({ timeTimer: timer });
   },
 
-  // 下拉刷新
   async onPullDownRefresh() {
-    console.log('【接单页面】下拉刷新');
     try {
       // 更新当前时间
       this.updateCurrentTime();
@@ -111,7 +106,7 @@ Page({
       // 重新加载订单列表（不显示加载提示，因为下拉刷新本身已有动画）
       await this.loadOrders(false);
     } catch (error) {
-      console.error('【接单页面】下拉刷新失败:', error);
+      log.error('【接单页面】下拉刷新失败:', error);
       wx.showToast({
         title: '刷新失败',
         icon: 'none'
@@ -123,18 +118,16 @@ Page({
   },
 
   onHide() {
-    // 页面隐藏时清除定时器
-    if (this.data.timeTimer) {
-      clearInterval(this.data.timeTimer);
-      this.setData({ timeTimer: null });
+    if (this._timeTimer) {
+      clearInterval(this._timeTimer);
+      this._timeTimer = null;
     }
   },
 
   onUnload() {
-    // 页面卸载时清除定时器
-    if (this.data.timeTimer) {
-      clearInterval(this.data.timeTimer);
-      this.setData({ timeTimer: null });
+    if (this._timeTimer) {
+      clearInterval(this._timeTimer);
+      this._timeTimer = null;
     }
   },
 
@@ -144,18 +137,18 @@ Page({
     this.setData({ currentTime: timeDisplay });
   },
 
-  // 更新订单列表中的截止时间显示
+  // 更新订单列表中的截止时间显示（仅传变更路径，减少 setData 数据量）
   updateExpiredAtDisplay() {
-    const orders = this.data.orders.map(order => {
+    const orders = this.data.orders;
+    const hasExpired = orders.some(o => o.expiredAt);
+    if (!hasExpired) return;
+    const updates = {};
+    orders.forEach((order, i) => {
       if (order.expiredAt) {
-        return {
-          ...order,
-          expiredAtDisplay: this.formatExpiredAtDisplay(order.expiredAt)
-        };
+        updates[`orders[${i}].expiredAtDisplay`] = this.formatExpiredAtDisplay(order.expiredAt);
       }
-      return order;
     });
-    this.setData({ orders: orders });
+    if (Object.keys(updates).length > 0) this.setData(updates);
   },
 
   // 检查并自动取消超时订单
@@ -169,41 +162,49 @@ Page({
         }
       });
     } catch (error) {
-      console.error('【接单页面】检查超时订单失败:', error);
+      log.error('【接单页面】检查超时订单失败:', error);
       // 静默失败，不影响主流程
     }
   },
 
-  // 加载订单列表（加载所有状态的订单，包括待接单、进行中、已完成）
-  async loadOrders(showLoading = true) {
+  onReachBottom() {
+    if (!this.data.loading && this.data.hasMoreOrders) {
+      this.loadOrders(false, true);
+    }
+  },
+
+  // 加载订单列表（showLoading 是否显示 loading，isLoadMore 是否上拉加载更多）
+  async loadOrders(showLoading = true, isLoadMore = false) {
+    if (this.data.loading) return;
+
+    const pageSize = this.data.orderPageSize || 20;
+    const page = isLoadMore ? this.data.orderPage : 1;
+
     this.setData({ loading: true });
 
     try {
-      if (showLoading) {
+      if (showLoading && !isLoadMore) {
         wx.showLoading({ title: '加载中...' });
       }
 
-      // 不传 status 参数，查询所有状态的订单（待接单、进行中、已完成）
       const res = await wx.cloud.callFunction({
         name: 'orderManage',
         data: {
           action: 'getReceiveOrders',
           data: {
-            page: 1,
-            pageSize: 50
-            // 不传 status，查询所有状态的订单
+            page: page,
+            pageSize: pageSize
           }
         }
       });
 
-      if (showLoading) {
-        wx.hideLoading();
-      }
+      if (showLoading && !isLoadMore) wx.hideLoading();
 
-      console.log('【任务大厅】云函数返回结果:', res.result);
+      log.log('【任务大厅】云函数返回结果:', res.result);
 
       if (res.result && res.result.code === 200) {
-        const orders = res.result.data.list.map(order => ({
+        const total = res.result.data.total ?? 0;
+        const newOrders = res.result.data.list.map(order => ({
           id: order._id,
           orderNo: order.orderNo,
           orderType: order.orderType,
@@ -259,16 +260,26 @@ Page({
           searchText: `${order.orderNo} ${order.orderTypeText} ${order.helpContent || order.requirements || ''} ${order.address ? order.address.fullAddress : ''} ${order.pickupLocation || ''} ${order.helpLocation || ''}`.toLowerCase()
         }));
 
+        const allOrders = isLoadMore
+          ? [...(this.data.allOrders || []), ...newOrders]
+          : newOrders;
+        const hasMoreOrders = (page * pageSize) < total;
+
         this.setData({
-          allOrders: orders,
-          orders: orders,
+          allOrders,
+          orders: allOrders,
+          orderPage: page + 1,
+          hasMoreOrders,
           loading: false
+        }, () => {
+          if (this._pendingOrderId) {
+            const order = allOrders.find(o => o.id === this._pendingOrderId);
+            if (order) this.onOpenDetail({ currentTarget: { dataset: { id: order.id } } });
+            this._pendingOrderId = null;
+          }
         });
-
-        // 应用筛选
+        this._ordersLastLoadTime = Date.now();
         this.applyFilters();
-
-        console.log('【任务大厅】订单加载成功，共', orders.length, '条');
       } else {
         wx.showToast({
           title: res.result?.message || '加载失败',
@@ -279,7 +290,7 @@ Page({
 
     } catch (error) {
       wx.hideLoading();
-      console.error('【任务大厅】加载异常:', error);
+      log.error('【任务大厅】加载异常:', error);
       wx.showToast({
         title: '加载失败',
         icon: 'none'
@@ -292,7 +303,7 @@ Page({
   getOrderTypeText(orderType) {
     const typeMap = {
       'gaming': '游戏陪玩',
-      'reward': '悬赏',
+      'reward': '跑腿',
       'express': '代拿快递'
     };
     return typeMap[orderType] || '未知';
@@ -314,7 +325,7 @@ Page({
     if (this.data.selectedService) {
       const serviceMap = {
         '游戏陪玩': 'gaming',
-        '悬赏': 'reward',
+        '跑腿': 'reward',
         '代拿快递': 'express'
       };
       const orderType = serviceMap[this.data.selectedService];
@@ -581,7 +592,7 @@ Page({
         return `${month}/${date} ${hoursStr}:${minutesStr}截止`;
       }
     } catch (error) {
-      console.error('格式化截止时间失败:', error, expiredAt);
+      log.error('格式化截止时间失败:', error, expiredAt);
       return '';
     }
   },
@@ -653,42 +664,6 @@ Page({
     };
     return classMap[status] || 'normal';
   },
-
-  onBottomTap(e) {
-    const tab = e.currentTarget.dataset.tab;
-    if (tab === 'home') {
-      wx.reLaunch({
-        url: '/pages/home/index'
-      });
-    } else if (tab === 'order') {
-      // 当前页面，不跳转
-      return;
-    } else if (tab === 'receive') {
-      // 接单功能正在开发中
-      wx.showToast({
-        title: '正在开发中',
-        icon: 'none',
-        duration: 2000
-      });
-      // 当前页面，不跳转
-      // return;
-    } else if (tab === 'message') {
-      // 消息功能正在开发中
-      wx.showToast({
-        title: '正在开发中',
-        icon: 'none',
-        duration: 2000
-      });
-      // wx.reLaunch({
-      //   url: '/pages/message/index'
-      // });
-    } else if (tab === 'profile') {
-      wx.reLaunch({
-        url: '/pages/profile/index'
-      });
-    }
-  },
-
 
   // 联系用户
   async onContactUser(e) {
@@ -762,7 +737,7 @@ Page({
       });
     } catch (error) {
       wx.hideLoading();
-      console.error('【接单页面】获取用户信息失败:', error);
+      log.error('【接单页面】获取用户信息失败:', error);
       
       // 如果获取失败，尝试使用订单中的信息
       const phone = order.address?.phone || order.userInfo?.phone || '';
@@ -849,7 +824,7 @@ Page({
     wx.makePhoneCall({
       phoneNumber: phone,
       fail: (err) => {
-        console.error('拨打电话失败:', err);
+        log.error('拨打电话失败:', err);
         wx.showToast({
           title: '拨打电话失败',
           icon: 'none'
@@ -874,14 +849,14 @@ Page({
       }
     }
     
-    console.log('【接单页面】点击接单，orderId:', orderId);
+    log.log('【接单页面】点击接单，orderId:', orderId);
     
     if (!orderId) {
       wx.showToast({
         title: '缺少订单ID',
         icon: 'none'
       });
-      console.error('【接单页面】无法获取订单ID');
+      log.error('【接单页面】无法获取订单ID');
       return;
     }
     
@@ -911,7 +886,7 @@ Page({
 
       wx.hideLoading();
 
-      console.log('【接单页面】接单云函数返回:', res.result);
+      log.log('【接单页面】接单云函数返回:', res.result);
 
       if (res.result && res.result.code === 200) {
         // 接单成功后，弹出确认弹窗
@@ -926,15 +901,15 @@ Page({
               await this.onReceiverConfirmAfterAccept(orderId);
             } else {
               // 用户点击取消，取消接单，订单恢复为待接单状态
-              console.log('【接单页面】用户点击取消，取消接单');
+              log.log('【接单页面】用户点击取消，取消接单');
               await this.onCancelAcceptOrder(orderId);
             }
           },
           fail: (err) => {
             // 如果弹窗操作失败，也取消接单
-            console.log('【接单页面】弹窗操作失败，取消接单:', err);
+            log.log('【接单页面】弹窗操作失败，取消接单:', err);
             this.onCancelAcceptOrder(orderId).catch(error => {
-              console.error('【接单页面】取消接单异常:', error);
+              log.error('【接单页面】取消接单异常:', error);
               this.setData({ showDetail: false });
               setTimeout(() => {
                 this.loadOrders();
@@ -943,16 +918,27 @@ Page({
           }
         });
       } else {
-        wx.showToast({
-          title: res.result?.message || '接单失败',
-          icon: 'none',
-          duration: 2000
-        });
+        const msg = res.result?.message || '接单失败';
+        const isCampusRequired = res.result?.code === 403 && (msg.indexOf('校园兼职') !== -1 || msg.indexOf('保证金') !== -1);
+        if (isCampusRequired) {
+          wx.showModal({
+            title: '无法接单',
+            content: msg,
+            confirmText: '去开通',
+            success: (r) => {
+              if (r.confirm) {
+                wx.navigateTo({ url: '/subpackages/common/pages/campus-partner/index' });
+              }
+            }
+          });
+        } else {
+          wx.showToast({ title: msg, icon: 'none', duration: 2000 });
+        }
       }
 
     } catch (error) {
       wx.hideLoading();
-      console.error('【接单页面】接单异常:', error);
+      log.error('【接单页面】接单异常:', error);
       wx.showToast({
         title: '接单失败',
         icon: 'none'
@@ -976,14 +962,14 @@ Page({
       }
     }
     
-    console.log('【接单页面】点击完成订单，orderId:', orderId);
+    log.log('【接单页面】点击完成订单，orderId:', orderId);
     
     if (!orderId) {
       wx.showToast({
         title: '缺少订单ID',
         icon: 'none'
       });
-      console.error('【接单页面】无法获取订单ID');
+      log.error('【接单页面】无法获取订单ID');
       return;
     }
     
@@ -1011,7 +997,7 @@ Page({
 
             wx.hideLoading();
 
-            console.log('【接单页面】完成订单云函数返回:', result.result);
+            log.log('【接单页面】完成订单云函数返回:', result.result);
 
             if (result.result && result.result.code === 200) {
               wx.showToast({
@@ -1037,7 +1023,7 @@ Page({
 
           } catch (error) {
             wx.hideLoading();
-            console.error('【接单页面】完成订单异常:', error);
+            log.error('【接单页面】完成订单异常:', error);
             wx.showToast({
               title: '操作失败',
               icon: 'none'
@@ -1086,7 +1072,7 @@ Page({
 
     } catch (error) {
       wx.hideLoading();
-      console.error('【接单页面】确认接单异常:', error);
+      log.error('【接单页面】确认接单异常:', error);
       wx.showToast({
         title: '确认失败',
         icon: 'none'
@@ -1097,10 +1083,10 @@ Page({
   // 取消接单（received -> pending）
   async onCancelAcceptOrder(orderId) {
     try {
-      console.log('【接单页面】开始取消接单，orderId:', orderId);
+      log.log('【接单页面】开始取消接单，orderId:', orderId);
       
       if (!orderId) {
-        console.error('【接单页面】取消接单缺少订单ID');
+        log.error('【接单页面】取消接单缺少订单ID');
         this.setData({ showDetail: false });
         setTimeout(() => {
           this.loadOrders();
@@ -1123,12 +1109,12 @@ Page({
 
       wx.hideLoading();
 
-      console.log('【接单页面】取消接单云函数返回:', res.result);
+      log.log('【接单页面】取消接单云函数返回:', res.result);
 
       // 检查取消结果
       if (res.result && res.result.code === 200) {
         // 取消成功，关闭弹窗并刷新订单列表
-        console.log('【接单页面】取消接单成功，订单已重回待接单状态');
+        log.log('【接单页面】取消接单成功，订单已重回待接单状态');
         this.setData({ showDetail: false });
         // 延迟一下再刷新，确保数据库更新完成
         setTimeout(() => {
@@ -1136,7 +1122,7 @@ Page({
         }, 500);
       } else {
         // 取消失败，记录日志
-        console.error('【接单页面】取消接单失败:', res.result?.message || '未知错误');
+        log.error('【接单页面】取消接单失败:', res.result?.message || '未知错误');
         // 即使失败也关闭弹窗并刷新，让用户看到最新状态
         this.setData({ showDetail: false });
         setTimeout(() => {
@@ -1147,7 +1133,7 @@ Page({
     } catch (error) {
       wx.hideLoading();
       // 异常时也关闭弹窗并刷新列表
-      console.error('【接单页面】取消接单异常:', error);
+      log.error('【接单页面】取消接单异常:', error);
       this.setData({ showDetail: false });
       setTimeout(() => {
         this.loadOrders();
@@ -1160,7 +1146,7 @@ Page({
     const order = this.data.orders.find(o=>o.id===id);
     
     if (!order) {
-      console.error('【接单页面】订单不存在，id:', id);
+      log.error('【接单页面】订单不存在，id:', id);
       return;
     }
     
@@ -1240,8 +1226,35 @@ Page({
     this.setData({ showDetail: true, detail: detail });
   },
 
-  // TODO: 用户确认订单完成逻辑待实现
-  
+  // 用户确认订单完成（下单者在任务大厅/详情中点击）
+  async onUserConfirmComplete(e) {
+    const orderId = (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.orderId) || (this.data.detail && this.data.detail.id);
+    if (!orderId) {
+      wx.showToast({ title: '订单信息异常', icon: 'none' });
+      return;
+    }
+    try {
+      wx.showLoading({ title: '确认中...' });
+      const res = await wx.cloud.callFunction({
+        name: 'orderManage',
+        data: { action: 'userConfirmComplete', data: { orderId } }
+      });
+      wx.hideLoading();
+      const result = res.result;
+      if (result && result.code === 200) {
+        wx.showToast({ title: '已确认完成', icon: 'success' });
+        this.setData({ showDetail: false });
+        this.loadOrders();
+        return;
+      }
+      wx.showToast({ title: (result && result.message) || '确认失败', icon: 'none' });
+    } catch (err) {
+      wx.hideLoading();
+      log.error('【任务大厅】用户确认订单完成异常:', err);
+      wx.showToast({ title: '网络异常', icon: 'none' });
+    }
+  },
+
   formatDateTime(dateStr) {
     if (!dateStr) return '';
     
@@ -1283,7 +1296,7 @@ Page({
     
     // 验证日期是否有效
     if (isNaN(d.getTime())) {
-      console.warn('【格式化日期时间】无效的日期:', dateStr);
+      log.warn('【格式化日期时间】无效的日期:', dateStr);
       return '';
     }
     
@@ -1312,10 +1325,10 @@ Page({
       e.stopPropagation();
     }
     
-    console.log('【接单页面】点击地址信息，detail:', this.data.detail);
+    log.log('【接单页面】点击地址信息，detail:', this.data.detail);
     
     if (!this.data.detail) {
-      console.log('【接单页面】详情信息不存在');
+      log.log('【接单页面】详情信息不存在');
       wx.showToast({
         title: '订单信息不存在',
         icon: 'none'
@@ -1337,7 +1350,7 @@ Page({
     }
     
     if (!address) {
-      console.log('【接单页面】地址和用户信息都不存在');
+      log.log('【接单页面】地址和用户信息都不存在');
       wx.showToast({
         title: '暂无地址信息',
         icon: 'none'
@@ -1348,7 +1361,7 @@ Page({
     const fullAddress = address.fullAddress || `${address.buildingName || ''}${address.houseNumber || ''}${address.addressDetail || address.address || ''}` || '未设置地址';
     const phone = address.phone || '';
     
-    console.log('【接单页面】地址信息:', { fullAddress, phone, name: address.name });
+    log.log('【接单页面】地址信息:', { fullAddress, phone, name: address.name });
     
     const actionList = [];
     if (fullAddress && fullAddress !== '未设置地址') {
@@ -1412,7 +1425,7 @@ Page({
         }
       },
       fail: (err) => {
-        console.error('【接单页面】显示操作菜单失败:', err);
+        log.error('【接单页面】显示操作菜单失败:', err);
       }
     });
   },
@@ -1422,7 +1435,7 @@ Page({
     e.stopPropagation && e.stopPropagation();
     
     if (!this.data.detail || !this.data.detail.userInfo) {
-      console.log('【接单页面】用户信息不存在');
+      log.log('【接单页面】用户信息不存在');
       return;
     }
     
@@ -1437,7 +1450,7 @@ Page({
       return;
     }
     
-    console.log('【接单页面】点击用户信息:', userInfo);
+    log.log('【接单页面】点击用户信息:', userInfo);
     
     wx.showActionSheet({
       itemList: ['复制电话', '拨打电话'],
@@ -1467,7 +1480,7 @@ Page({
         }
       },
       fail: (err) => {
-        console.error('【接单页面】显示操作菜单失败:', err);
+        log.error('【接单页面】显示操作菜单失败:', err);
       }
     });
   },
@@ -1482,7 +1495,7 @@ Page({
     wx.navigateTo({
       url: '/subpackages/order/pages/my-published-orders/index',
       fail: (err) => {
-        console.error('跳转到我的订单页面失败:', err);
+        log.error('跳转到我的订单页面失败:', err);
         wx.showToast({
           title: '跳转失败',
           icon: 'none'
@@ -1491,17 +1504,15 @@ Page({
     });
   },
 
-  // 底部导航切换
-  onBottomTap(e){
-    const tab = e.currentTarget.dataset.tab;
-    this.setData({ bottomActive: tab });
-    if(tab === 'home'){
+  // 底部导航切换（user-tab-bar 组件触发，detail.tab）
+  onBottomTap(e) {
+    const tab = (e.detail && e.detail.tab) ? e.detail.tab : (e.currentTarget && e.currentTarget.dataset.tab);
+    if (!tab) return;
+    if (tab === 'home') {
       wx.reLaunch({ url: '/pages/home/index' });
-    } else if(tab === 'order'){
-      wx.reLaunch({ url: '/pages/order/index' });
-    } else if(tab === 'receive'){
-      // 当前页面，无需跳转
-    } else if(tab === 'profile'){
+    } else if (tab === 'task-hall') {
+      // 当前即任务大厅，无需跳转
+    } else if (tab === 'profile') {
       wx.reLaunch({ url: '/pages/profile/index' });
     }
   }

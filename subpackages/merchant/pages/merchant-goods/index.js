@@ -199,9 +199,9 @@ Page({
   onEdit(e) {
     const id = e.currentTarget.dataset.id;
     
-    // 跳转到编辑页面，只传递商品ID
+    // 跳转到编辑页面（与添加商品同一分包页面），传递商品ID
     wx.navigateTo({
-      url: `/pages/merchant-add-product/index?id=${id}`
+      url: `/subpackages/merchant/pages/merchant-add-product/index?id=${id}`
     });
   },
   

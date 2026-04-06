@@ -1,17 +1,4 @@
 <view class="page">
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="back" bindtap="onBack">◀</text>
-      <text class="title">订单</text>
-      <view class="icons">
-        <text class="dot">•</text>
-        <text class="battery">▮</text>
-      </view>
-    </view>
-  </view>
-
   <scroll-view 
     scroll-y 
     class="content"
@@ -34,35 +21,71 @@
       </block>
     </view>
 
-    <!-- 加载状态 -->
-    <view wx:if="{{loading}}" class="loading-container">
-      <text>加载中...</text>
+    <!-- 首次加载骨架屏 -->
+    <view wx:if="{{loading && filteredOrders.length === 0}}" class="order-list order-skeleton-list">
+      <block wx:for="{{[1,2,3,4,5]}}" wx:key="*this">
+        <view class="order-card">
+          <view class="order-header">
+            <view class="food-img ds-skeleton" style="width:60px;height:60px;border-radius:var(--radius-btn);"></view>
+            <view class="order-info" style="flex:1;">
+              <view class="ds-skeleton-line" style="width:70%;margin-bottom:6px;"></view>
+              <view class="ds-skeleton-line" style="width:40%;"></view>
+            </view>
+            <view class="ds-skeleton-line" style="width:50px;height:20px;border-radius:4px;"></view>
+          </view>
+          <view class="order-items" style="padding:0 0 8px;">
+            <view class="ds-skeleton-line" style="width:90%;margin-bottom:4px;"></view>
+            <view class="ds-skeleton-line" style="width:60%;"></view>
+          </view>
+          <view class="order-footer" style="border-top:1px solid var(--color-border);padding-top:8px;">
+            <view class="ds-skeleton-line" style="width:80px;height:16px;"></view>
+          </view>
+        </view>
+      </block>
+    </view>
+    
+    <!-- 错误重试 -->
+    <view wx:elif="{{loadError && filteredOrders.length === 0 && !loading}}" class="ds-empty ds-fade-in">
+      <view class="ds-empty-icon-wrap"><text class="ds-empty-icon-char">⚠️</text></view>
+      <text class="ds-empty-title">加载失败</text>
+      <text class="ds-empty-desc">{{errorMessage || '网络异常，请重试'}}</text>
+      <view class="ds-empty-btn ds-press" bindtap="onRetryLoad">点击重试</view>
     </view>
     
     <!-- 空状态 -->
-    <view wx:elif="{{filteredOrders.length === 0 && !loading}}" class="empty-container">
-      <text>暂无订单</text>
+    <view wx:elif="{{filteredOrders.length === 0 && !loading}}" class="ds-empty ds-fade-in">
+      <view class="ds-empty-icon-wrap"><text class="ds-empty-icon-char">单</text></view>
+      <text class="ds-empty-title">暂无订单</text>
+      <text class="ds-empty-desc">去首页逛逛，发现好吃好玩的</text>
+      <view class="ds-empty-btn ds-press" bindtap="onGoHome">去逛逛</view>
     </view>
     
-    <!-- 订单列表 -->
-    <view wx:elif="{{!loading && filteredOrders.length > 0}}" class="order-list">
+    <!-- 订单列表（有数据时始终显示，加载更多时不整页替换为加载中） -->
+    <view wx:elif="{{filteredOrders.length > 0}}" class="order-list">
       <block wx:for="{{filteredOrders}}" wx:key="id">
-        <view class="order-card" bindtap="onOrderTap" data-id="{{item.id}}">
+        <view class="order-card ds-press {{item.id === highlightOrderId ? 'highlight' : ''}}" id="order-{{item.id}}" bindtap="onOrderTap" data-id="{{item.id}}">
           <!-- 顶部信息 -->
           <view class="order-header">
-            <image class="food-img" src="{{item.img}}" mode="aspectFill" />
+            <image class="food-img" src="{{item.img || '/images/placeholder.png'}}" mode="aspectFill" lazy-load />
             <view class="order-info">
               <text class="store-name">{{item.storeName}}</text>
               <text class="order-date">{{item.date}}</text>
             </view>
-            <text class="order-status {{item.statusClass}}">{{item.status}}</text>
+            <view class="status-wrapper">
+              <text class="order-status-badge cancelled" wx:if="{{item.orderStatus === 'cancelled'}}">已取消</text>
+              <text class="refund-status-badge approved" wx:elif="{{item.refundInfo && (item.refundInfo.status === 'approved' || item.refundInfo.status === 'completed')}}">已退款</text>
+              <text class="refund-status-badge rejected" wx:elif="{{item.refundInfo && item.refundInfo.status === 'rejected'}}">拒绝退款</text>
+              <text class="pay-status-badge unpaid" wx:elif="{{item.payStatus === 'unpaid'}}">待支付</text>
+              <text class="order-status-badge {{item.statusBadgeClass}}" wx:else>{{item.status}}</text>
+            </view>
           </view>
 
-          <!-- 订单商品 -->
+          <!-- 订单商品（最多 2 行 + 等共x件） -->
           <view class="order-items">
-            <block wx:for="{{item.items}}" wx:key="index" wx:for-item="food">
+            <block wx:for="{{item.displayItems || item.items}}" wx:key="index" wx:for-item="food">
               <text class="item-name">{{food.name}}</text>
             </block>
+            <text class="item-name item-more" wx:if="{{item.itemsLength > 2}}">等共{{item.itemsLength}}件</text>
           </view>
 
           <!-- 退款状态显示 -->
@@ -72,8 +95,10 @@
             <text class="refund-amount" wx:if="{{item.refundInfo && item.refundInfo.refundAmount}}">退款金额：¥{{item.refundInfo.refundAmount}}</text>
           </view>
 
-          <!-- 预计送达时间 -->
-          <view class="order-time-info" wx:if="{{item.estimatedDeliveryTime || item.estimatedDeliveryTimeRange}}">
+          <!-- 待支付倒计时 / 预计送达时间 -->
+          <view class="order-time-info" wx:if="{{item.estimatedDeliveryTime || item.estimatedDeliveryTimeRange || (item.payStatus === 'unpaid' && item.expiredMinutes != null)}}">
+            <text class="time-text expired" wx:if="{{item.payStatus === 'unpaid' && item.orderStatus !== 'cancelled' && item.expiredMinutes !== null && item.expiredMinutes < 0}}">订单已超时</text>
+            <text class="time-text countdown" wx:elif="{{item.payStatus === 'unpaid' && item.orderStatus !== 'cancelled' && item.expiredMinutes !== null && item.expiredMinutes > 0}}">订单剩余{{item.expiredMinutes}}分钟</text>
             <text class="time-text delivery" wx:if="{{item.estimatedDeliveryTimeRange}}">预计到达时间：{{item.estimatedDeliveryTimeRange}}</text>
             <text class="time-text delivery" wx:elif="{{item.estimatedDeliveryTime}}">预计送达：{{item.estimatedDeliveryTime}}</text>
           </view>
@@ -87,7 +112,11 @@
               </view>
             </view>
             <view class="action-buttons" catchtap="stopPropagation">
-              <block wx:if="{{item.orderStatus === 'pending' || item.orderStatus === 'confirmed' || item.orderStatus === 'preparing'}}">
+              <block wx:if="{{item.payStatus === 'unpaid' && item.orderStatus !== 'cancelled'}}">
+                <button class="btn-pay" size="mini" bindtap="onPayOrder" data-id="{{item.id}}" disabled="{{payingOrderId === item.id}}">{{payingOrderId === item.id ? '支付中...' : '立即支付'}}</button>
+                <button class="btn-cancel" size="mini" bindtap="onCancelOrder" data-id="{{item.id}}">取消订单</button>
+              </block>
+              <block wx:elif="{{item.orderStatus === 'pending' || item.orderStatus === 'confirmed' || item.orderStatus === 'preparing'}}">
                 <button class="btn-cancel" size="mini" bindtap="onCancelOrder" data-id="{{item.id}}">取消订单</button>
                 <button class="btn-contact" size="mini" bindtap="onContactMerchant" data-id="{{item.id}}" wx:if="{{item.storeId}}">联系商家</button>
                 <button class="btn-again" size="mini" bindtap="onOrderAgain" data-id="{{item.id}}">再来一单</button>
@@ -96,7 +125,7 @@
                 <text class="cancelled-text">订单已取消</text>
               </block>
               <block wx:else>
-                <button class="btn-refund" size="mini" catchtap="onRefund" data-id="{{item.id}}" wx:if="{{item.orderStatus === 'completed' && item.canRefund && !item.refundStatus}}">申请退款</button>
+                <button class="btn-refund" size="mini" catchtap="onRefund" data-id="{{item.id}}" wx:if="{{item.payStatus === 'paid' && item.canRefund && !item.refundStatus}}">申请退款</button>
                 <button class="btn-contact" size="mini" bindtap="onContactMerchant" data-id="{{item.id}}" wx:if="{{item.storeId}}">联系商家</button>
                 <button class="btn-again" size="mini" bindtap="onOrderAgain" data-id="{{item.id}}">再来一单</button>
               </block>
@@ -104,34 +133,15 @@
           </view>
         </view>
       </block>
+      <view class="load-more-footer" wx:if="{{filteredOrders.length > 0}}">
+        <text wx:if="{{loading && hasMoreOrders}}">加载更多...</text>
+        <text wx:elif="{{!hasMoreOrders}}">没有更多了</text>
+      </view>
     </view>
     
     <view class="safe-area-bottom"></view>
   </scroll-view>
 
-  <!-- 自定义底部栏 -->
-  <view class="tabbar">
-    <view class="tab" bindtap="onTabTap" data-tab="home">
-      <image class="t-icon" src="/pages/小标/shouye.png" mode="aspectFit" />
-      <text class="t-text">首页</text>
-    </view>
-    <view class="tab active">
-      <image class="t-icon" src="/pages/小标/dingdan-copy.png" mode="aspectFit" />
-      <text class="t-text">订单</text>
-    </view>
-    <!-- 接单功能正在开发中，已注释 -->
-    <!-- <view class="tab" bindtap="onTabTap" data-tab="receive">
-      <image class="t-icon" src="/pages/小标/接单.png" mode="aspectFit" />
-      <text class="t-text">接单</text>
-    </view> -->
-    <!-- 消息功能正在开发中，已注释 -->
-    <!-- <view class="tab" bindtap="onTabTap" data-tab="message">
-      <image class="t-icon" src="/pages/小标/消息.png" mode="aspectFit" />
-      <text class="t-text">消息</text>
-    </view> -->
-    <view class="tab" bindtap="onTabTap" data-tab="profile">
-      <image class="t-icon" src="/pages/小标/wode.png" mode="aspectFit" />
-      <text class="t-text">我的</text>
-    </view>
-  </view>
+  <!-- 用户端底部栏（与首页/个人中心/任务大厅统一组件） -->
+  <user-tab-bar active="order" variant="user" bindtabtap="onTabTap" />
 </view>

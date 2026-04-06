@@ -1,69 +1,69 @@
-.page{min-height:100vh;background:#f5f5f5;padding-bottom:80px}
+/* 商家新增/编辑商品 - 设计系统 */
+.page{min-height:100vh;background:var(--color-bg-page);padding-bottom:80px}
 .status-bar{width:100%}
-.nav{height:44px;background:#fff;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;position:relative}
-.back{position:absolute;left:12px;color:#333;font-size:18px}
-.title{font-size:18px;color:#333;font-weight:600}
+.nav{height:44px;background:var(--color-bg-card);border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:center;position:relative}
+.back{position:absolute;left:12px;color:var(--color-text);font-size:18px}
+.title{font-size:18px;color:var(--color-text);font-weight:600}
 
 .form-container{padding:12px}
-.section{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px}
-.section-title{font-size:16px;color:#333;font-weight:600;margin-bottom:16px;display:block}
+.section{background:var(--color-bg-card);border-radius:var(--radius-card);padding:16px;margin-bottom:12px;box-shadow:var(--shadow-card)}
+.section-title{font-size:16px;color:var(--color-text);font-weight:600;margin-bottom:16px;display:block}
 
-.form-item{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid #f5f5f5;position:relative}
+.form-item{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--color-border);position:relative}
 .form-item:last-child{border-bottom:none}
-.label{color:#333;font-size:15px;width:80px;flex-shrink:0}
-.input{flex:1;color:#333;font-size:15px;text-align:right}
-.input::placeholder{color:#999}
+.label{color:var(--color-text);font-size:15px;width:80px;flex-shrink:0}
+.input{flex:1;color:var(--color-text);font-size:15px;text-align:right}
+.input::placeholder{color:var(--color-text-placeholder)}
 
 .select-value{flex:1;display:flex;align-items:center;justify-content:flex-end}
-.placeholder{color:#999;font-size:15px}
-.arrow{color:#999;font-size:14px;margin-left:8px}
+.placeholder{color:var(--color-text-placeholder);font-size:15px}
+.arrow{color:var(--color-text-placeholder);font-size:14px;margin-left:8px}
 
 .upload-item{flex-direction:column;align-items:flex-start;padding:16px 0}
-.upload-hint{color:#999;font-size:12px;margin-top:4px;margin-bottom:12px}
-.upload-area{width:80px;height:80px;border:1px dashed #ddd;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fafafa}
-.uploaded-image{width:100%;height:100%;border-radius:8px}
+.upload-hint{color:var(--color-text-placeholder);font-size:12px;margin-top:4px;margin-bottom:12px}
+.upload-area{width:80px;height:80px;border:1px dashed var(--color-border);border-radius:var(--radius-btn);display:flex;align-items:center;justify-content:center;background:var(--color-bg-page)}
+.uploaded-image{width:100%;height:100%;border-radius:var(--radius-btn)}
 .upload-placeholder{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
-.camera-icon{font-size:24px;color:#999}
+.camera-icon{font-size:24px;color:var(--color-text-placeholder)}
 
-.save-btn{position:fixed;left:12px;right:12px;bottom:20px;height:44px;background:#1677ff;color:#fff;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;z-index:100}
+.save-btn{position:fixed;left:12px;right:12px;bottom:20px;height:44px;background:var(--color-primary);color:#fff;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;z-index:100}
 
-.offline-btn{position:fixed;left:12px;right:12px;bottom:80px;height:44px;background:#ff4d4f;color:#fff;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;z-index:100}
+.offline-btn{position:fixed;left:12px;right:12px;bottom:80px;height:44px;background:var(--color-danger);color:#fff;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;z-index:100}
 
 /* 规格管理样式 */
 .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.add-spec-group-btn{display:flex;align-items:center;padding:6px 12px;background:#1677ff;color:#fff;border-radius:6px;font-size:14px}
+.add-spec-group-btn{display:flex;align-items:center;padding:6px 12px;background:var(--color-primary);color:#fff;border-radius:var(--radius-btn);font-size:14px}
 .add-icon{margin-right:4px;font-size:16px}
 .add-text{font-size:14px}
 
 .empty-specs{padding:20px;text-align:center}
-.empty-text{color:#999;font-size:14px}
+.empty-text{color:var(--color-text-placeholder);font-size:14px}
 
 .spec-groups{margin-top:12px}
-.spec-group{background:#fafafa;border-radius:8px;padding:12px;margin-bottom:12px;border:1px solid #eee}
+.spec-group{background:var(--color-bg-page);border-radius:var(--radius-btn);padding:12px;margin-bottom:12px;border:1px solid var(--color-border)}
 .spec-group-header{display:flex;align-items:center;margin-bottom:12px}
-.spec-group-name-input{flex:1;padding:8px 12px;background:#fff;border-radius:6px;font-size:14px;color:#333;border:1px solid #ddd}
+.spec-group-name-input{flex:1;padding:8px 12px;background:var(--color-bg-card);border-radius:var(--radius-btn);font-size:14px;color:var(--color-text);border:1px solid var(--color-border)}
 .delete-group-btn{padding:8px;margin-left:8px}
 
-/* 规格组类型选择 */
 .spec-group-type{display:flex;align-items:center;margin-bottom:12px;padding:8px 0}
-.spec-type-label{font-size:13px;color:#666;margin-right:8px}
+.spec-type-label{font-size:13px;color:var(--color-text-secondary);margin-right:8px}
 .spec-type-options{display:flex;gap:8px}
-.spec-type-item{padding:4px 12px;background:#fff;border:1px solid #ddd;border-radius:4px;font-size:13px;color:#666;cursor:pointer}
-.spec-type-item.active{background:#1677ff;border-color:#1677ff;color:#fff}
+.spec-type-item{padding:4px 12px;background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-tag);font-size:13px;color:var(--color-text-secondary);cursor:pointer}
+.spec-type-item.active{background:var(--color-primary);border-color:var(--color-primary);color:#fff}
 
 .spec-options{margin-top:8px}
-.spec-option-item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #eee}
+.spec-option-item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-border)}
 .spec-option-item:last-child{border-bottom:none}
-.spec-option-name{flex:1;padding:6px 10px;background:#fff;border-radius:4px;font-size:14px;color:#333;border:1px solid #ddd;margin-right:8px}
-.spec-option-price-label{color:#666;font-size:13px;margin-right:4px}
-.spec-option-price{width:60px;padding:6px 8px;background:#fff;border-radius:4px;font-size:14px;color:#333;border:1px solid #ddd;text-align:center}
-.spec-option-price-unit{color:#666;font-size:13px;margin-left:4px;margin-right:8px}
-.delete-option-btn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:#ff4d4f;border-radius:50%;color:#fff}
+.spec-option-name{flex:1;padding:6px 10px;background:var(--color-bg-card);border-radius:var(--radius-tag);font-size:14px;color:var(--color-text);border:1px solid var(--color-border);margin-right:8px}
+.spec-option-price-label{color:var(--color-text-secondary);font-size:13px;margin-right:4px}
+.spec-option-price{width:60px;padding:6px 8px;background:var(--color-bg-card);border-radius:var(--radius-tag);font-size:14px;color:var(--color-text);border:1px solid var(--color-border);text-align:center}
+.spec-option-price-unit{color:var(--color-text-secondary);font-size:13px;margin-left:4px;margin-right:8px}
+.delete-option-btn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:var(--color-danger);border-radius:50%;color:#fff}
 .delete-icon-small{font-size:18px;line-height:1}
 
-.add-option-btn{display:flex;align-items:center;justify-content:center;padding:8px;margin-top:8px;border:1px dashed #ddd;border-radius:6px;background:#fff}
-.add-icon-small{margin-right:4px;color:#1677ff;font-size:16px}
-.add-option-text{color:#1677ff;font-size:13px}
+.add-option-btn{display:flex;align-items:center;justify-content:center;padding:8px;margin-top:8px;border:1px dashed var(--color-border);border-radius:var(--radius-btn);background:var(--color-bg-card)}
+.add-icon-small{margin-right:4px;color:var(--color-primary);font-size:16px}
+.add-option-text{color:var(--color-primary);font-size:13px}
 .delete-icon{font-size:16px}
 
 /* 分类选择弹窗样式 */
@@ -89,8 +89,8 @@
 
 .category-modal {
   width: 100%;
-  background: #fff;
-  border-radius: 16px 16px 0 0;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
   max-height: 70vh;
   display: flex;
   flex-direction: column;

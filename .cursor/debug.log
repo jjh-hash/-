@@ -1,0 +1,12 @@
+{"timestamp":1771382070785,"location":"home/index.js:loadStores","message":"before applySort","data":{"originalShopsLen":2,"isLoadMore":false},"hypothesisId":"A"}
+{"timestamp":1771382070792,"location":"home/index.js:applySort:beforeSetData","message":"before setData shops/left/right","data":{"taggedLen":2,"leftLen":1,"rightLen":1},"hypothesisId":"C"}
+{"timestamp":1771382070791,"location":"home/index.js:applySort:entry","message":"applySort entry","data":{"rawLen":2,"hasSourceShops":true},"hypothesisId":"B"}
+{"timestamp":1771382070793,"location":"home/index.js:loadStores:afterApplySort","message":"merged setData path","data":{"hasPayload":true,"shopsLen":2,"leftLen":1,"rightLen":1,"willSetData":true},"hypothesisId":"E"}
+{"timestamp":1771382070796,"location":"home/index.js:loadStores:finally","message":"storeListLoading cleared in same batch as list (or here if no payload)","data":{"storeListLoading":false},"hypothesisId":"D"}
+{"timestamp":1771382070849,"location":"home/index.js:loadStores:afterSetDataTick","message":"data one tick after setData","data":{"shopsLen":2,"leftLen":1,"rightLen":1,"storeListLoading":false},"hypothesisId":"F"}
+{"timestamp":1771382180748,"location":"home/index.js:loadStores","message":"before applySort","data":{"originalShopsLen":2,"isLoadMore":false},"hypothesisId":"A"}
+{"timestamp":1771382180753,"location":"home/index.js:applySort:entry","message":"applySort entry","data":{"rawLen":2,"hasSourceShops":true},"hypothesisId":"B"}
+{"timestamp":1771382180754,"location":"home/index.js:applySort:beforeSetData","message":"before setData shops/left/right","data":{"taggedLen":2,"leftLen":1,"rightLen":1},"hypothesisId":"C"}
+{"timestamp":1771382180755,"location":"home/index.js:loadStores:afterApplySort","message":"merged setData path","data":{"hasPayload":true,"shopsLen":2,"leftLen":1,"rightLen":1,"willSetData":true},"hypothesisId":"E"}
+{"timestamp":1771382180758,"location":"home/index.js:loadStores:finally","message":"storeListLoading cleared in same batch as list (or here if no payload)","data":{"storeListLoading":false},"hypothesisId":"D"}
+{"timestamp":1771382180810,"location":"home/index.js:loadStores:afterSetDataTick","message":"data one tick after setData","data":{"shopsLen":2,"leftLen":1,"rightLen":1,"storeListLoading":false},"hypothesisId":"F"}

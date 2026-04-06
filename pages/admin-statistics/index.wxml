@@ -1,13 +1,6 @@
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <view class="back-btn" bindtap="onBack">◀</view>
-    <text class="title">数据统计</text>
-    <view class="nav-right"></view>
-  </view>
 
   <!-- 标签栏 -->
   <view class="tabs">

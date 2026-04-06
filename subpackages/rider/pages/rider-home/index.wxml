@@ -1,12 +1,8 @@
 <view class="page">
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
 
-  <view class="header">
-    <view class="header-left">
-      <view class="user-avatar" bindtap="onAvatarTap">
-        <image class="avatar-img" src="/pages/小标/我的.png" mode="aspectFit"></image>
-      </view>
-    </view>
+  <!-- 顶部栏：仅标题 -->
+  <view class="top-bar">
+    <text class="top-title">骑手工作台</text>
   </view>
 
   <!-- 审核状态提示 -->
@@ -53,18 +49,40 @@
     refresher-enabled="{{true}}"
     refresher-triggered="{{refreshing}}"
     bindrefresherrefresh="onPullDownRefresh"
-    refresher-background="#F5F6F8">
+    bindscroll="onScroll"
+    refresher-background="#FFF0E0">
     <!-- 待抢单订单列表 -->
     <view class="order-list" wx:if="{{activeTab === 0}}">
-      <!-- 加载状态 -->
-      <view class="loading-state" wx:if="{{loading}}">
-        <text>加载中...</text>
+      <!-- 骨架屏 -->
+      <view wx:if="{{loading && orders.length === 0}}" class="order-skeleton-list">
+        <block wx:for="{{[1,2,3,4]}}" wx:key="*this">
+          <view class="order-card">
+            <view class="order-header">
+              <view class="ds-skeleton-line" style="width:80px;height:18px;margin-bottom:8px;"></view>
+              <view class="ds-skeleton-line" style="width:50px;height:20px;border-radius:4px;"></view>
+            </view>
+            <view class="address-section" style="margin-bottom:8px;">
+              <view class="ds-skeleton-line" style="width:90%;height:14px;margin-bottom:4px;"></view>
+              <view class="ds-skeleton-line" style="width:70%;height:14px;"></view>
+            </view>
+            <view class="ds-skeleton-line" style="width:60%;height:14px;margin-bottom:8px;"></view>
+            <view class="ds-skeleton-line" style="width:100px;height:36px;border-radius:8px;"></view>
+          </view>
+        </block>
+      </view>
+      
+      <!-- 错误重试 -->
+      <view class="error-retry-state" wx:elif="{{loadError && !loading && orders.length === 0}}">
+        <text class="error-icon">⚠️</text>
+        <text class="error-title">加载失败</text>
+        <text class="error-desc">{{errorMessage || '网络异常，请重试'}}</text>
+        <button class="retry-btn" bindtap="onRetryLoad">点击重试</button>
       </view>
       
       <!-- 空状态 -->
       <view class="empty-state" wx:elif="{{!loading && orders.length === 0}}">
-        <view class="empty-illustration">
-          <text class="illustration-emoji">⏰</text>
+        <view class="empty-icon-wrap">
+          <text class="empty-icon">⏰</text>
         </view>
         <text class="empty-title">暂时没有订单</text>
         <text class="empty-desc">请保持在线状态，等待新订单</text>
@@ -123,12 +141,12 @@
             
             <!-- 抢单按钮 -->
             <button 
-              class="grab-btn {{canGrabOrder ? '' : 'disabled'}}" 
+              class="grab-btn {{canGrabOrder && !grabbingOrderId ? '' : 'disabled'}}" 
               bindtap="onGrabOrder" 
               data-id="{{item.id}}"
-              disabled="{{!canGrabOrder}}"
+              disabled="{{!canGrabOrder || grabbingOrderId === item.id}}"
             >
-              {{canGrabOrder ? '抢单' : '无法接单'}}
+              {{grabbingOrderId === item.id ? '抢单中...' : (canGrabOrder ? '抢单' : '无法接单')}}
             </button>
           </view>
         </block>
@@ -137,16 +155,36 @@
 
     <!-- 待取货订单列表 -->
     <view class="order-list" wx:if="{{activeTab === 1}}">
-      <!-- 加载状态 -->
-      <view class="loading-state" wx:if="{{pickupLoading}}">
-        <text>加载中...</text>
+      <!-- 骨架屏 -->
+      <view wx:if="{{pickupLoading && pickupOrders.length === 0}}" class="order-skeleton-list">
+        <block wx:for="{{[1,2,3,4]}}" wx:key="*this">
+          <view class="order-card">
+            <view class="order-header">
+              <view class="ds-skeleton-line" style="width:80px;height:18px;margin-bottom:8px;"></view>
+              <view class="ds-skeleton-line" style="width:50px;height:20px;border-radius:4px;"></view>
+            </view>
+            <view class="address-section" style="margin-bottom:8px;">
+              <view class="ds-skeleton-line" style="width:90%;height:14px;margin-bottom:4px;"></view>
+              <view class="ds-skeleton-line" style="width:70%;height:14px;"></view>
+            </view>
+            <view class="ds-skeleton-line" style="width:60%;height:14px;margin-bottom:8px;"></view>
+            <view class="ds-skeleton-line" style="width:100px;height:36px;border-radius:8px;"></view>
+          </view>
+        </block>
+      </view>
+      
+      <!-- 错误重试 -->
+      <view class="error-retry-state" wx:elif="{{loadError && !pickupLoading && pickupOrders.length === 0}}">
+        <text class="error-icon">⚠️</text>
+        <text class="error-title">加载失败</text>
+        <text class="error-desc">{{errorMessage || '网络异常，请重试'}}</text>
+        <button class="retry-btn" bindtap="onRetryLoad">点击重试</button>
       </view>
       
       <!-- 空状态 -->
       <view class="empty-state" wx:elif="{{!pickupLoading && pickupOrders.length === 0}}">
-        <view class="empty-illustration">
-          <text class="illustration-emoji">📦</text>
-          <text class="illustration-rider">🛵</text>
+        <view class="empty-icon-wrap">
+          <text class="empty-icon">📦</text>
         </view>
         <text class="empty-title">暂时没有订单</text>
         <text class="empty-desc">建议您持续保持在线或去「待抢单」抢一个</text>
@@ -204,7 +242,7 @@
             </view>
             
             <!-- 确认取餐按钮 -->
-            <button class="pickup-btn" bindtap="onConfirmPickup" data-id="{{item.id}}">确认取餐</button>
+            <button class="pickup-btn" bindtap="onConfirmPickup" data-id="{{item.id}}" disabled="{{pickupOrderId === item.id}}">{{pickupOrderId === item.id ? '确认中...' : '确认取餐'}}</button>
           </view>
         </block>
       </block>
@@ -212,15 +250,36 @@
 
     <!-- 待送达订单列表 -->
     <view class="order-list" wx:if="{{activeTab === 2}}">
-      <!-- 加载状态 -->
-      <view class="loading-state" wx:if="{{deliverLoading}}">
-        <text>加载中...</text>
+      <!-- 骨架屏 -->
+      <view wx:if="{{deliverLoading && deliverOrders.length === 0}}" class="order-skeleton-list">
+        <block wx:for="{{[1,2,3,4]}}" wx:key="*this">
+          <view class="order-card">
+            <view class="order-header">
+              <view class="ds-skeleton-line" style="width:80px;height:18px;margin-bottom:8px;"></view>
+              <view class="ds-skeleton-line" style="width:50px;height:20px;border-radius:4px;"></view>
+            </view>
+            <view class="address-section" style="margin-bottom:8px;">
+              <view class="ds-skeleton-line" style="width:90%;height:14px;margin-bottom:4px;"></view>
+              <view class="ds-skeleton-line" style="width:70%;height:14px;"></view>
+            </view>
+            <view class="ds-skeleton-line" style="width:60%;height:14px;margin-bottom:8px;"></view>
+            <view class="ds-skeleton-line" style="width:100px;height:36px;border-radius:8px;"></view>
+          </view>
+        </block>
+      </view>
+      
+      <!-- 错误重试 -->
+      <view class="error-retry-state" wx:elif="{{loadError && !deliverLoading && deliverOrders.length === 0}}">
+        <text class="error-icon">⚠️</text>
+        <text class="error-title">加载失败</text>
+        <text class="error-desc">{{errorMessage || '网络异常，请重试'}}</text>
+        <button class="retry-btn" bindtap="onRetryLoad">点击重试</button>
       </view>
       
       <!-- 空状态 -->
       <view class="empty-state" wx:elif="{{!deliverLoading && deliverOrders.length === 0}}">
-        <view class="empty-illustration">
-          <text class="illustration-emoji">🚚</text>
+        <view class="empty-icon-wrap">
+          <text class="empty-icon">🚚</text>
         </view>
         <text class="empty-title">暂时没有订单</text>
         <text class="empty-desc">暂无待送达订单</text>
@@ -278,21 +337,17 @@
             </view>
             
             <!-- 确认送达按钮 -->
-            <button class="deliver-btn" bindtap="onConfirmDelivery" data-id="{{item.id}}">确认送达</button>
+            <button class="deliver-btn" bindtap="onConfirmDelivery" data-id="{{item.id}}" disabled="{{deliveringOrderId === item.id}}">{{deliveringOrderId === item.id ? '确认中...' : '确认送达'}}</button>
           </view>
         </block>
       </block>
     </view>
   </scroll-view>
 
-  <view class="bottom-bar">
-    <view class="bottom-item" bindtap="onSettingTap">
-      <view class="bottom-icon-wrapper">
-        <image class="bottom-icon setting-icon" src="/pages/小标/设置.png" mode="aspectFit"></image>
-      </view>
-      <text class="bottom-text">跑单设置</text>
-    </view>
-    <button class="refresh-btn" bindtap="onRefresh">刷新订单</button>
+  <!-- 底部固定：个人中心 -->
+  <view class="bottom-bar" bindtap="onAvatarTap">
+    <text class="bottom-bar-text">个人中心</text>
+    <text class="bottom-bar-arrow">›</text>
   </view>
 </view>
 

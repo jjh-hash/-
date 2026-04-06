@@ -1,23 +1,4 @@
 <view class="page">
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="back" bindtap="onBack">◀</text>
-      <text class="title">店铺信息</text>
-      <view class="icons">
-        <text class="dot">•</text>
-        <text class="battery">▮</text>
-      </view>
-    </view>
-    
-    <!-- 标签栏 -->
-    <view class="tabs">
-      <view class="tab {{activeTab === 0 ? 'active' : ''}}" data-index="0" bindtap="onTabTap">点餐</view>
-      <view class="tab {{activeTab === 1 ? 'active' : ''}}" data-index="1" bindtap="onTabTap">评价</view>
-      <view class="tab {{activeTab === 2 ? 'active' : ''}}" data-index="2" bindtap="onTabTap">商家</view>
-    </view>
-  </view>
 
   <scroll-view scroll-y class="content">
     <!-- 店铺评分 -->
@@ -41,7 +22,7 @@
         <view class="review-item">
           <!-- 用户信息 -->
           <view class="user-info">
-            <image class="user-avatar" src="{{item.userAvatar}}" mode="aspectFill" />
+            <image class="user-avatar" src="{{item.userAvatar}}" mode="aspectFill" lazy-load />
             <view class="user-details">
               <view class="user-name">{{item.userName}}</view>
               <view class="user-rating">
@@ -56,7 +37,7 @@
 
           <!-- 评价图片 -->
           <view class="review-images" wx:if="{{item.images && item.images.length > 0}}">
-            <image class="review-image" 
+            <image class="review-image" lazy-load 
                    wx:for="{{item.images}}" 
                    wx:for-item="img"
                    wx:key="index"

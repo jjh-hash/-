@@ -1,6 +1,7 @@
+/* 骑手订单 - 设计系统 */
 .page {
   min-height: 100vh;
-  background: #F5F6F8;
+  background: var(--color-bg-page);
 }
 
 .status-bar {
@@ -40,7 +41,7 @@
 
 .content-area {
   height: calc(100vh - 44px - env(safe-area-inset-bottom));
-  padding: 16px;
+  padding: var(--space-page);
 }
 
 /* 加载状态 */
@@ -49,7 +50,7 @@
   justify-content: center;
   align-items: center;
   padding: 40px 0;
-  color: #999;
+  color: var(--color-text-secondary);
   font-size: 14px;
 }
 
@@ -72,23 +73,23 @@
 
 .empty-title {
   font-size: 16px;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 8px;
   font-weight: 500;
 }
 
 .empty-desc {
   font-size: 14px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 /* 订单卡片 */
 .order-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  padding: var(--space-block);
   margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .order-header {
@@ -97,7 +98,7 @@
   align-items: flex-start;
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #F0F0F0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .order-info {
@@ -108,28 +109,28 @@
 
 .order-time {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
 
 .order-no {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .order-price {
   font-size: 18px;
   font-weight: 600;
-  color: #FF4D4F;
+  color: var(--color-danger);
 }
 
 /* 状态标签 */
 .status-tag {
   display: inline-block;
-  background: #E6F7FF;
-  color: #1890FF;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-tag);
   font-size: 12px;
   margin-bottom: 12px;
 }
@@ -143,7 +144,7 @@
 .address-label {
   width: 40px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -156,20 +157,20 @@
 
 .store-name {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 500;
   margin-bottom: 4px;
 }
 
 .address-detail {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
 .delivery-address {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -179,20 +180,20 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-top: 1px solid #F0F0F0;
-  border-bottom: 1px solid #F0F0F0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
   margin-bottom: 12px;
 }
 
 .items-text {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text);
   flex: 1;
 }
 
 .items-arrow {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
   transition: transform 0.3s;
 }
 
@@ -203,8 +204,8 @@
 /* 餐品详情 */
 .items-detail {
   padding: 12px;
-  background: #F9F9F9;
-  border-radius: 8px;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
   margin-bottom: 12px;
 }
 
@@ -220,17 +221,17 @@
 }
 
 .food-name {
-  color: #333;
+  color: var(--color-text);
   flex: 1;
 }
 
 .food-spec {
-  color: #999;
+  color: var(--color-text-placeholder);
   margin: 0 8px;
 }
 
 .food-quantity {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 /* 时间信息 */
@@ -238,12 +239,12 @@
   display: flex;
   flex-direction: column;
   padding-top: 12px;
-  border-top: 1px solid #F0F0F0;
+  border-top: 1px solid var(--color-border);
 }
 
 .time-item {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
   margin-bottom: 4px;
 }
 
@@ -255,7 +256,7 @@
 .load-more {
   text-align: center;
   padding: 20px 0;
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 14px;
 }
 

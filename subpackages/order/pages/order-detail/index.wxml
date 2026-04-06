@@ -1,16 +1,4 @@
 <view class="page">
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="back" bindtap="onBack">◀</text>
-      <view class="icons">
-        <text class="dot">•</text>
-        <text class="battery">▮</text>
-      </view>
-    </view>
-  </view>
-
   <scroll-view scroll-y class="content">
     <!-- 服务保障信息 -->
     <view class="guarantee-section" wx:if="{{orderInfo.orderStatus === 'completed'}}">
@@ -24,8 +12,9 @@
 
     <!-- 操作按钮 -->
     <view class="action-buttons-section">
+      <button class="action-btn pay-btn" wx:if="{{orderInfo.payStatus === 'unpaid' && orderInfo.orderStatus !== 'cancelled'}}" bindtap="onPayOrder" disabled="{{paying}}">{{paying ? '支付中...' : '立即支付'}}</button>
       <button class="action-btn" bindtap="onMore">更多</button>
-      <button class="action-btn refund-btn" wx:if="{{orderInfo.orderStatus === 'completed' && orderInfo.canRefund && !orderInfo.refundStatus}}" catchtap="onRefund">申请退款</button>
+      <button class="action-btn refund-btn" wx:if="{{orderInfo.payStatus === 'paid' && orderInfo.canRefund && !orderInfo.refundStatus}}" catchtap="onRefund">申请退款</button>
       <button class="action-btn" wx:if="{{orderInfo.orderStatus === 'completed'}}" bindtap="onReview">评价</button>
       <button class="action-btn primary" bindtap="onOrderAgain">再来一单</button>
     </view>
@@ -42,7 +31,7 @@
       <scroll-view scroll-y class="items-list">
         <block wx:for="{{orderInfo.items}}" wx:key="index">
           <view class="item-card">
-            <image class="item-image" src="{{item.image || item.img || '/pages/小标/商家.png'}}" mode="aspectFill" />
+            <image class="item-image" src="{{item.image || item.img || '/pages/小标/商家.png'}}" mode="aspectFill" lazy-load />
             <view class="item-info">
               <view class="item-name">{{item.productName || item.name}}</view>
               <view class="item-spec" wx:if="{{item.spec}}">{{item.spec}}</view>

@@ -14,7 +14,7 @@ Page({
       { id: 'all', name: '全部', icon: '🛍️' },
       { id: 'restaurant', name: '餐饮', icon: '🍽️' },
       { id: 'gaming', name: '游戏陪玩', icon: '🎮' },
-      { id: 'reward', name: '悬赏', icon: '💰' },
+      { id: 'reward', name: '跑腿', icon: '💰' },
       { id: 'express', name: '代拿快递', icon: '📦' }
     ],
     // 状态筛选列表

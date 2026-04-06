@@ -1,0 +1,296 @@
+/* 购物车 - 依据配色设计文档全面优化 */
+.page {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.status-bar {
+  background: var(--color-bg-page);
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-page);
+  box-sizing: border-box;
+}
+
+/* 真机兼容：scroll-view 需明确高度，由 JS 计算 scrollHeight 传入 */
+scroll-view.content {
+  box-sizing: border-box;
+}
+
+/* ========== 按店列表 ========== */
+.store-list {
+  padding-bottom: 24px;
+}
+
+.store-block {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+}
+
+.store-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.store-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.store-arrow {
+  font-size: 14px;
+  color: var(--color-text-placeholder);
+}
+
+.item-list {
+  padding: 0 16px;
+}
+
+.item-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 14px 0;
+  padding-right: 52px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-img {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-btn);
+  flex-shrink: 0;
+  background: var(--color-border);
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
+  margin-left: 12px;
+}
+
+.item-name {
+  font-size: 14px;
+  color: var(--color-text);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.item-spec {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  margin-top: 4px;
+}
+
+.item-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.item-price {
+  font-size: 15px;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.quantity-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  text-align: center;
+  line-height: 26px;
+  font-size: 16px;
+  color: var(--color-text);
+  background: var(--color-bg-card);
+  transition: background var(--transition-fast);
+}
+
+.qty-btn:active {
+  background: var(--color-primary-light);
+}
+
+.qty-num {
+  min-width: 32px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.item-del {
+  position: absolute;
+  top: 14px;
+  right: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-danger);
+  padding: 4px 8px;
+  margin: -4px -8px -4px 0;
+  flex-shrink: 0;
+  border-radius: var(--radius-btn);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.item-del:active {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--color-danger);
+}
+
+/* ========== 店铺底部：配送费 / 小计 / 去结算 ========== */
+.store-footer {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--color-bg-page);
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.footer-tip {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+}
+
+.footer-total {
+  font-size: 14px;
+  color: var(--color-text);
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.footer-btn {
+  padding: 8px 20px;
+  border-radius: var(--radius-tag);
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--color-border);
+  color: var(--color-text-placeholder);
+  transition: all var(--transition-fast);
+}
+
+.footer-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 184, 0, 0.3);
+}
+
+.footer-btn.active:active {
+  opacity: 0.9;
+}
+
+/* ========== 底部统一付款栏 ========== */
+.unified-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--color-bg-card);
+  margin: 0 var(--space-page) var(--space-page);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+}
+
+.unified-total {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.unified-btn {
+  padding: 10px 28px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-tag);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(255, 184, 0, 0.3);
+  transition: opacity var(--transition-fast);
+}
+
+.unified-btn:active {
+  opacity: 0.9;
+}
+
+.safe-bottom {
+  height: calc(16px + env(safe-area-inset-bottom));
+}
+
+/* ========== 空状态 ========== */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  min-height: 60vh;
+  box-sizing: border-box;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  line-height: 1;
+}
+
+.empty-text {
+  font-size: 17px;
+  color: var(--color-text);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--color-text-placeholder);
+  margin-bottom: 28px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.go-home {
+  padding: 12px 32px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-tag);
+  font-size: 15px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(255, 184, 0, 0.3);
+}
+
+.go-home:active {
+  opacity: 0.9;
+}

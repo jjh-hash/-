@@ -21,6 +21,7 @@ cloud.init({
 });
 
 const db = cloud.database();
+const { extractAdminSessionToken, verifyAdminSession, deny } = require('./adminSession');
 
 exports.main = async (event, context) => {
   try {
@@ -35,6 +36,21 @@ exports.main = async (event, context) => {
         code: 400,
         message: '缺少action参数'
       };
+    }
+
+    const ADMIN_STATS_ACTIONS = new Set([
+      'getDashboardStats',
+      'getAdminOverviewStats',
+      'getAdminOrderStats',
+      'getAdminUserStats',
+      'getAdminMerchantStats',
+      'getAdminFinanceStats'
+    ]);
+    if (ADMIN_STATS_ACTIONS.has(action)) {
+      const v = await verifyAdminSession(db, extractAdminSessionToken(event));
+      if (!v.ok) {
+        return deny(v);
+      }
     }
     
     let result;
@@ -1246,7 +1262,7 @@ async function calculateRevenueChart() {
     }
     
     // 找出最大值用于计算高度
-    const maxRevenue = Math.max(...dailyRevenues, 1); // 至少为1，避免除0
+    const maxRevenue = Math.max.apply(null, dailyRevenues.concat(1)); // 至少为1，避免除0
     
     // 格式化图表数据
     for (let i = 6; i >= 0; i--) {

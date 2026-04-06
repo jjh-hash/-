@@ -1,188 +1,146 @@
 /* pages/admin-refund-detail/index.wxss */
 .page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
-.status-bar {
-  background: #667eea;
-}
+.status-bar { background: var(--color-primary); }
 
 .nav-bar {
   height: 88rpx;
-  background: #667eea;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 30rpx;
-  color: white;
+  color: #fff;
 }
 
-.back-btn {
-  font-size: 36rpx;
-  padding: 10rpx;
-}
+.back-btn { font-size: 36rpx; padding: 10rpx; }
 
-.title {
-  font-size: 32rpx;
-  font-weight: 500;
-}
+.title { font-size: 32rpx; font-weight: 500; }
 
-.nav-actions {
-  width: 60rpx;
-}
+.nav-actions { width: 60rpx; }
 
-.content {
-  padding: 20rpx;
-}
+.content { padding: 20rpx; }
 
-/* 状态区域 */
 .status-section {
-  background: white;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 30rpx;
   margin-bottom: 20rpx;
   text-align: center;
+  box-shadow: var(--shadow-card);
 }
 
 .status-badge {
   display: inline-block;
   padding: 10rpx 30rpx;
-  border-radius: 30rpx;
+  border-radius: var(--radius-tag);
   font-size: 28rpx;
   font-weight: 500;
 }
 
 .status-badge.pending,
 .status-badge.processing {
-  background: #fff3e0;
-  color: #ff9800;
+  background: rgba(250, 140, 22, 0.12);
+  color: var(--color-warning);
 }
 
 .status-badge.approved,
 .status-badge.completed {
-  background: #e8f5e9;
-  color: #4caf50;
+  background: var(--color-primary-light);
+  color: var(--color-success);
 }
 
 .status-badge.rejected {
-  background: #ffebee;
-  color: #f44336;
+  background: rgba(255, 77, 79, 0.12);
+  color: var(--color-danger);
 }
 
-.status-text {
-  font-size: 32rpx;
-  font-weight: 600;
-}
+.status-text { font-size: 32rpx; font-weight: 600; }
 
-/* 信息区域 */
 .section {
-  background: white;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 30rpx;
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-card);
 }
 
 .section-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 20rpx;
   padding-bottom: 20rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid var(--color-border);
 }
 
-.info-list {
-  margin-top: 20rpx;
-}
+.info-list { margin-top: 20rpx; }
 
 .info-row {
   display: flex;
   align-items: center;
   padding: 15rpx 0;
-  border-bottom: 1rpx solid #f5f5f5;
+  border-bottom: 1rpx solid var(--color-border);
 }
 
-.info-row:last-child {
-  border-bottom: none;
-}
+.info-row:last-child { border-bottom: none; }
 
 .info-label {
   font-size: 26rpx;
-  color: #666;
+  color: var(--color-text-secondary);
   min-width: 160rpx;
 }
 
 .info-value {
   font-size: 26rpx;
-  color: #333;
+  color: var(--color-text);
   flex: 1;
 }
 
 .info-value.highlight {
-  color: #ff6b35;
+  color: var(--color-warning);
   font-weight: 600;
   font-size: 30rpx;
 }
 
-/* 商品列表 */
-.items-list {
-  margin-top: 20rpx;
-}
+.items-list { margin-top: 20rpx; }
 
 .item-row {
   display: flex;
   align-items: center;
   padding: 20rpx 0;
-  border-bottom: 1rpx solid #f5f5f5;
+  border-bottom: 1rpx solid var(--color-border);
 }
 
-.item-row:last-child {
-  border-bottom: none;
-}
+.item-row:last-child { border-bottom: none; }
 
 .item-image {
   width: 120rpx;
   height: 120rpx;
-  border-radius: 8rpx;
+  border-radius: var(--radius-btn);
   margin-right: 20rpx;
 }
 
-.item-info {
-  flex: 1;
-}
+.item-info { flex: 1; }
 
 .item-name {
   display: block;
   font-size: 28rpx;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 8rpx;
 }
 
-.item-spec {
-  display: block;
-  font-size: 24rpx;
-  color: #999;
-}
+.item-spec { display: block; font-size: 24rpx; color: var(--color-text-placeholder); }
 
-.item-right {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-}
+.item-right { display: flex; align-items: center; gap: 20rpx; }
 
-.item-quantity {
-  font-size: 26rpx;
-  color: #666;
-}
+.item-quantity { font-size: 26rpx; color: var(--color-text-secondary); }
 
-.item-price {
-  font-size: 28rpx;
-  color: #333;
-  font-weight: 500;
-}
+.item-price { font-size: 28rpx; color: var(--color-text); font-weight: 500; }
 
-/* 图片容器 */
 .images-container {
   display: flex;
   flex-wrap: wrap;
@@ -193,16 +151,14 @@
 .refund-image {
   width: 200rpx;
   height: 200rpx;
-  border-radius: 8rpx;
+  border-radius: var(--radius-btn);
 }
 
-/* 加载中 */
 .loading {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 60vh;
   font-size: 28rpx;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
-

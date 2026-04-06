@@ -1,142 +1,251 @@
 <view class="page">
-  <!-- 公告弹窗组件 -->
   <announcement-modal id="announcementModal" announcement="{{announcement}}" show="{{showAnnouncement}}" bind:close="onCloseAnnouncement" />
   
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="title">外卖</text>
-      <view class="icons">
-      </view>
-    </view>
-  </view>
-
-  <scroll-view scroll-y class="content">
-    <!-- 搜索框 -->
-    <view class="search">
-      <text class="icon">🔍</text>
-      <input 
-        class="input" 
-        placeholder="输入你想要的东西" 
-        placeholder-class="ph" 
-        value="{{searchKeyword}}"
-        bindinput="onSearchInput"
-        bindconfirm="onSearchSubmit"
-        bindfocus="onSearchFocus"
-        confirm-type="search"
-      />
-      <view class="clear-btn" wx:if="{{searchKeyword}}" bindtap="onClearSearch">
-        <text class="clear-icon">×</text>
-      </view>
-    </view>
-
-    <!-- 快捷分类 -->
-    <view class="quick">
-      <block wx:for="{{quickCats}}" wx:key="index">
-        <view class="q-item" bindtap="onQuickCatTap" data-index="{{index}}">
-          <view class="q-icon" style="background: {{item.bg}}">
-            <text class="q-emoji">{{item.emoji}}</text>
-          </view>
-          <text class="q-text">{{item.text}}</text>
-        </view>
-      </block>
-    </view>
-
-    <!-- 轮播图 -->
-    <swiper class="banner-swiper" indicator-dots="{{true}}" autoplay="{{true}}" interval="{{3000}}" duration="{{500}}">
-      <block wx:for="{{banners}}" wx:key="_id">
-        <swiper-item>
-          <view class="banner-item" bindtap="onBannerTap" data-link="{{item.linkUrl}}">
-            <image class="banner-image" src="{{item.imageUrl}}" mode="aspectFill" />
-          </view>
-        </swiper-item>
-      </block>
-    </swiper>
-
-    <!-- 筛选栏 -->
-    <view class="filters">
-      <block wx:for="{{filters}}" wx:key="text">
-        <text class="f-item {{index===activeFilter? 'active':''}}" bindtap="onFilterTap" data-index="{{index}}">{{item}}</text>
-      </block>
-    </view>
-
-    <!-- 店铺列表 -->
-    <view class="shop-list" wx:if="{{shops.length > 0}}">
-      <block wx:for="{{shops}}" wx:key="_id">
-        <view class="shop" bindtap="onShopTap" data-id="{{item._id}}">
-          <image 
-            class="cover" 
-            src="{{item.logoUrl || item.img || '/pages/小标/商家.png'}}" 
-            mode="aspectFill"
-            binderror="onImageError"
-            data-index="{{index}}"
-          />
-          <view class="meta">
-            <text class="name ellipsis">{{item.name}}</text>
-            <view class="rate-line">
-              <view class="rating-group">
-                <text class="score">{{item.rating || item.score || item.ratingAvg || 0}}</text>
-                <view class="stars" wx:if="{{item.stars && item.stars.length > 0}}">
-                  <text class="star {{starItem === 'full' ? 'full' : starItem === 'half' ? 'half' : 'empty'}}" wx:for="{{item.stars}}" wx:for-item="starItem" wx:key="index">★</text>
-                </view>
-                <view class="stars" wx:else>
-                  <text class="star empty" wx:for="{{5}}" wx:key="index">★</text>
+  <scroll-view scroll-y class="content" style="height: {{scrollViewHeight}}px;">
+    <!-- 沉浸式顶部：轮播图延伸至状态栏 -->
+    <view class="header-area header-immersive">
+      <!-- 轮播图 -->
+      <view class="carousel-wrap" wx:if="{{banners.length > 0}}">
+        <swiper class="banner-swiper" indicator-dots="{{true}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#fff" autoplay="{{true}}" interval="{{3500}}" duration="{{400}}" circular="{{true}}">
+          <block wx:for="{{banners}}" wx:key="index">
+            <swiper-item>
+              <view class="banner-item" bindtap="onBannerTap" data-link="{{item.linkUrl}}" style="{{item.imageUrl || item.img ? '' : 'background:' + (item.bg || 'linear-gradient(135deg,#FFB800,#F59E0B)')}}">
+                <image wx:if="{{item.imageUrl || item.img}}" class="banner-image" src="{{item.imageUrl || item.img}}" mode="aspectFill" lazy-load />
+                <view wx:else class="banner-placeholder">
+                  <text class="banner-title">{{item.title || '精彩活动'}}</text>
+                  <text class="banner-subtitle">{{item.subtitle || ''}}</text>
                 </view>
               </view>
-              <text class="month">月售{{item.month || item.sales}}</text>
+            </swiper-item>
+          </block>
+        </swiper>
+      </view>
+      <view class="carousel-placeholder" wx:else>
+        <text class="carousel-placeholder-text">精彩活动即将上线</text>
+      </view>
+
+      <!-- 悬浮问候语（随时段变色，避开状态栏） -->
+      <view class="hero-float" style="top: {{statusBarHeight + 12}}px;">
+        <text class="hero-greeting" style="color: {{greetingColor}}">{{greeting}}</text>
+        <text class="hero-slogan" style="color: {{greetingSloganColor}}">校园生活，触手可及</text>
+      </view>
+
+      <!-- 悬浮搜索栏 -->
+      <view class="search-float">
+        <view class="search ds-press">
+          <view class="search-icon-wrap">
+            <text class="search-icon">搜</text>
+          </view>
+          <input 
+            class="input" 
+            placeholder="美食、快递、奶茶..." 
+            placeholder-class="ph" 
+            value="{{searchKeyword}}"
+            bindinput="onSearchInput"
+            bindconfirm="onSearchSubmit"
+            bindfocus="onSearchFocus"
+            confirm-type="search"
+          />
+          <view class="clear-btn" wx:if="{{searchKeyword}}" bindtap="onClearSearch">
+            <text class="clear-icon">×</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 常用服务（卡片式布局） -->
+    <view class="section service-section">
+      <view class="section-title">
+        <text class="section-dot section-dot-red"></text>
+        <text>常用服务</text>
+      </view>
+      <view class="service-cards">
+        <view class="service-row">
+          <view class="service-main service-main-bg ds-press" bindtap="onServiceTap" data-key="reward">
+            <image class="service-main-bg-img" src="{{cloudImages.serviceFlashBg}}" mode="aspectFill" lazy-load />
+            <view class="service-main-content">
+              <view class="service-main-icon">⚡</view>
+              <text class="service-main-label">极速跑腿</text>
+              <text class="service-main-desc">平均12min 送达</text>
             </view>
-            <view class="fee-line">
-              <text>起送¥{{item.start || item.minOrderAmount}}</text>
-              <text>配送¥{{item.delivery || item.deliveryFee}}</text>
+          </view>
+          <view class="service-col">
+            <view class="service-small service-small-with-img service-bg-express ds-press" bindtap="onServiceTap" data-key="express">
+              <view class="service-small-text">
+                <text class="service-small-title">代拿快递</text>
+                <text class="service-small-desc">20+待接单</text>
+              </view>
+              <image class="service-small-img" src="{{cloudImages.expressIcon}}" mode="aspectFit" lazy-load />
+            </view>
+            <view class="service-small service-small-with-img service-bg-secondhand ds-press" bindtap="onServiceTap" data-key="secondhand">
+              <view class="service-small-text">
+                <text class="service-small-title">跳蚤市场</text>
+                <text class="service-small-desc">发现好物</text>
+              </view>
+              <image class="service-small-img" src="{{cloudImages.secondhandIcon}}" mode="aspectFit" lazy-load />
             </view>
           </view>
         </view>
-      </block>
+        <view class="service-bottom service-bg-gaming ds-press" bindtap="onServiceTap" data-key="gaming">
+          <view class="service-bottom-left">
+            <image class="service-bottom-icon-img" src="{{cloudImages.gamingIcon}}" mode="aspectFit" lazy-load />
+            <view class="service-bottom-text">
+              <text class="service-bottom-title">游戏陪玩</text>
+              <text class="service-bottom-desc">找搭子组队开黑，不再孤单</text>
+            </view>
+          </view>
+          <view class="service-bottom-link-wrap">
+            <text class="service-bottom-link">去看看</text>
+            <text class="service-bottom-arrow">›</text>
+          </view>
+        </view>
+      </view>
     </view>
-    
-    <!-- 搜索无结果提示 -->
-    <view class="empty-state" wx:if="{{searchKeyword && shops.length === 0}}">
-      <text class="empty-icon">🔍</text>
-      <text class="empty-text">未找到相关店铺</text>
+
+    <!-- 筛选栏：标题行（今日推荐 + 推荐/销量/低价优先） + 分类横向滚动 -->
+    <view class="filters-wrap">
+      <view class="filters-header-row">
+        <view class="section-title-inline">
+          <text class="section-dot"></text>
+          <text>今日推荐</text>
+        </view>
+        <view class="filters-capsule">
+          <block wx:for="{{filters}}" wx:key="*this">
+            <view 
+              class="f-item {{index===activeFilter? 'active':''}}" 
+              bindtap="onFilterTap" 
+              data-index="{{index}}"
+            >{{item}}</view>
+          </block>
+        </view>
+      </view>
+      <!-- 分类横向滚动，右侧箭头提示可滑动 -->
+      <scroll-view scroll-x class="category-bar" scroll-with-animation>
+        <view class="category-scroll">
+          <block wx:for="{{categoryOptions}}" wx:key="key">
+            <view 
+              class="category-item {{item.key === activeCategoryKey ? 'active' : ''}} {{item.label === '饮品' ? 'category-item-with-arrow' : ''}}" 
+              bindtap="onCategoryTap" 
+              data-key="{{item.key}}"
+            >{{item.label}}</view>
+          </block>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 搜索无结果 -->
+    <view class="empty-state ds-fade-in" wx:if="{{!productListLoading && searchKeyword && originalProducts.length === 0}}">
+      <view class="ds-empty-icon-wrap"><text class="ds-empty-icon-char">搜</text></view>
+      <text class="empty-text">未找到相关菜品</text>
       <text class="empty-tip">试试其他关键词吧</text>
-      <view class="empty-btn" bindtap="onClearSearch">
+      <view class="empty-btn ds-press" bindtap="onClearSearch">
         <text>清空搜索</text>
       </view>
     </view>
-    
-    <!-- 空列表提示 -->
-    <view class="empty-state" wx:if="{{!searchKeyword && shops.length === 0}}">
-      <text class="empty-icon">🏪</text>
-      <text class="empty-text">暂无店铺</text>
+
+    <!-- 菜品流列表 -->
+    <view class="shop-list-section" wx:else>
+      <view class="shop-list shop-skeleton-list shop-skeleton-overlay" wx:if="{{productListLoading}}">
+        <block wx:for="{{[1,2,3,4,5]}}" wx:key="*this">
+          <view class="shop shop-skeleton">
+            <view class="cover ds-skeleton" style="width:88px;height:66px;border-radius:var(--radius-btn);"></view>
+            <view class="meta">
+              <view class="ds-skeleton-line" style="width:80%;margin-bottom:8px;"></view>
+              <view class="ds-skeleton-line" style="width:50%;margin-bottom:6px;"></view>
+              <view class="ds-skeleton-line" style="width:60%;"></view>
+            </view>
+          </view>
+        </block>
+      </view>
+      <view class="shop-waterfall-wrap ds-fade-in">
+        <view class="shop-waterfall-row">
+          <view class="shop-waterfall-col">
+            <block wx:for="{{displayProductsLeft}}" wx:key="listKey">
+              <view wx:if="{{item.type === 'store'}}" class="shop-card shop-card-store ds-fade-in" bindtap="onStoreTap" data-store-id="{{item.storeId}}">
+                <view class="shop-card-cover">
+                  <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
+                  <view class="shop-card-store-tag">店铺</view>
+                </view>
+                <view class="shop-card-meta">
+                  <view class="product-card-row1">
+                    <text class="product-card-name ellipsis">{{item.name}}</text>
+                  </view>
+                  <view class="product-card-row2">
+                    <text class="product-store-name">起送¥{{item.minOrderAmount}} · 配送¥{{item.deliveryFee}}</text>
+                    <text class="shop-card-store-entry">进店 ›</text>
+                  </view>
+                </view>
+              </view>
+              <view wx:elif="{{item.type === 'product'}}" class="shop-card ds-fade-in" bindtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
+                <view class="shop-card-cover">
+                  <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
+                </view>
+                <view class="shop-card-meta">
+                  <view class="product-card-row1">
+                    <text class="product-card-name ellipsis">{{item.name}}</text>
+                    <text class="product-store-name product-store-name-top">{{item.storeName}}</text>
+                  </view>
+                  <view class="product-card-row2">
+                    <view class="product-card-left">
+                      <text class="product-card-sales" wx:if="{{item.sales > 0}}">月售{{item.sales}}</text>
+                    </view>
+                    <view class="product-card-add ds-press" catchtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
+                      <text class="product-card-add-icon">+</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </block>
+          </view>
+          <view class="shop-waterfall-col">
+            <block wx:for="{{displayProductsRight}}" wx:key="listKey">
+              <view wx:if="{{item.type === 'store'}}" class="shop-card shop-card-store ds-fade-in" bindtap="onStoreTap" data-store-id="{{item.storeId}}">
+                <view class="shop-card-cover">
+                  <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
+                  <view class="shop-card-store-tag">店铺</view>
+                </view>
+                <view class="shop-card-meta">
+                  <view class="product-card-row1">
+                    <text class="product-card-name ellipsis">{{item.name}}</text>
+                  </view>
+                  <view class="product-card-row2">
+                    <text class="product-store-name">起送¥{{item.minOrderAmount}} · 配送¥{{item.deliveryFee}}</text>
+                    <text class="shop-card-store-entry">进店 ›</text>
+                  </view>
+                </view>
+              </view>
+              <view wx:elif="{{item.type === 'product'}}" class="shop-card ds-fade-in" bindtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
+                <view class="shop-card-cover">
+                  <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
+                </view>
+                <view class="shop-card-meta">
+                  <view class="product-card-row1">
+                    <text class="product-card-name ellipsis">{{item.name}}</text>
+                    <text class="product-store-name product-store-name-top">{{item.storeName}}</text>
+                  </view>
+                  <view class="product-card-row2">
+                    <view class="product-card-left">
+                      <text class="product-card-sales" wx:if="{{item.sales > 0}}">月售{{item.sales}}</text>
+                    </view>
+                    <view class="product-card-add ds-press" catchtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
+                      <text class="product-card-add-icon">+</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </block>
+          </view>
+        </view>
+        <view class="load-more-footer" wx:if="{{originalProducts.length > 0}}">
+          <text wx:if="{{hasMoreProducts}}">上拉加载更多</text>
+          <text wx:else>— 没有更多了 —</text>
+        </view>
+        <view class="empty-state ds-fade-in" wx:if="{{!productListLoading && !searchKeyword && originalProducts.length === 0}}">
+          <view class="ds-empty-icon-wrap"><text class="ds-empty-icon-char">菜</text></view>
+          <text class="empty-text">暂无菜品</text>
+        </view>
+      </view>
     </view>
     <view class="safe-area-bottom"></view>
   </scroll-view>
-
-  <!-- 自定义底部栏 -->
-  <view class="tabbar">
-    <view class="tab active">
-      <image class="t-icon" src="/pages/小标/shouye-copy.png" mode="aspectFit" />
-      <text class="t-text">首页</text>
-    </view>
-    <view class="tab" bindtap="onTabTap" data-tab="order">
-      <image class="t-icon" src="/pages/小标/dingdan.png" mode="aspectFit" />
-      <text class="t-text">订单</text>
-    </view>
-    <!-- 接单功能正在开发中，已注释 -->
-    <!-- <view class="tab" bindtap="onTabTap" data-tab="receive">
-      <image class="t-icon" src="/pages/小标/接单.png" mode="aspectFit" />
-      <text class="t-text">接单</text>
-    </view> -->
-    <!-- 消息功能正在开发中，已注释 -->
-    <!-- <view class="tab" bindtap="onTabTap" data-tab="message">
-      <image class="t-icon" src="/pages/小标/消息.png" mode="aspectFit" />
-      <text class="t-text">消息</text>
-    </view> -->
-    <view class="tab" bindtap="onTabTap" data-tab="profile">
-      <image class="t-icon" src="/pages/小标/wode.png" mode="aspectFit" />
-      <text class="t-text">我的</text>
-    </view>
-  </view>
 </view>
-

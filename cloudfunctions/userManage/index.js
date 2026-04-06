@@ -21,6 +21,7 @@ cloud.init({
 });
 
 const db = cloud.database();
+const { extractAdminSessionToken, verifyAdminSession, deny } = require('./adminSession');
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
@@ -29,6 +30,10 @@ exports.main = async (event, context) => {
   console.log('【用户管理】请求:', { action, data });
   
   try {
+    const v = await verifyAdminSession(db, extractAdminSessionToken(event));
+    if (!v.ok) {
+      return deny(v);
+    }
     // 根据action执行不同操作
     switch (action) {
       case 'getList':
@@ -104,8 +109,8 @@ async function getUserList(openid, data) {
     // 如果有其他条件，需要合并
     if (Object.keys(whereCondition).length > 0) {
       // 将其他条件也加入 $and
-      const baseCondition = { ...whereCondition };
-      whereCondition.$and = [baseCondition, ...andConditions];
+      const baseCondition = Object.assign({}, whereCondition);
+      whereCondition.$and = [baseCondition].concat(andConditions);
       // 清除基础条件，因为它们已经在 $and 中
       Object.keys(baseCondition).forEach(key => {
         delete whereCondition[key];

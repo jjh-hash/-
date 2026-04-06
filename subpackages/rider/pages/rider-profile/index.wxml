@@ -1,16 +1,6 @@
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
 
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <view class="nav-left" bindtap="onBack">
-      <text class="back-icon">◀</text>
-    </view>
-    <view class="nav-title">个人中心</view>
-    <view class="nav-right" bindtap="onSetting">
-    </view>
-  </view>
 
   <scroll-view scroll-y class="content" refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="onPullDownRefresh">
     <!-- 用户信息卡片 -->
@@ -79,6 +69,15 @@
         <view class="stat-card-content">
           <text class="stat-card-label">统计数据</text>
           <text class="stat-card-desc">查看详细统计信息</text>
+        </view>
+        <text class="stat-card-arrow">></text>
+      </view>
+
+      <view class="stat-card" bindtap="onSetting">
+        <view class="stat-card-icon settings-icon">⚙️</view>
+        <view class="stat-card-content">
+          <text class="stat-card-label">跑单设置</text>
+          <text class="stat-card-desc">接单偏好、通知等</text>
         </view>
         <text class="stat-card-arrow">></text>
       </view>

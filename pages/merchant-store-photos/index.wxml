@@ -1,17 +1,6 @@
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <view class="nav-left" bindtap="goBack">
-      <text class="back-icon">‹</text>
-    </view>
-    <view class="nav-title">店铺照片</view>
-    <view class="nav-right" bindtap="onAddPhoto">
-      <text class="add-icon">+</text>
-    </view>
-  </view>
 
   <!-- 内容区域 -->
   <view class="content">

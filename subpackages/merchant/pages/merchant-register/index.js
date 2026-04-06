@@ -167,10 +167,10 @@ Page({
           duration: 1500
         });
         
-        // 延迟跳转
+        // 延迟跳转（管理后台非 tabBar 页，需用 reLaunch）
         setTimeout(() => {
-          wx.switchTab({
-            url: '/pages/admin-dashboard/index',
+          wx.reLaunch({
+            url: '/subpackages/admin/pages/admin-dashboard/index',
             success: () => {
               console.log('跳转管理后台成功');
             },

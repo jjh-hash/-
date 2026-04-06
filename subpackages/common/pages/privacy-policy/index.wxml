@@ -1,0 +1,38 @@
+<view class="page">
+  <scroll-view class="content" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="policy-container">
+      <view class="policy-block">
+        <text class="policy-title">校园外卖隐私政策</text>
+        <text class="policy-text">校园外卖小程序（以下简称「我们」）非常重视您的个人信息与隐私保护。本政策适用于我们通过微信小程序向您提供的各项服务。请您在使用前仔细阅读本政策；使用服务即表示您已理解并同意我们按本政策收集、使用、存储与保护您的信息。</text>
+
+        <text class="policy-section">一、我们收集的信息</text>
+        <text class="policy-text">1.1 账号与身份信息：为完成登录与账号管理，我们会获取您的微信昵称、头像及微信开放平台提供的唯一标识（如 openid），在您授权后可能获取手机号。</text>
+        <text class="policy-text">1.2 交易与履约信息：为完成下单、配送与售后，我们会收集收货人姓名、联系电话、配送地址、订单内容、支付与退款记录等。</text>
+        <text class="policy-text">1.3 互动与反馈信息：您在使用评价、客服、聊天、二手发布、跑腿/代拿/陪玩等相关功能时，可能主动提交的文字、图片、联系方式等。</text>
+        <text class="policy-text">1.4 设备与日志信息：为保障服务安全与稳定，我们可能收集设备型号、操作系统、唯一设备标识、操作日志与网络状态等，具体以实际实现为准。</text>
+
+        <text class="policy-section">二、信息的使用目的</text>
+        <text class="policy-text">我们收集的信息将用于：为您提供订餐、跑腿、代拿、陪玩、二手等平台功能；处理订单、支付与售后；身份核验与账号安全；客服与纠纷处理；改进产品与服务质量；以及遵守法律法规或经您同意的其他用途。</text>
+
+        <text class="policy-section">三、信息的存储与安全</text>
+        <text class="policy-text">3.1 您的信息将存储在中华人民共和国境内。我们采用权限控制、数据加密、安全审计等措施保护您的个人信息。</text>
+        <text class="policy-text">3.2 我们仅在实现本政策所述目的所必需的期限内保留您的信息，法律另有规定或您另有同意的除外。</text>
+
+        <text class="policy-section">四、信息的共享与披露</text>
+        <text class="policy-text">4.1 为完成订单与配送，我们会在必要范围内向商家、骑手或合作方共享订单、地址、联系方式等必要信息。</text>
+        <text class="policy-text">4.2 未经您同意，我们不会向第三方出售您的个人信息。在以下情形我们可能依法披露：法律法规要求、司法机关或行政机关依法要求、为维护用户或公众安全所必需、或经您明确授权。</text>
+
+        <text class="policy-section">五、您的权利</text>
+        <text class="policy-text">您有权查询、更正、删除您的个人信息，或撤回授权、注销账号。您可通过「我的」-「联系客服」或小程序内提供的设置/反馈渠道向我们提出申请，我们将在法律规定期限内予以处理。</text>
+
+        <text class="policy-section">六、未成年人保护</text>
+        <text class="policy-text">若您为未成年人，请在监护人同意的前提下使用本服务。我们不会主动收集未成年人的敏感信息；若发现误收集，将尽快删除。</text>
+
+        <text class="policy-section">七、政策更新</text>
+        <text class="policy-text">我们可能适时修订本政策，修订后将通过小程序内公告或推送等方式通知您。若您继续使用服务，即视为接受更新后的政策。重大变更时我们会再次征得您的同意（法律允许的除外）。</text>
+
+        <text class="policy-update">如对本政策有疑问，请通过「我的」-「联系客服」与我们联系。本政策自您首次使用本平台服务时生效。</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

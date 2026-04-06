@@ -8,6 +8,13 @@ Page({
     phone: ''
   },
 
+  onLoad() {
+    if (!getApp().globalData.isLoggedIn) {
+      wx.showToast({ title: '请先登录后添加地址', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 1500);
+    }
+  },
+
   onBack() {
     wx.navigateBack();
   },

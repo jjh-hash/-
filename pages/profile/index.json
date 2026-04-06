@@ -1,10 +1,1 @@
-{
-  "navigationBarTitleText": "个人中心",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "user-info-modal": "/components/user-info-modal/index"
-  },
-  "componentPlaceholder": {
-    "user-info-modal": "view"
-  }
-}
+{"navigationBarTitleText":"个人中心","navigationStyle":"custom","initialRenderingCache":"static","usingComponents":{"user-info-modal":"/components/user-info-modal/index"},"componentPlaceholder":{"user-info-modal":"view"}}

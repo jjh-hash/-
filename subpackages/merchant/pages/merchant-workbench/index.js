@@ -2,7 +2,6 @@ Page({
   data:{
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     storeOpen: true,
-    autoAccept: false,
     // 账户余额相关
     accountBalance: '0.00',
     latestRevenue: '0.00',
@@ -28,10 +27,6 @@ Page({
     this.saveStoreSettings(newStatus, statusText);
   },
 
-  onAutoAcceptSwitch(e){
-    this.setData({ autoAccept: e.detail.value });
-    this.saveStoreSettings();
-  },
   onLoad(){
     this.loadStoreSettings();
     this.loadAccountBalance();
@@ -113,8 +108,7 @@ Page({
       if (res.result && res.result.code === 200) {
         const storeInfo = res.result.data.storeInfo;
         this.setData({
-          storeOpen: storeInfo.businessStatus === 'open',
-          autoAccept: storeInfo.autoAccept || false
+          storeOpen: storeInfo.businessStatus === 'open'
         });
       }
     } catch (err) {
@@ -122,62 +116,36 @@ Page({
     }
   },
 
-  // 保存店铺设置
+  // 保存店铺设置（仅店铺状态）
   async saveStoreSettings(newStoreOpen, statusText) {
     const storeOpen = newStoreOpen !== undefined ? newStoreOpen : this.data.storeOpen;
-    const { autoAccept } = this.data;
     
     try {
       wx.showLoading({ title: '保存中...' });
       
-      // 获取当前登录的商家信息
       const merchantInfo = wx.getStorageSync('merchantInfo');
       const merchantId = merchantInfo?._id || null;
       
-      console.log('【工作台】保存店铺设置，商家ID:', merchantId);
-      
-      // 更新店铺状态和自动接单设置
-      const promises = [
-        wx.cloud.callFunction({
-          name: 'storeManage',
+      const res = await wx.cloud.callFunction({
+        name: 'storeManage',
+        data: {
+          action: 'updateBusinessStatus',
           data: {
-            action: 'updateBusinessStatus',
-            data: {
-              businessStatus: storeOpen ? 'open' : 'rest',
-              merchantId: merchantId // 传递商家ID，优先使用
-            }
+            businessStatus: storeOpen ? 'open' : 'rest',
+            merchantId: merchantId
           }
-        }),
-        wx.cloud.callFunction({
-          name: 'storeManage',
-          data: {
-            action: 'updateAutoAccept',
-            data: {
-              autoAccept: autoAccept,
-              merchantId: merchantId // 传递商家ID，优先使用
-            }
-          }
-        })
-      ];
-      
-      const results = await Promise.all(promises);
+        }
+      });
       
       wx.hideLoading();
       
-      // 检查结果
-      const businessStatusResult = results[0];
-      const autoAcceptResult = results[1];
-      
-      if (businessStatusResult.result && businessStatusResult.result.code === 200 &&
-          autoAcceptResult.result && autoAcceptResult.result.code === 200) {
+      if (res.result && res.result.code === 200) {
         const finalStatusText = statusText || (storeOpen ? '营业中' : '休息中');
         wx.showToast({
           title: `已切换为${finalStatusText}`,
           icon: 'success',
           duration: 1500
         });
-        
-        // 如果切换为休息中，提示用户店铺将不在首页显示
         if (!storeOpen) {
           setTimeout(() => {
             wx.showToast({
@@ -188,12 +156,9 @@ Page({
           }, 1600);
         }
       } else {
-        // 保存失败，恢复原状态
-        this.setData({ 
-          storeOpen: !storeOpen // 恢复原状态
-        });
+        this.setData({ storeOpen: !storeOpen });
         wx.showToast({
-          title: businessStatusResult.result?.message || autoAcceptResult.result?.message || '保存失败',
+          title: res.result?.message || '保存失败',
           icon: 'none',
           duration: 2000
         });
@@ -201,10 +166,7 @@ Page({
     } catch (err) {
       wx.hideLoading();
       console.error('保存店铺设置失败:', err);
-      // 保存失败，恢复原状态
-      this.setData({ 
-        storeOpen: !storeOpen // 恢复原状态
-      });
+      this.setData({ storeOpen: !storeOpen });
       wx.showToast({
         title: '保存失败，请重试',
         icon: 'none',
@@ -242,10 +204,8 @@ Page({
   
   // 提现
   onWithdraw() {
-    wx.showToast({
-      title: '提现功能开发中',
-      icon: 'none',
-      duration: 2000
+    wx.navigateTo({
+      url: '/subpackages/merchant/pages/merchant-withdraw/index'
     });
   }
 });

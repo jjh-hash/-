@@ -1,3 +1,6 @@
+// 主包订单页：仅作重定向。redirectTo 失败时拉一次订单并提示从底部进入，不维护 Watch/轮询。
+const subscribeMessage = require('../../utils/subscribeMessage.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -11,345 +14,35 @@ Page({
       { id: 'all', name: '全部订单', icon: '✓' },
       { id: 'express', name: '代拿快递', icon: '📦' },
       { id: 'gaming', name: '游戏陪玩', icon: '🎮' },
-      { id: 'reward', name: '悬赏', icon: '💰' }
-    ],
-    watchOrder: null,        // watch监听器
-    refreshTimer: null,      // 防抖定时器
-    reconnectTimer: null,    // 重连定时器
-    pollingTimer: null,      // 轮询定时器
-    reconnectCount: 0,       // 重连次数
-    watchConnected: false,   // watch是否连接
-    pollingActive: false,    // 是否在轮询
-    lastRefreshTime: 0,      // 上次刷新时间
-    lastScrollTime: 0,       // 上次滚动时间
-    isScrolling: false,      // 是否正在滚动
-    scrollTop: 0            // 当前滚动位置
+      { id: 'reward', name: '跑腿', icon: '💰' }
+    ]
   },
 
   onLoad() {
-    console.log('【用户订单页面】页面加载');
-    this.loadOrders();
-    // 启动订单实时监听
-    this.startOrderWatch();
+    subscribeMessage.preloadOrderStatusTemplateId();
+    wx.redirectTo({
+      url: '/subpackages/order/pages/order/index',
+      fail: () => {
+        this.loadOrders();
+        wx.showToast({
+          title: '请从底部「订单」进入完整订单页',
+          icon: 'none',
+          duration: 2500
+        });
+      }
+    });
   },
 
   onShow() {
-    console.log('【用户订单页面】页面显示，刷新订单');
-    this.loadOrders();
-    // 重新启动订单监听
-    this.startOrderWatch();
-    
-    // 如果watch未连接，启动轮询作为保障
-    setTimeout(() => {
-      if (!this.data.watchConnected && !this.data.pollingActive) {
-        console.log('【用户订单页面】Watch未连接，启动轮询保障');
-        this.startPolling();
-      }
-    }, 2000);
+    // 主包页仅作重定向，不做 Watch/轮询
   },
 
-  onHide() {
-    console.log('【用户订单页面】页面隐藏，停止订单监听和轮询');
-    // 停止订单监听和轮询
-    this.stopOrderWatch();
-    this.stopPolling();
-  },
-
-  onUnload() {
-    console.log('【用户订单页面】页面卸载，停止订单监听和轮询');
-    // 停止订单监听和轮询
-    this.stopOrderWatch();
-    this.stopPolling();
-    // 清理所有定时器
-    if (this.data.refreshTimer) {
-      clearTimeout(this.data.refreshTimer);
-      this.data.refreshTimer = null;
-    }
-    if (this.data.reconnectTimer) {
-      clearTimeout(this.data.reconnectTimer);
-      this.data.reconnectTimer = null;
-    }
-    if (this.data.scrollTimer) {
-      clearTimeout(this.data.scrollTimer);
-      this.data.scrollTimer = null;
-    }
-  },
-
-  // 启动订单实时监听
-  startOrderWatch() {
-    // 先停止之前的监听和轮询
-    this.stopOrderWatch();
-    this.stopPolling();
-    
-    // 重置重连次数
-    this.setData({ reconnectCount: 0 });
-    
-    try {
-      console.log('【用户订单页面】启动订单实时监听');
-      
-      const db = wx.cloud.database();
-      
-      // 获取当前用户的openid
-      wx.cloud.callFunction({
-        name: 'loginUser',
-        data: {}
-      }).then(res => {
-        const openid = res.result?.openid;
-        if (!openid) {
-          console.warn('【用户订单页面】无法启动订单监听：缺少openid，降级到轮询');
-          this.startPolling();
-          return;
-        }
-        
-        // 监听当前用户的订单变化（移除orderBy，watch不支持）
-        this.data.watchOrder = db.collection('orders')
-          .where({
-            userOpenid: openid
-          })
-          .watch({
-            onChange: (snapshot) => {
-              console.log('【用户订单页面】订单数据变化:', snapshot);
-              
-              // 标记watch已连接
-              if (!this.data.watchConnected) {
-                this.setData({ watchConnected: true });
-                console.log('【用户订单页面】Watch连接成功');
-                // 连接成功后停止轮询
-                this.stopPolling();
-              }
-              
-              // 如果有数据变化，且不在加载中，则刷新订单列表
-              if (snapshot.docChanges && snapshot.docChanges.length > 0) {
-                this.handleOrderChange();
-              }
-            },
-            onError: (err) => {
-              console.error('【用户订单页面】订单监听错误:', err);
-              this.handleWatchError(err);
-            }
-          });
-          
-        console.log('【用户订单页面】Watch监听已启动');
-      }).catch(err => {
-        console.error('【用户订单页面】获取openid失败:', err);
-        // 获取openid失败，降级到轮询
-        this.startPolling();
-      });
-    } catch (error) {
-      console.error('【用户订单页面】启动订单监听失败:', error);
-      // 启动失败，降级到轮询
-      this.startPolling();
-    }
-  },
-
-  // 处理订单变化（防抖+滚动检测）
-  handleOrderChange() {
-    // 防抖：1秒内最多刷新1次
-    const now = Date.now();
-    if (now - this.data.lastRefreshTime < 1000) {
-      console.log('【用户订单页面】防抖：跳过本次刷新');
-      return;
-    }
-    
-    if (this.data.loading) {
-      console.log('【用户订单页面】正在加载中，跳过刷新');
-      return;
-    }
-    
-    // 检查用户是否在滚动（3秒内滚动过，则延迟刷新）
-    const timeSinceScroll = now - (this.data.lastScrollTime || 0);
-    if (timeSinceScroll < 3000) {
-      console.log('【用户订单页面】用户正在浏览，延迟刷新');
-      // 延迟到用户停止滚动后3秒再刷新
-      if (this.data.refreshTimer) {
-        clearTimeout(this.data.refreshTimer);
-      }
-      this.data.refreshTimer = setTimeout(() => {
-        this.handleOrderChange();
-      }, 3000 - timeSinceScroll + 2000);
-      return;
-    }
-    
-    // 检查滚动位置：如果不在顶部（滚动超过100px），延迟刷新
-    if (this.data.scrollTop > 100) {
-      console.log('【用户订单页面】用户已滚动，延迟刷新');
-      if (this.data.refreshTimer) {
-        clearTimeout(this.data.refreshTimer);
-      }
-      this.data.refreshTimer = setTimeout(() => {
-        // 再次检查是否还在滚动
-        const timeSinceLastScroll = Date.now() - (this.data.lastScrollTime || 0);
-        if (timeSinceLastScroll >= 3000) {
-          this.handleOrderChange();
-        }
-      }, 3000);
-      return;
-    }
-    
-    console.log('【用户订单页面】检测到订单变化，自动刷新');
-    this.setData({ lastRefreshTime: now });
-    
-    // 延迟刷新，避免频繁刷新
-    if (this.data.refreshTimer) {
-      clearTimeout(this.data.refreshTimer);
-    }
-    
-    this.data.refreshTimer = setTimeout(() => {
-      if (!this.data.loading) {
-        this.loadOrders();
-      }
-    }, 500);
-  },
-
-  // 处理watch错误并重连
-  handleWatchError(err) {
-    this.setData({ watchConnected: false });
-    
-    const reconnectCount = this.data.reconnectCount || 0;
-    const maxReconnect = 3;
-    
-    if (reconnectCount >= maxReconnect) {
-      console.warn('【用户订单页面】Watch重连次数已达上限，降级到轮询');
-      this.startPolling();
-      return;
-    }
-    
-    // 重连间隔递增：1秒、3秒、5秒
-    const intervals = [1000, 3000, 5000];
-    const delay = intervals[reconnectCount] || 5000;
-    
-    console.log(`【用户订单页面】Watch错误，${delay/1000}秒后尝试重连（${reconnectCount + 1}/${maxReconnect}）`);
-    
-    this.setData({ reconnectCount: reconnectCount + 1 });
-    
-    this.data.reconnectTimer = setTimeout(() => {
-      this.startOrderWatch();
-    }, delay);
-  },
-
-  // 启动智能轮询（降级方案）
-  startPolling() {
-    // 如果已经在轮询，不重复启动
-    if (this.data.pollingActive) {
-      return;
-    }
-    
-    console.log('【用户订单页面】启动智能轮询');
-    this.setData({ pollingActive: true });
-    
-    // 立即执行一次
-    this.pollOrders();
-    
-    // 设置定时轮询
-    this.data.pollingTimer = setInterval(() => {
-      this.pollOrders();
-    }, this.getPollingInterval());
-  },
-
-  // 停止轮询
-  stopPolling() {
-    if (this.data.pollingTimer) {
-      clearInterval(this.data.pollingTimer);
-      this.data.pollingTimer = null;
-    }
-    this.setData({ pollingActive: false });
-    console.log('【用户订单页面】轮询已停止');
-  },
-
-  // 轮询订单
-  pollOrders() {
-    // 检查是否有进行中的订单
-    const hasActiveOrders = this.data.allOrders.some(order => {
-      const status = order.orderStatus;
-      return status === 'pending' || status === 'confirmed' || 
-             status === 'preparing' || status === 'delivering';
-    });
-    
-    // 如果没有进行中的订单，停止轮询
-    if (!hasActiveOrders) {
-      console.log('【用户订单页面】没有进行中的订单，停止轮询');
-      this.stopPolling();
-      return;
-    }
-    
-    // 检查用户是否在滚动（3秒内滚动过，则跳过本次刷新）
-    const now = Date.now();
-    const timeSinceScroll = now - (this.data.lastScrollTime || 0);
-    if (timeSinceScroll < 3000) {
-      console.log('【用户订单页面】用户正在浏览，跳过轮询刷新');
-      return;
-    }
-    
-    // 检查滚动位置：如果不在顶部，跳过刷新
-    if (this.data.scrollTop > 100) {
-      console.log('【用户订单页面】用户已滚动，跳过轮询刷新');
-      return;
-    }
-    
-    // 如果不在加载中，则刷新订单
-    if (!this.data.loading) {
-      console.log('【用户订单页面】轮询刷新订单');
-      this.loadOrders();
-    }
-  },
-
-  // 获取轮询间隔（根据订单状态）
-  getPollingInterval() {
-    // 检查是否有进行中的订单
-    const hasActiveOrders = this.data.allOrders.some(order => {
-      const status = order.orderStatus;
-      return status === 'pending' || status === 'confirmed' || 
-             status === 'preparing' || status === 'delivering';
-    });
-    
-    // 有进行中的订单：30秒轮询一次（减少刷新频率，提升体验）
-    // 没有进行中的订单：不轮询（由pollOrders判断）
-    return 30000;
-  },
-
-  // 处理滚动事件（记录滚动时间和位置）
-  onScroll(e) {
-    const now = Date.now();
-    const scrollTop = e.detail.scrollTop || 0;
-    this.setData({ 
-      lastScrollTime: now,
-      scrollTop: scrollTop,
-      isScrolling: true
-    });
-    
-    // 停止滚动后3秒，标记为静止
-    if (this.data.scrollTimer) {
-      clearTimeout(this.data.scrollTimer);
-    }
-    this.data.scrollTimer = setTimeout(() => {
-      this.setData({ isScrolling: false });
-    }, 3000);
-  },
-
-  // 停止订单监听
-  stopOrderWatch() {
-    if (this.data.watchOrder) {
-      try {
-        this.data.watchOrder.close();
-        console.log('【用户订单页面】订单监听已停止');
-      } catch (error) {
-        console.error('【用户订单页面】停止订单监听失败:', error);
-      }
-      this.data.watchOrder = null;
-    }
-    this.setData({ watchConnected: false });
-    
-    // 清理重连定时器
-    if (this.data.reconnectTimer) {
-      clearTimeout(this.data.reconnectTimer);
-      this.data.reconnectTimer = null;
-    }
+  onScroll() {
+    // 主包页无 Watch/轮询，保留空实现以满足 wxml bindscroll
   },
 
   // 下拉刷新
   onPullDownRefresh() {
-    console.log('【用户订单页面】下拉刷新');
-    // 设置刷新状态
     this.setData({ refreshing: true });
     
     // 下拉刷新时不显示loading，使用下拉刷新的原生动画
@@ -804,7 +497,7 @@ Page({
       wx.hideLoading();
       
       console.log('【取消订单】返回结果:', res.result);
-      
+
       if (res.result && res.result.code === 200) {
         wx.showToast({
           title: '订单已取消',
@@ -839,7 +532,7 @@ Page({
     // 空函数，用于阻止事件冒泡
   },
 
-  // 点击订单卡片，跳转到订单详情
+  // 点击订单卡片，跳转到订单详情（统一使用分包订单详情页）
   onOrderTap(e) {
     const orderId = e.currentTarget.dataset.id;
     if (orderId) {
@@ -847,16 +540,9 @@ Page({
         url: `/subpackages/order/pages/order-detail/index?orderId=${orderId}`,
         fail: (err) => {
           console.error('跳转到订单详情失败:', err);
-          // 如果subpackage路径失败，尝试主包路径
-          wx.navigateTo({
-            url: `/pages/order-detail/index?orderId=${orderId}`,
-            fail: (err2) => {
-              console.error('跳转到订单详情失败（主包路径）:', err2);
-              wx.showToast({
-                title: '跳转失败',
-                icon: 'none'
-              });
-            }
+          wx.showToast({
+            title: '跳转失败',
+            icon: 'none'
           });
         }
       });
@@ -1031,27 +717,31 @@ Page({
     }
   },
 
-  // 申请退款
+  // 申请退款（在用户点击时请求退款进度订阅，再跳转）
   onRefund(e) {
     const orderId = e.currentTarget.dataset.id;
     if (orderId) {
-      wx.navigateTo({
-        url: `/subpackages/order/pages/refund-apply/index?orderId=${orderId}`,
-        fail: (err) => {
-          console.error('跳转到退款申请页面失败:', err);
-          // 如果subpackage路径失败，尝试主包路径
-          wx.navigateTo({
-            url: `/pages/refund-apply/index?orderId=${orderId}`,
-            fail: (err2) => {
-              console.error('跳转到退款申请页面失败（主包路径）:', err2);
-              wx.showToast({
-                title: '跳转失败',
-                icon: 'none'
-              });
-            }
-          });
-        }
-      });
+      const refundTid = subscribeMessage.getRefundTemplateId();
+      const doNav = () => {
+        wx.navigateTo({
+          url: `/subpackages/order/pages/refund-apply/index?orderId=${orderId}`,
+          fail: (err) => {
+            console.error('跳转到退款申请页面失败:', err);
+            wx.navigateTo({
+              url: `/pages/refund-apply/index?orderId=${orderId}`,
+              fail: (err2) => {
+                console.error('跳转到退款申请页面失败（主包路径）:', err2);
+                wx.showToast({ title: '跳转失败', icon: 'none' });
+              }
+            });
+          }
+        });
+      };
+      if (refundTid) {
+        subscribeMessage.triggerSubscribeSync(refundTid).then(doNav).catch(doNav);
+      } else {
+        doNav();
+      }
     } else {
       wx.showToast({
         title: '订单信息缺失',
@@ -1062,6 +752,7 @@ Page({
 
   // 再来一单
   async onOrderAgain(e) {
+    if (!getApp().ensureLogin('请先登录后再下单')) return;
     const orderId = e.currentTarget.dataset.id;
     const order = this.data.filteredOrders.find(o => o.id === orderId);
     

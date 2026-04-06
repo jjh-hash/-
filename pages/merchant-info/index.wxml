@@ -1,23 +1,4 @@
 <view class="page">
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="back" bindtap="onBack">◀</text>
-      <text class="title">店铺信息</text>
-      <view class="icons">
-        <text class="dot">•</text>
-        <text class="battery">▮</text>
-      </view>
-    </view>
-    
-    <!-- 标签栏 -->
-    <view class="tabs">
-      <view class="tab {{activeTab === 0 ? 'active' : ''}}" data-index="0" bindtap="onTabTap">点餐</view>
-      <view class="tab {{activeTab === 1 ? 'active' : ''}}" data-index="1" bindtap="onTabTap">评价</view>
-      <view class="tab {{activeTab === 2 ? 'active' : ''}}" data-index="2" bindtap="onTabTap">商家</view>
-    </view>
-  </view>
 
   <scroll-view scroll-y class="content">
     <!-- 加载状态 -->

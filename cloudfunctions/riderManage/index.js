@@ -21,6 +21,7 @@ cloud.init({
 });
 
 const db = cloud.database();
+const { extractAdminSessionToken, verifyAdminSession, deny } = require('./adminSession');
 
 exports.main = async (event, context) => {
   const { action, data } = event;
@@ -30,6 +31,13 @@ exports.main = async (event, context) => {
   console.log('【骑手管理】action:', action, 'openid:', openid);
 
   try {
+    const RIDER_ADMIN_ACTIONS = new Set(['getRiderList', 'auditRider']);
+    if (RIDER_ADMIN_ACTIONS.has(action)) {
+      const v = await verifyAdminSession(db, extractAdminSessionToken(event));
+      if (!v.ok) {
+        return deny(v);
+      }
+    }
     switch (action) {
       case 'getRiderSettings':
         return await getRiderSettings(openid);

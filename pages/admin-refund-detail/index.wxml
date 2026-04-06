@@ -1,14 +1,7 @@
 <!--pages/admin-refund-detail/index.wxml-->
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <view class="back-btn" bindtap="onBack">◀</view>
-    <text class="title">退款详情</text>
-    <view class="nav-actions"></view>
-  </view>
 
   <scroll-view scroll-y class="content" wx:if="{{!loading && refundInfo}}">
     <!-- 退款状态 -->

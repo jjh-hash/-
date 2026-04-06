@@ -5,12 +5,20 @@ cloud.init({
 });
 
 const db = cloud.database();
+const { extractAdminSessionToken, verifyAdminSession, deny } = require('./adminSession');
 
 exports.main = async (event, context) => {
   try {
     const { action, data } = event;
     
     console.log('【平台配置】请求:', { action, data });
+
+    if (action === 'updateConfig') {
+      const v = await verifyAdminSession(db, extractAdminSessionToken(event));
+      if (!v.ok) {
+        return deny(v);
+      }
+    }
     
     switch (action) {
       case 'getConfig':
@@ -44,6 +52,7 @@ async function createDefaultConfig() {
     minOrderAmountLimit: 2000, // 最低订单金额下限（分）20元
     estimatedDeliveryMinutes: 30, // 预计送达时间（分钟）
     orderTimeoutMinutes: 20, // 订单超时时间（分钟）
+    depositAmount: 10000, // 校园兼职保证金（分）100 元
     createdAt: db.serverDate(),
     updatedAt: db.serverDate()
   };
@@ -102,6 +111,7 @@ async function getConfig() {
             minOrderAmountLimit: defaultConfig.minOrderAmountLimit || 2000,
             estimatedDeliveryMinutes: defaultConfig.estimatedDeliveryMinutes || 30,
             orderTimeoutMinutes: defaultConfig.orderTimeoutMinutes || 15,
+            depositAmount: defaultConfig.depositAmount !== undefined ? defaultConfig.depositAmount : 10000,
             systemStartTime: systemStartTime || null,
             deploymentTime: systemStartTime || null
           }
@@ -142,6 +152,7 @@ async function getConfig() {
           minOrderAmountLimit: defaultConfig.minOrderAmountLimit || 2000,
           estimatedDeliveryMinutes: defaultConfig.estimatedDeliveryMinutes || 30,
           orderTimeoutMinutes: defaultConfig.orderTimeoutMinutes || 15,
+          depositAmount: defaultConfig.depositAmount !== undefined ? defaultConfig.depositAmount : 10000,
           systemStartTime: systemStartTime || null,
           deploymentTime: systemStartTime || null
         }
@@ -185,9 +196,13 @@ async function getConfig() {
         minOrderAmountLimit: config.minOrderAmountLimit || 2000,
         estimatedDeliveryMinutes: config.estimatedDeliveryMinutes || 30,
         orderTimeoutMinutes: config.orderTimeoutMinutes || 15,
-        // 返回系统启动时间（使用createdAt作为系统启动时间）
+        depositAmount: config.depositAmount !== undefined ? config.depositAmount : 10000,
         systemStartTime: systemStartTime || config.deploymentTime || null,
-        deploymentTime: deploymentTime || config.deploymentTime || null
+        deploymentTime: deploymentTime || config.deploymentTime || null,
+        subscribeMessageOrderStatusTemplateId: config.subscribeMsgOrderTplId || config.subscribeMessageOrderStatusTemplateId || '',
+        subscribeMessageRefundTemplateId: config.subscribeMsgRefundTplId || config.subscribeMessageRefundTemplateId || '',
+        subscribeMessageReviewTemplateId: config.subscribeMsgReviewTplId || config.subscribeMessageReviewTemplateId || '',
+        subscribeMessageNewOrderTemplateId: config.subscribeMsgNewOrderTplId || config.subscribeMessageNewOrderTemplateId || ''
       }
     };
   } catch (error) {
@@ -205,7 +220,7 @@ async function getConfig() {
  */
 async function updateConfig(data) {
   try {
-    const { platformFeeRate, deliveryFee, minOrderAmountLimit, estimatedDeliveryMinutes, orderTimeoutMinutes } = data;
+    const { platformFeeRate, deliveryFee, minOrderAmountLimit, estimatedDeliveryMinutes, orderTimeoutMinutes, depositAmount } = data;
     
     // 查询现有配置
     let configResult;
@@ -291,17 +306,29 @@ async function updateConfig(data) {
       updateData.orderTimeoutMinutes = minutes;
     }
     
+    if (depositAmount !== undefined) {
+      const yuan = parseFloat(depositAmount);
+      if (isNaN(yuan) || yuan < 0) {
+        return {
+          code: 400,
+          message: '校园兼职保证金（元）必须大于等于0',
+          data: null
+        };
+      }
+      updateData.depositAmount = Math.round(yuan * 100); // 存为分
+    }
+    
     if (configResult.data.length === 0) {
       // 创建新配置
-      const defaultConfig = {
+      const defaultConfig = Object.assign({}, {
         platformFeeRate: 0.08,
         deliveryFee: 300,
         minOrderAmountLimit: 2000,
         estimatedDeliveryMinutes: 30,
         orderTimeoutMinutes: 15,
-        createdAt: db.serverDate(),
-        ...updateData
-      };
+        depositAmount: 10000,
+        createdAt: db.serverDate()
+      }, updateData);
       
       await db.collection('platform_config').add({
         data: defaultConfig

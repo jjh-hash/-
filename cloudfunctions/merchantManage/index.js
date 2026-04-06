@@ -21,6 +21,7 @@ cloud.init({
 });
 
 const db = cloud.database();
+const { extractAdminSessionToken, verifyAdminSession, deny } = require('./adminSession');
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
@@ -29,6 +30,10 @@ exports.main = async (event, context) => {
   console.log('【商家管理】请求:', { action, data });
   
   try {
+    const v = await verifyAdminSession(db, extractAdminSessionToken(event));
+    if (!v.ok) {
+      return deny(v);
+    }
     // 根据action执行不同操作
     switch (action) {
       case 'getList':

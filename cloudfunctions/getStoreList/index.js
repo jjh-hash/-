@@ -7,11 +7,19 @@ cloud.init({
 
 const db = cloud.database();
 
+// 生产环境不输出 log/warn，减少占用；error 保留便于排查
+const isDev = process.env.NODE_ENV !== 'production';
+const log = {
+  log: isDev ? (...a) => console.log(...a) : () => {},
+  warn: isDev ? (...a) => console.warn(...a) : () => {},
+  error: (...a) => console.error(...a)
+};
+
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   const { page = 1, pageSize = 20, keyword, storeCategory } = event;
-  
-  console.log('【获取商家列表】参数:', { page, pageSize, keyword, storeCategory });
+
+  log.log('【获取商家列表】参数:', { page, pageSize, keyword, storeCategory });
   
   try {
     // 1. 先查询已审核的商家（merchants集合）
@@ -21,7 +29,7 @@ exports.main = async (event, context) => {
       })
       .get();
     
-    console.log('【获取商家列表】已审核商家数量:', merchantsResult.data.length);
+    log.log('【获取商家列表】已审核商家数量:', merchantsResult.data.length);
     
     if (merchantsResult.data.length === 0) {
       return {
@@ -41,7 +49,7 @@ exports.main = async (event, context) => {
       .map(merchant => merchant.storeId)
       .filter(storeId => storeId); // 过滤掉空值
     
-    console.log('【获取商家列表】店铺ID列表:', storeIds);
+    log.log('【获取商家列表】店铺ID列表:', storeIds);
     
     if (storeIds.length === 0) {
       return {
@@ -75,8 +83,8 @@ exports.main = async (event, context) => {
       storeWhereCondition.name = db.RegExp({ regexp: keyword, options: 'i' });
     }
     
-    console.log('【获取商家列表】店铺查询条件:', JSON.stringify(storeWhereCondition));
-    console.log('【获取商家列表】筛选分类:', storeCategory);
+    log.log('【获取商家列表】店铺查询条件:', JSON.stringify(storeWhereCondition));
+    log.log('【获取商家列表】筛选分类:', storeCategory);
     
     // 4. 查询店铺列表（只返回必要字段，减少数据传输）
     const result = await db.collection('stores')
@@ -107,7 +115,18 @@ exports.main = async (event, context) => {
       .where(storeWhereCondition)
       .count();
     
-    console.log('【获取商家列表】查询结果:', result.data.length, '条');
+    log.log('【获取商家列表】查询结果:', result.data.length, '条');
+    
+    // 5.1 获取平台配置的配送费（统一配送费，与管理端设置一致）
+    let platformDeliveryFeeYuan = 3;
+    try {
+      const configRes = await db.collection('platform_config').limit(1).get();
+      if (configRes.data && configRes.data.length > 0 && configRes.data[0].deliveryFee != null) {
+        platformDeliveryFeeYuan = (configRes.data[0].deliveryFee) / 100; // 库存为分，转为元
+      }
+    } catch (err) {
+      log.warn('【获取商家列表】获取平台配送费失败，使用默认3元:', err);
+    }
     
     // 6. 批量获取商家信息和商品数量（优化：避免N+1查询）
     const resultStoreIds = result.data.map(store => store._id);
@@ -189,15 +208,15 @@ exports.main = async (event, context) => {
             if (item.status === 'ok') {
               logoUrlMap.set(fileID, item.tempFileURL);
             } else {
-              console.warn('【获取商家列表】图片URL转换失败:', fileID, item.errMsg);
+              log.warn('【获取商家列表】图片URL转换失败:', fileID, item.errMsg);
               // 转换失败时保留原fileID
               logoUrlMap.set(fileID, fileID);
             }
           });
         }
-        console.log('【获取商家列表】图片URL转换完成，成功转换:', logoUrlMap.size, '个');
+        log.log('【获取商家列表】图片URL转换完成，成功转换:', logoUrlMap.size, '个');
       } catch (error) {
-        console.error('【获取商家列表】批量转换图片URL失败:', error);
+        log.error('【获取商家列表】批量转换图片URL失败:', error);
         // 如果转换失败，使用原fileID
         logoFileIDs.forEach(fileID => {
           if (!logoUrlMap.has(fileID)) {
@@ -251,7 +270,7 @@ exports.main = async (event, context) => {
         businessStatus: store.businessStatus,
         storeCategory: store.storeCategory || '', // 店铺分类字段
         minOrderAmount: store.minOrderAmount || 20,
-        deliveryFee: store.deliveryFee || 3,
+        deliveryFee: platformDeliveryFeeYuan,
         ratingAvg: store.ratingAvg || 0,
         ratingCount: store.ratingCount || 0,
         sales: store.monthlySales || store.sales || 0, // 月销量（优先使用monthlySales）
@@ -261,7 +280,7 @@ exports.main = async (event, context) => {
         score: store.ratingAvg || 0,
         month: store.monthlySales || store.sales || 0,
         start: store.minOrderAmount || 20,
-        delivery: store.deliveryFee || 3,
+        delivery: platformDeliveryFeeYuan,
         merchantName: (merchant && merchant.merchantName) || '',
         productCount: productCount
       };
@@ -269,10 +288,10 @@ exports.main = async (event, context) => {
     
     // 调试：输出每个店铺的分类信息
     storeList.forEach(store => {
-      console.log(`【获取商家列表】店铺: ${store.name}, 分类: ${store.storeCategory || '(未设置)'}`);
+      log.log(`【获取商家列表】店铺: ${store.name}, 分类: ${store.storeCategory || '(未设置)'}`);
     });
     
-    console.log('【获取商家列表】格式化后的数据:', storeList);
+    log.log('【获取商家列表】格式化后的数据:', storeList);
     
     return {
       code: 200,
@@ -286,7 +305,7 @@ exports.main = async (event, context) => {
     };
     
   } catch (error) {
-    console.error('【获取商家列表】失败:', error);
+    log.error('【获取商家列表】失败:', error);
     return {
       code: 500,
       message: '系统异常',

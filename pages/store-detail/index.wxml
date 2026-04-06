@@ -1,18 +1,7 @@
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px">
-  </view>
 
   <!-- 头部导航 -->
-  <view class="header">
-    <view class="back-btn" bindtap="onBackTap">
-      <text class="back-icon">←</text>
-    </view>
-    <view class="header-title">店铺信息</view>
-    <view class="more-btn" bindtap="onMoreTap">
-      <text class="more-icon">⋮</text>
-    </view>
-  </view>
 
   <!-- 店铺信息卡片 -->
   <view class="store-card">

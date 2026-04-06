@@ -7,6 +7,21 @@ cloud.init({
 
 const db = cloud.database();
 
+/**
+ * 获取平台统一配送费（元），与管理端设置一致
+ */
+async function getPlatformDeliveryFeeYuan() {
+  try {
+    const res = await db.collection('platform_config').limit(1).get();
+    if (res.data && res.data.length > 0 && res.data[0].deliveryFee != null) {
+      return (res.data[0].deliveryFee) / 100; // 库存为分，转为元
+    }
+  } catch (err) {
+    console.warn('【店铺管理】获取平台配送费失败，使用默认3元:', err);
+  }
+  return 3;
+}
+
 exports.main = async (event, context) => {
   try {
     const { OPENID } = cloud.getWXContext();
@@ -200,9 +215,11 @@ async function getStoreInfo(openid, data) {
     }
   }
   
-  // 3. 合并商家信息和店铺信息
+  // 3. 合并商家信息和店铺信息（配送费使用平台统一配置，与管理端设置一致）
+  const platformDeliveryFeeYuan = await getPlatformDeliveryFeeYuan();
   const storeInfo = {
     ...store.data,
+    deliveryFee: platformDeliveryFeeYuan,
     merchantName: merchantInfo.merchantName,
     contactPhone: merchantInfo.contactPhone,
     avatar: store.data.avatar || store.data.logoUrl || merchantInfo.avatar || ''
@@ -501,6 +518,7 @@ async function getStoreDetail(openid, data) {
       ? merchant.data[0] 
       : (merchant.data || {});
     
+    const platformDeliveryFeeYuan = await getPlatformDeliveryFeeYuan();
     const storeDetail = {
       ...store.data,
       merchantId: merchantInfo._id || store.data.merchantId || null, // 添加商家ID
@@ -513,7 +531,7 @@ async function getStoreDetail(openid, data) {
       address: store.data.address || store.data.deliveryArea || '未设置地址',
       description: store.data.description || store.data.introduction || '',
       monthlySales: store.data.monthlySales || store.data.sales || 0,
-      deliveryFee: store.data.deliveryFee || 3,
+      deliveryFee: platformDeliveryFeeYuan, // 使用平台统一配送费，与管理端设置一致
       minOrderAmount: store.data.minOrderAmount || 20
     };
     
@@ -1018,6 +1036,7 @@ async function getStoreDetailWithProducts(openid, data) {
       }
     }
     
+    const platformDeliveryFeeYuan = await getPlatformDeliveryFeeYuan();
     const storeInfo = {
       name: updatedStore.data.name,
       description: updatedStore.data.description || updatedStore.data.announcement || '',
@@ -1025,7 +1044,7 @@ async function getStoreDetailWithProducts(openid, data) {
       avatar: logoUrl, // 优先使用avatar字段
       logo: logoUrl, // 兼容字段
       logoUrl: logoUrl, // 兼容字段
-      deliveryFee: updatedStore.data.deliveryFee || 3,
+      deliveryFee: platformDeliveryFeeYuan, // 使用平台统一配送费，与管理端设置一致
       minOrder: updatedStore.data.minOrderAmount || 20,
       minOrderAmount: updatedStore.data.minOrderAmount || 20,
       ratingAvg: updatedStore.data.ratingAvg || 0,
@@ -1100,22 +1119,12 @@ async function getStoreDetailWithProducts(openid, data) {
         coverUrl = ''; // 前端会使用默认图片
       }
       
-      // 处理商品价格：如果价格大于等于100，认为是分，需要除以100转换为元；否则认为是元
-      let productPrice = product.price || 0;
-      if (typeof productPrice === 'number') {
-        if (productPrice >= 100) {
-          // 价格大于等于100，认为是分，转换为元
-          productPrice = productPrice / 100;
-        }
-        // 如果价格小于100，认为是元，不需要转换
-      } else if (typeof productPrice === 'string') {
-        const numPrice = parseFloat(productPrice) || 0;
-        if (numPrice >= 100) {
-          productPrice = numPrice / 100;
-        } else {
-          productPrice = numPrice;
-        }
+      // 处理商品价格：数据库统一存分，转为元并保留两位小数
+      let productPrice = product.price ?? 0;
+      if (typeof productPrice === 'string') {
+        productPrice = parseFloat(productPrice) || 0;
       }
+      productPrice = Number(productPrice) / 100;
       
       return {
         id: product._id,

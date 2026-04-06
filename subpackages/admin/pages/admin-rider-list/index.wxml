@@ -1,13 +1,7 @@
 <!--pages/admin-rider-list/index.wxml-->
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <view class="back-btn" bindtap="onBack">◀</view>
-    <text class="title">骑手设置</text>
-  </view>
 
   <!-- 搜索和筛选 -->
   <view class="filter-section">

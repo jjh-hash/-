@@ -1,6 +1,4 @@
 <view class="page">
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-  <view class="nav"><text class="title">我的</text></view>
 
   <!-- 顶部用户卡片 -->
   <view class="user-card">

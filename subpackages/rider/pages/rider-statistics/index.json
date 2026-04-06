@@ -1,7 +1,1 @@
-{
-  "navigationBarTitleText": "统计数据",
-  "navigationStyle": "custom",
-  "enablePullDownRefresh": true,
-  "backgroundTextStyle": "dark"
-}
-
+{"navigationBarTitleText":"统计数据","enablePullDownRefresh":true,"backgroundTextStyle":"dark"}

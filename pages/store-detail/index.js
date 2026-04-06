@@ -1306,6 +1306,8 @@ Page({
     // 计算最终价格信息
     const priceInfo = this.getFinalPrice();
     
+    if (!getApp().ensureLogin('请先登录后再下单')) return;
+
     // 跳转到结算页面，传递购物车数据
     const cartData = {
       cartItems: this.data.cartItems,

@@ -1,19 +1,115 @@
-.page{min-height:100vh;background:#f5f5f5}
-.status-bar{width:100%}
-.nav{height:44px;display:flex;align-items:center;justify-content:center;background:#fff;border-bottom:1px solid #f0f0f0;position:relative}
-.back-btn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#333;font-size:16px;opacity:.9}
-.title{font-size:18px;color:#333;font-weight:600}
-.content{padding:16px}
-.field{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px}
-.label{display:block;color:#666;font-size:12px;margin-bottom:6px}
-.input{height:36px;background:#f7f7f7;border:1px solid #e0e0e0;border-radius:6px;padding:0 10px}
-.picker-view{display:flex;align-items:center;justify-content:space-between;height:36px;background:#f7f7f7;border:1px solid #e0e0e0;border-radius:6px;padding:0 10px}
-.picker-text{flex:1;color:#333;font-size:14px}
-.picker-arrow{color:#999;font-size:12px}
-.tip{font-size:12px;color:#999;margin:8px 0 16px;line-height:1.6}
-.tip-item{margin-bottom:4px}
-.tip-item:last-child{margin-bottom:0}
-.btn{height:40px;border-radius:8px;background:#f0f0f0;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;color:#333}
-.btn.primary{background:#0a86ff;border-color:#0a86ff;color:#fff}
+/* 骑手注册 - 设计系统 */
+.page {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
 
+.status-bar {
+  width: 100%;
+}
 
+.nav {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+.back-btn {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text);
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.title {
+  font-size: 18px;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.content {
+  padding: var(--space-page);
+}
+
+.field {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-btn);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.label {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.input {
+  height: 36px;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  padding: 0 10px;
+}
+
+.picker-view {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  padding: 0 10px;
+}
+
+.picker-text {
+  flex: 1;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.picker-arrow {
+  color: var(--color-text-placeholder);
+  font-size: 12px;
+}
+
+.tip {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  margin: 8px 0 16px;
+  line-height: 1.6;
+}
+
+.tip-item {
+  margin-bottom: 4px;
+}
+
+.tip-item:last-child {
+  margin-bottom: 0;
+}
+
+.btn {
+  height: 40px;
+  border-radius: var(--radius-btn);
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+}
+
+.btn.primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}

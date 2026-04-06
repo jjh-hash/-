@@ -1,0 +1,173 @@
+<view class="page">
+  <view class="main-tabs">
+    <view class="main-tab {{mainTab === 'task' ? 'active' : ''}}" data-tab="task" bindtap="onMainTab">任务</view>
+    <view class="main-tab {{mainTab === 'delivery' ? 'active' : ''}}" data-tab="delivery" bindtap="onMainTab">配送</view>
+  </view>
+
+  <!-- 任务 Tab -->
+  <scroll-view 
+    wx:if="{{mainTab === 'task'}}" 
+    scroll-y class="tab-content" 
+    bindscrolltolower="onTaskReachBottom"
+  >
+    <view class="banner tip" wx:if="{{!campusPartnerActive}}">
+      <text>接单需先开通校园兼职（缴纳保证金），满 30 天可退。</text>
+      <button class="btn-link" bindtap="goCampusPartner">去开通</button>
+    </view>
+    <view class="task-actions">
+      <button class="btn-primary" bindtap="goTaskList">进入任务列表（筛选 / 我发布的）</button>
+    </view>
+    <view class="task-list" wx:if="{{taskOrders.length > 0}}">
+      <view 
+        class="task-card" 
+        wx:for="{{taskOrders}}" 
+        wx:key="id" 
+        bindtap="onTaskOrderTap" 
+        data-id="{{item.id}}"
+      >
+        <view class="task-type">{{item.orderTypeText}}</view>
+        <view class="task-amount">¥{{item.bounty || item.amountTotal}}</view>
+        <view class="task-order-no">{{item.orderNo}}</view>
+        <view class="task-btn">接单</view>
+      </view>
+    </view>
+    <view wx:elif="{{taskLoadError && !taskLoading}}" class="task-error-retry">
+      <text>加载失败</text>
+      <text style="font-size:12px;color:var(--color-text-secondary);margin:8px 0;">{{errorMessage || '网络异常，请重试'}}</text>
+      <view class="btn-primary" bindtap="onRetryTaskLoad" style="margin-top:8px;">点击重试</view>
+    </view>
+    <view class="empty-tip" wx:elif="{{!taskLoading}}">暂无待接任务，进入任务列表查看更多</view>
+    <view wx:if="{{taskLoading && taskOrders.length === 0}}" class="task-skeleton-list">
+      <block wx:for="{{[1,2,3,4]}}" wx:key="*this">
+        <view class="task-card" style="opacity:0.6;">
+          <view class="ds-skeleton-line" style="width:60px;height:14px;margin-bottom:8px;"></view>
+          <view class="ds-skeleton-line" style="width:80px;height:20px;margin-bottom:6px;"></view>
+          <view class="ds-skeleton-line" style="width:100px;height:12px;"></view>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+
+  <!-- 配送 Tab -->
+  <scroll-view
+    wx:if="{{mainTab === 'delivery'}}"
+    scroll-y
+    class="tab-content"
+    bindscroll="onDeliveryScroll"
+  >
+    <view class="delivery-tip" wx:if="{{!campusPartnerActive && riderStatus !== 'approved'}}">
+      <text>接配送单需先开通校园兼职（缴纳保证金，满 30 天可退）或注册骑手。</text>
+      <button class="btn-link" bindtap="goCampusPartner">去开通校园兼职</button>
+      <button class="btn-link" bindtap="goRiderHome">去配送页</button>
+    </view>
+    <view wx:else>
+      <view class="sub-tabs">
+        <view 
+          class="sub-tab {{deliverySubTab === 0 ? 'active' : ''}}" 
+          data-index="0" 
+          bindtap="onDeliverySubTab"
+        >待抢单</view>
+        <view 
+          class="sub-tab {{deliverySubTab === 1 ? 'active' : ''}}" 
+          data-index="1" 
+          bindtap="onDeliverySubTab"
+        >待取货</view>
+        <view 
+          class="sub-tab {{deliverySubTab === 2 ? 'active' : ''}}" 
+          data-index="2" 
+          bindtap="onDeliverySubTab"
+        >待送达</view>
+      </view>
+      <view class="delivery-actions">
+        <button class="btn-primary" bindtap="goRiderHome">进入配送（抢单 / 取货 / 送达）</button>
+      </view>
+      <view wx:if="{{deliverySubTab === 0 && deliveryLoading && deliveryOrders.length === 0}}" class="delivery-skeleton-list">
+        <block wx:for="{{[1,2,3,4]}}" wx:key="*this">
+          <view class="delivery-card" style="opacity:0.6;">
+            <view class="ds-skeleton-line" style="width:80%;height:14px;margin-bottom:8px;"></view>
+            <view class="ds-skeleton-line" style="width:100px;height:12px;margin-bottom:6px;"></view>
+            <view class="ds-skeleton-line" style="width:50px;height:18px;border-radius:4px;"></view>
+          </view>
+        </block>
+      </view>
+      <view wx:elif="{{deliverySubTab === 1 && pickupLoading && pickupOrders.length === 0}}" class="delivery-skeleton-list">
+        <block wx:for="{{[1,2,3,4]}}" wx:key="*this">
+          <view class="delivery-card" style="opacity:0.6;">
+            <view class="ds-skeleton-line" style="width:80%;height:14px;margin-bottom:8px;"></view>
+            <view class="ds-skeleton-line" style="width:100px;height:12px;margin-bottom:6px;"></view>
+            <view class="ds-skeleton-line" style="width:50px;height:18px;border-radius:4px;"></view>
+          </view>
+        </block>
+      </view>
+      <view wx:elif="{{deliverySubTab === 2 && deliverLoading && deliverOrders.length === 0}}" class="delivery-skeleton-list">
+        <block wx:for="{{[1,2,3,4]}}" wx:key="*this">
+          <view class="delivery-card" style="opacity:0.6;">
+            <view class="ds-skeleton-line" style="width:80%;height:14px;margin-bottom:8px;"></view>
+            <view class="ds-skeleton-line" style="width:100px;height:12px;margin-bottom:6px;"></view>
+            <view class="ds-skeleton-line" style="width:50px;height:18px;border-radius:4px;"></view>
+          </view>
+        </block>
+      </view>
+      <view class="delivery-list" wx:elif="{{deliverySubTab === 0 && deliveryOrders.length > 0}}">
+        <view 
+          class="delivery-card" 
+          wx:for="{{deliveryOrders}}" 
+          wx:key="id" 
+          bindtap="onDeliveryOrderTap"
+          data-id="{{item.id}}"
+        >
+          <view class="delivery-store">{{item.storeName}}</view>
+          <view class="delivery-order-no">{{item.orderNo}}</view>
+          <view class="delivery-price">¥{{item.price}}</view>
+          <view class="delivery-btn">去抢单</view>
+        </view>
+      </view>
+      <view class="delivery-list" wx:elif="{{deliverySubTab === 1 && pickupOrders.length > 0}}">
+        <view 
+          class="delivery-card" 
+          wx:for="{{pickupOrders}}" 
+          wx:key="id" 
+          bindtap="onDeliveryOrderTap"
+          data-id="{{item.id}}"
+        >
+          <view class="delivery-store">{{item.storeName}}</view>
+          <view class="delivery-order-no">{{item.orderNo}}</view>
+          <view class="delivery-price">¥{{item.price}}</view>
+          <view class="delivery-btn">去取货</view>
+        </view>
+      </view>
+      <view class="delivery-list" wx:elif="{{deliverySubTab === 2 && deliverOrders.length > 0}}">
+        <view 
+          class="delivery-card" 
+          wx:for="{{deliverOrders}}" 
+          wx:key="id" 
+          bindtap="onDeliveryOrderTap"
+          data-id="{{item.id}}"
+        >
+          <view class="delivery-store">{{item.storeName}}</view>
+          <view class="delivery-order-no">{{item.orderNo}}</view>
+          <view class="delivery-price">¥{{item.price}}</view>
+          <view class="delivery-btn">去送达</view>
+        </view>
+      </view>
+      <view wx:elif="{{deliveryLoadError && deliverySubTab === 0 && !deliveryLoading && deliveryOrders.length === 0}}" class="delivery-error-retry">
+        <text>加载失败</text>
+        <text style="font-size:12px;color:var(--color-text-secondary);margin:8px 0;">{{errorMessage || '网络异常，请重试'}}</text>
+        <view class="btn-primary" bindtap="onRetryDeliveryLoad" style="margin-top:8px;">点击重试</view>
+      </view>
+      <view wx:elif="{{deliveryLoadError && deliverySubTab === 1 && !pickupLoading && pickupOrders.length === 0}}" class="delivery-error-retry">
+        <text>加载失败</text>
+        <text style="font-size:12px;color:var(--color-text-secondary);margin:8px 0;">{{errorMessage || '网络异常，请重试'}}</text>
+        <view class="btn-primary" bindtap="onRetryDeliveryLoad" style="margin-top:8px;">点击重试</view>
+      </view>
+      <view wx:elif="{{deliveryLoadError && deliverySubTab === 2 && !deliverLoading && deliverOrders.length === 0}}" class="delivery-error-retry">
+        <text>加载失败</text>
+        <text style="font-size:12px;color:var(--color-text-secondary);margin:8px 0;">{{errorMessage || '网络异常，请重试'}}</text>
+        <view class="btn-primary" bindtap="onRetryDeliveryLoad" style="margin-top:8px;">点击重试</view>
+      </view>
+      <view class="delivery-empty" wx:elif="{{deliverySubTab === 0 && !deliveryLoading && deliveryOrders.length === 0}}">暂无待抢订单，进入配送页抢单</view>
+      <view class="delivery-empty" wx:elif="{{deliverySubTab === 1 && !pickupLoading && pickupOrders.length === 0}}">暂无待取货订单</view>
+      <view class="delivery-empty" wx:elif="{{deliverySubTab === 2 && !deliverLoading && deliverOrders.length === 0}}">暂无待送达订单</view>
+    </view>
+  </scroll-view>
+</view>

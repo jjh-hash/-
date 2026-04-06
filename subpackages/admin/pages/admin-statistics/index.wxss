@@ -1,31 +1,29 @@
 .page {
   min-height: 100vh;
-  background: #f5f6f8;
+  background: var(--color-bg-page);
 }
 
-.status-bar {
-  background: transparent;
-}
+.status-bar { background: transparent; }
 
 .nav-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 20rpx 30rpx;
-  background: white;
-  border-bottom: 1rpx solid #eee;
+  background: var(--color-bg-card);
+  border-bottom: 1rpx solid var(--color-border);
   position: relative;
 }
 
 .back-btn, .refresh-btn, .export-btn {
-  color: #333;
+  color: var(--color-text);
   font-size: 32rpx;
   padding: 10rpx;
   flex-shrink: 0;
 }
 
 .title {
-  color: #333;
+  color: var(--color-text);
   font-size: 36rpx;
   font-weight: bold;
   position: absolute;
@@ -33,30 +31,22 @@
   transform: translateX(-50%);
 }
 
-.nav-right {
-  width: 60rpx;
-  flex-shrink: 0;
-}
+.nav-right { width: 60rpx; flex-shrink: 0; }
 
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-}
+.nav-actions { display: flex; align-items: center; gap: 20rpx; }
 
 .export-btn {
-  background: #667eea;
-  color: white;
+  background: var(--color-primary);
+  color: #fff;
   padding: 8rpx 16rpx;
-  border-radius: 20rpx;
+  border-radius: var(--radius-tag);
   font-size: 26rpx;
 }
 
-/* 标签栏 */
 .tabs {
   display: flex;
-  background: white;
-  border-bottom: 1rpx solid #eee;
+  background: var(--color-bg-card);
+  border-bottom: 1rpx solid var(--color-border);
 }
 
 .tab-item {
@@ -64,12 +54,12 @@
   text-align: center;
   padding: 30rpx 0;
   font-size: 28rpx;
-  color: #666;
+  color: var(--color-text-secondary);
   position: relative;
 }
 
 .tab-item.active {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: bold;
 }
 
@@ -81,25 +71,24 @@
   transform: translateX(-50%);
   width: 60rpx;
   height: 4rpx;
-  background: #667eea;
+  background: var(--color-primary);
   border-radius: 2rpx;
 }
 
-/* 日期范围选择 */
 .date-range {
   padding: 20rpx 30rpx;
-  background: white;
-  border-bottom: 1rpx solid #eee;
+  background: var(--color-bg-card);
+  border-bottom: 1rpx solid var(--color-border);
 }
 
 .picker-text {
   display: inline-block;
   padding: 12rpx 24rpx;
-  background: #f8f9fa;
-  border: 1rpx solid #ddd;
-  border-radius: 20rpx;
+  background: var(--color-bg-page);
+  border: 1rpx solid var(--color-border);
+  border-radius: var(--radius-tag);
   font-size: 26rpx;
-  color: #333;
+  color: var(--color-text);
 }
 
 /* 内容区域 */
@@ -115,23 +104,19 @@
 }
 
 .stat-card {
-  background: white;
-  border-radius: 20rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 30rpx;
   text-align: center;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
-.stat-icon {
-  font-size: 48rpx;
-  display: block;
-  margin-bottom: 15rpx;
-}
+.stat-icon { font-size: 48rpx; display: block; margin-bottom: 15rpx; }
 
 .stat-label {
   display: block;
   font-size: 24rpx;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 10rpx;
 }
 
@@ -139,17 +124,16 @@
   display: block;
   font-size: 36rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--color-text);
 }
 
-/* 营收卡片 */
 .revenue-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 20rpx;
+  background: var(--color-primary);
+  border-radius: var(--radius-card);
   padding: 40rpx;
   text-align: center;
-  color: white;
-  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.3);
+  color: #fff;
+  box-shadow: var(--shadow-card);
 }
 
 .revenue-label {
@@ -165,27 +149,25 @@
   font-weight: bold;
 }
 
-/* 加载状态 */
 .loading {
   text-align: center;
   padding: 100rpx;
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 28rpx;
 }
 
-/* 图表容器 */
 .chart-container {
-  background: white;
-  border-radius: 20rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 30rpx;
   margin-bottom: 30rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .chart-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 30rpx;
   text-align: center;
 }
@@ -223,28 +205,28 @@
 .chart-bar {
   width: 100%;
   max-width: 60rpx;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, var(--color-primary) 0%, rgba(255, 184, 0, 0.75) 100%);
   border-radius: 8rpx 8rpx 0 0;
   min-height: 4rpx;
   transition: all 0.3s ease;
 }
 
 .chart-bar.revenue-bar {
-  background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(180deg, var(--color-warning) 0%, rgba(221, 142, 9, 0.7) 100%);
 }
 
 .chart-bar.active-bar {
-  background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(180deg, var(--color-secondary) 0%, rgba(59, 130, 246, 0.7) 100%);
 }
 
 .chart-bar.merchant-bar {
-  background: linear-gradient(180deg, #43e97b 0%, #38f9d7 100%);
+  background: linear-gradient(180deg, var(--color-success) 0%, rgba(7, 193, 96, 0.7) 100%);
 }
 
 .chart-label {
   display: block;
   font-size: 20rpx;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-top: 10rpx;
   text-align: center;
   transform: rotate(0deg);
@@ -257,14 +239,14 @@
 .chart-value {
   display: block;
   font-size: 20rpx;
-  color: #333;
+  color: var(--color-text);
   margin-top: 5rpx;
   text-align: center;
   font-weight: bold;
 }
 
 .chart-bar.time-bar {
-  background: linear-gradient(180deg, #ffecd2 0%, #fcb69f 100%);
+  background: linear-gradient(180deg, var(--color-primary-light) 0%, rgba(255, 184, 0, 0.5) 100%);
 }
 
 .stat-trend {
@@ -273,44 +255,35 @@
   margin-top: 5rpx;
 }
 
-.stat-trend.positive {
-  color: #10b981;
-}
+.stat-trend.positive { color: var(--color-success); }
 
-.stat-trend.negative {
-  color: #ef4444;
-}
+.stat-trend.negative { color: var(--color-danger); }
 
-/* 排行榜容器 */
 .ranking-container {
-  background: white;
-  border-radius: 20rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
   padding: 30rpx;
   margin-bottom: 30rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .ranking-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 20rpx;
   text-align: center;
 }
 
-.ranking-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15rpx;
-}
+.ranking-list { display: flex; flex-direction: column; gap: 15rpx; }
 
 .ranking-item {
   display: flex;
   align-items: center;
   padding: 20rpx;
-  background: #f8f9fa;
-  border-radius: 15rpx;
-  border-left: 4rpx solid #667eea;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-btn);
+  border-left: 4rpx solid var(--color-primary);
 }
 
 .ranking-rank {
@@ -319,8 +292,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--color-primary);
+  color: #fff;
   border-radius: 50%;
   font-size: 24rpx;
   font-weight: bold;
@@ -328,21 +301,8 @@
   flex-shrink: 0;
 }
 
-.ranking-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 5rpx;
-}
+.ranking-info { flex: 1; display: flex; flex-direction: column; gap: 5rpx; }
 
-.ranking-name {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
-}
+.ranking-name { font-size: 28rpx; font-weight: bold; color: var(--color-text); }
 
-.ranking-desc {
-  font-size: 24rpx;
-  color: #666;
-  line-height: 1.5;
-}
+.ranking-desc { font-size: 24rpx; color: var(--color-text-secondary); line-height: 1.5; }

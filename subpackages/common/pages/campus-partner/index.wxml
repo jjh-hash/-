@@ -1,0 +1,75 @@
+<view class="page">
+  <scroll-view scroll-y class="content" enhanced="{{true}}" show-scrollbar="{{false}}">
+    <!-- 加载中 -->
+    <view class="section card card-loading" wx:if="{{status === 'loading'}}">
+      <view class="loading-wrap">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
+    </view>
+
+    <!-- 未申请 -->
+    <view class="section card" wx:elif="{{status === 'none'}}">
+      <view class="card-head">
+        <text class="title">申请校园兼职</text>
+        <text class="desc">缴纳保证金后即可接单（代拿、跑腿、陪玩、配送）。满 30 天后可申请退还并退出兼职。</text>
+      </view>
+      <view class="amount-block">
+        <text class="amount-label">保证金金额</text>
+        <text class="amount">¥{{depositAmountYuan}}</text>
+      </view>
+      <button class="btn btn-primary" bindtap="onApply">立即申请</button>
+    </view>
+
+    <!-- 待缴纳 -->
+    <view class="section card" wx:elif="{{status === 'pending_payment'}}">
+      <view class="card-head">
+        <text class="title">待缴纳保证金</text>
+        <text class="desc">请缴纳保证金 ¥{{depositAmountYuan}} 后即可开通校园兼职，接任务与配送单。</text>
+      </view>
+      <button class="btn btn-primary" bindtap="onConfirmDeposit">确认缴纳</button>
+    </view>
+
+    <!-- 已开通 -->
+    <view class="section card card-active" wx:elif="{{status === 'active'}}">
+      <view class="card-head">
+        <text class="title">已开通校园兼职</text>
+        <text class="desc date-desc" wx:if="{{depositPaidAt}}">缴纳时间：{{depositPaidAt}}</text>
+      </view>
+      <view class="action-hint">选择接单类型</view>
+      <view class="actions">
+        <view class="action-row" bindtap="goTaskHall">
+          <view class="action-text">
+            <text class="action-desc">接代拿、跑腿、陪玩等任务</text>
+          </view>
+          <view class="btn btn-primary btn-inline">去任务大厅</view>
+        </view>
+        <view class="action-row" bindtap="goRiderHome">
+          <view class="action-text">
+            <text class="action-desc">接外卖配送单，取餐送餐</text>
+          </view>
+          <view class="btn btn-primary btn-inline">去配送</view>
+        </view>
+      </view>
+      <button class="btn btn-secondary btn-refund" wx:if="{{canRefund}}" bindtap="onRequestRefund">申请退保证金</button>
+      <text class="tip-caption" wx:elif="{{refundableAfter}}">满 30 天后（{{refundableAfter}}）可申请退还保证金</text>
+    </view>
+
+    <!-- 退款申请已提交 -->
+    <view class="section card" wx:elif="{{status === 'refund_requested'}}">
+      <view class="card-head">
+        <text class="title">退款申请已提交</text>
+        <text class="desc">我们将尽快为您退还保证金并解除校园兼职身份。</text>
+      </view>
+    </view>
+
+    <!-- 已退出 -->
+    <view class="section card" wx:elif="{{status === 'refunded'}}">
+      <view class="card-head">
+        <text class="title">已退出校园兼职</text>
+        <text class="desc">如需再次接单，请重新申请并缴纳保证金。</text>
+      </view>
+      <button class="btn btn-primary" bindtap="onApply">重新申请</button>
+    </view>
+  </scroll-view>
+</view>

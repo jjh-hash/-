@@ -1,13 +1,6 @@
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   
-  <!-- 导航栏 -->
-  <view class="nav-bar">
-    <view class="back-btn" bindtap="onBack">◀</view>
-    <text class="title">财务统计</text>
-    <view class="refresh-btn" bindtap="onRefresh">刷新</view>
-  </view>
 
   <!-- 日期范围选择 -->
   <view class="date-range">

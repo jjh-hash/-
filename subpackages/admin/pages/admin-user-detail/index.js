@@ -1,5 +1,7 @@
 // pages/admin-user-detail/index.js
 // 用户详情页面
+const { verifyAdminPage } = require('../../utils/verifyAdminPage.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -11,6 +13,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!verifyAdminPage()) return;
     if (options.id) {
       this.setData({ userId: options.id });
       this.loadUserDetail();

@@ -1,13 +1,4 @@
 <view class="page">
-  <!-- 导航栏 -->
-  <view class="navbar">
-    <view class="navbar-content">
-      <text class="back-btn" bindtap="onBack">◀</text>
-      <text class="navbar-title">我的评价</text>
-      <view class="placeholder"></view>
-    </view>
-  </view>
-
   <scroll-view scroll-y class="content">
     <!-- 加载中 -->
     <view class="loading-container" wx:if="{{loading}}">
@@ -16,9 +7,13 @@
 
     <!-- 空状态 -->
     <view class="empty-container" wx:elif="{{isEmpty}}">
-      <text class="empty-icon">📝</text>
-      <text class="empty-text">还没有评价记录</text>
-      <text class="empty-tip">快去评价你购买的商品吧~</text>
+      <view class="empty-icon-wrap">
+        <text class="empty-icon">✏️</text>
+      </view>
+      <view class="empty-lines">
+        <text class="empty-text">还没有评价记录</text>
+        <text class="empty-tip">快去评价你购买的商品吧~</text>
+      </view>
     </view>
 
     <!-- 评价列表 -->

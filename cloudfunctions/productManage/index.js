@@ -71,7 +71,7 @@ exports.main = async (event, context) => {
  * 添加商品
  */
 async function addProduct(openid, data) {
-  const { name, categoryId, price, description, coverUrl, stock, spec, attr, prepTime, specifications } = data;
+  const { name, categoryId, price, description, coverUrl, stock, spec, attr, prepTime, specifications, merchantId: clientMerchantId } = data;
   
   console.log('【添加商品】接收到的参数:', data);
   
@@ -97,19 +97,26 @@ async function addProduct(openid, data) {
     };
   }
   
-  // 2. 验证商家身份
-  const merchant = await db.collection('merchants')
-    .where({ openid })
-    .get();
-  
-  if (!merchant.data.length) {
+  // 2. 验证商家身份：优先用前端传的 merchantId（来自商家登录 storage），再回退用 openid 查
+  let merchantInfo = null;
+  if (clientMerchantId) {
+    const merchantDoc = await db.collection('merchants').doc(clientMerchantId).get();
+    if (merchantDoc.data) {
+      merchantInfo = merchantDoc.data;
+    }
+  }
+  if (!merchantInfo) {
+    const merchantList = await db.collection('merchants').where({ openid }).get();
+    if (merchantList.data && merchantList.data.length > 0) {
+      merchantInfo = merchantList.data[0];
+    }
+  }
+  if (!merchantInfo) {
     return {
       code: 403,
       message: '商家不存在'
     };
   }
-  
-  const merchantInfo = merchant.data[0];
   let storeId = merchantInfo.storeId;
   
   if (!storeId) {

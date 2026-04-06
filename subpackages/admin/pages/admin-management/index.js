@@ -1,4 +1,6 @@
 // pages/admin-management/index.js
+const { verifyAdminPage } = require('../../utils/verifyAdminPage.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -58,6 +60,7 @@ Page({
   },
 
   onLoad() {
+    if (!verifyAdminPage()) return;
     console.log('管理系统页面加载');
   },
 

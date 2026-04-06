@@ -1,6 +1,7 @@
+/* 管理端商家列表 - 设计系统 */
 .page {
   min-height: 100vh;
-  background: #f5f6f8;
+  background: var(--color-bg-page);
 }
 
 .status-bar {
@@ -12,21 +13,21 @@
   align-items: center;
   justify-content: center;
   padding: 20rpx 30rpx;
-  background: white;
-  border-bottom: 1rpx solid #eee;
+  background: var(--color-bg-card);
+  border-bottom: 1rpx solid var(--color-border);
   position: relative;
 }
 
 .back-btn {
   position: absolute;
   left: 30rpx;
-  color: #333;
+  color: var(--color-text);
   font-size: 28rpx;
   padding: 10rpx;
 }
 
 .title {
-  color: #333;
+  color: var(--color-text);
   font-size: 36rpx;
   font-weight: bold;
   text-align: center;
@@ -38,19 +39,18 @@
   gap: 20rpx;
 }
 
-/* 邀请码按钮区域 */
 .invite-code-section {
   padding: 24rpx 30rpx;
-  background: white;
-  border-bottom: 1rpx solid #eee;
+  background: var(--color-bg-card);
+  border-bottom: 1rpx solid var(--color-border);
 }
 
 .invite-code-btn {
   width: 100%;
   height: 88rpx;
   line-height: 88rpx;
-  background: #1677ff;
-  color: white;
+  background: var(--color-primary);
+  color: #fff;
   border-radius: 44rpx;
   font-size: 32rpx;
   font-weight: 500;
@@ -64,12 +64,11 @@
   border: none;
 }
 
-/* 搜索和筛选 */
 .filter-section {
   display: flex;
   padding: 20rpx 30rpx;
-  background: white;
-  border-bottom: 1rpx solid #eee;
+  background: var(--color-bg-card);
+  border-bottom: 1rpx solid var(--color-border);
   gap: 20rpx;
 }
 
@@ -84,7 +83,7 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 28rpx;
-  color: #999;
+  color: var(--color-text-placeholder);
   z-index: 1;
 }
 
@@ -92,16 +91,16 @@
   width: 100%;
   height: 76rpx;
   padding: 0 24rpx 0 60rpx;
-  border: 2rpx solid #e6e8eb;
+  border: 2rpx solid var(--color-border);
   border-radius: 38rpx;
   font-size: 28rpx;
-  background: #f5f6f8;
+  background: var(--color-bg-page);
   box-sizing: border-box;
 }
 
 .search-input:focus {
-  border-color: #1677ff;
-  background: #fff;
+  border-color: var(--color-primary);
+  background: var(--color-bg-card);
 }
 
 .filter-box {
@@ -112,25 +111,24 @@
   height: 70rpx;
   line-height: 70rpx;
   padding: 0 20rpx;
-  border: 1rpx solid #ddd;
+  border: 1rpx solid var(--color-border);
   border-radius: 35rpx;
   font-size: 28rpx;
   text-align: center;
-  background: #f8f9fa;
-  color: #333;
+  background: var(--color-bg-page);
+  color: var(--color-text);
 }
 
-/* 商家列表 */
 .merchant-list {
   padding: 20rpx 30rpx;
 }
 
 .merchant-item {
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 20rpx;
   padding: 30rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .merchant-header {
@@ -148,14 +146,14 @@
   display: block;
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 8rpx;
 }
 
 .merchant-phone {
   display: block;
   font-size: 26rpx;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .merchant-status {
@@ -166,23 +164,18 @@
 }
 
 .status-pending {
-  background: #fff3cd;
-  color: #856404;
+  background: rgba(255, 152, 0, 0.15);
+  color: var(--color-warning);
 }
 
 .status-active {
-  background: #d4edda;
-  color: #155724;
+  background: var(--color-primary-light);
+  color: var(--color-success);
 }
 
-.status-suspended {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.status-rejected {
-  background: #f8d7da;
-  color: #721c24;
+.status-suspended, .status-rejected {
+  background: rgba(244, 67, 54, 0.15);
+  color: var(--color-danger);
 }
 
 .merchant-details {
@@ -196,13 +189,13 @@
 
 .detail-label {
   font-size: 26rpx;
-  color: #666;
+  color: var(--color-text-secondary);
   width: 160rpx;
 }
 
 .detail-value {
   font-size: 26rpx;
-  color: #333;
+  color: var(--color-text);
   flex: 1;
 }
 
@@ -221,8 +214,8 @@
 }
 
 .detail-btn {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .action-buttons {
@@ -230,37 +223,29 @@
   gap: 15rpx;
 }
 
-.approve-btn {
-  background: #d4edda;
-  color: #155724;
+.approve-btn, .resume-btn {
+  background: var(--color-primary-light);
+  color: var(--color-success);
 }
 
-.reject-btn {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.suspend-btn {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.resume-btn {
-  background: #d4edda;
-  color: #155724;
+.reject-btn, .delete-btn {
+  background: rgba(244, 67, 54, 0.15);
+  color: var(--color-danger);
 }
 
 .delete-btn {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1rpx solid #f5c6cb;
+  border: 1rpx solid rgba(244, 67, 54, 0.3);
 }
 
-/* 加载状态 */
+.suspend-btn {
+  background: rgba(255, 152, 0, 0.15);
+  color: var(--color-warning);
+}
+
 .loading {
   text-align: center;
   padding: 60rpx;
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 28rpx;
 }
 
@@ -278,14 +263,14 @@
 
 .empty-text {
   font-size: 28rpx;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 /* 加载更多 */
 .load-more {
   text-align: center;
   padding: 40rpx;
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 26rpx;
 }
 
@@ -306,7 +291,7 @@
 .modal-content {
   width: 90%;
   max-width: 600rpx;
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 24rpx;
   overflow: hidden;
 }
@@ -316,18 +301,18 @@
   justify-content: space-between;
   align-items: center;
   padding: 30rpx;
-  border-bottom: 1rpx solid #eee;
+  border-bottom: 1rpx solid var(--color-border);
 }
 
 .modal-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--color-text);
 }
 
 .modal-close {
   font-size: 40rpx;
-  color: #999;
+  color: var(--color-text-placeholder);
   line-height: 1;
 }
 
@@ -338,7 +323,7 @@
 .invite-code-display {
   text-align: center;
   padding: 40rpx;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
   border-radius: 16rpx;
   margin-bottom: 30rpx;
 }
@@ -346,21 +331,21 @@
 .invite-code-text {
   font-size: 48rpx;
   font-weight: bold;
-  color: #1989fa;
+  color: var(--color-primary);
   letter-spacing: 4rpx;
 }
 
 .invite-code-tip {
   text-align: center;
   font-size: 26rpx;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .modal-footer {
   display: flex;
   gap: 20rpx;
   padding: 30rpx;
-  border-top: 1rpx solid #eee;
+  border-top: 1rpx solid var(--color-border);
 }
 
 .copy-btn, .close-btn {
@@ -373,11 +358,11 @@
 }
 
 .copy-btn {
-  background: #1989fa;
+  background: var(--color-primary);
   color: white;
 }
 
 .close-btn {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
 }

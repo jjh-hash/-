@@ -1,21 +1,22 @@
+/* 商家公告 - 设计系统 */
 .page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .status-bar {
   width: 100%;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .nav-bar {
   height: 44px;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 var(--space-page);
 }
 
 .nav-left {
@@ -28,13 +29,13 @@
 
 .back-icon {
   font-size: 24px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 300;
 }
 
 .nav-title {
   font-size: 18px;
-  color: #333;
+  color: var(--color-text);
   font-weight: 600;
 }
 
@@ -43,7 +44,7 @@
 }
 
 .content {
-  padding: 16px;
+  padding: var(--space-page);
   min-height: calc(100vh - 44px - env(safe-area-inset-bottom));
 }
 
@@ -53,10 +54,10 @@
 
 .textarea-container {
   position: relative;
-  background: #fff;
-  border: 1px solid #1677ff;
-  border-radius: 8px;
-  padding: 16px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-btn);
+  padding: var(--space-block);
   min-height: 200px;
 }
 
@@ -64,7 +65,7 @@
   width: 100%;
   min-height: 180px;
   font-size: 16px;
-  color: #333;
+  color: var(--color-text);
   line-height: 1.5;
   border: none;
   outline: none;
@@ -73,7 +74,7 @@
 }
 
 .announcement-textarea::placeholder {
-  color: #c0c4cc;
+  color: var(--color-text-placeholder);
   font-size: 16px;
 }
 
@@ -82,10 +83,10 @@
   bottom: 8px;
   right: 12px;
   font-size: 12px;
-  color: #c0c4cc;
-  background: #fff;
+  color: var(--color-text-placeholder);
+  background: var(--color-bg-card);
   padding: 2px 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-tag);
 }
 
 .confirm-section {
@@ -95,9 +96,9 @@
 .confirm-btn {
   width: 100%;
   height: 48px;
-  background: #dcdcdc;
-  color: #666;
-  border-radius: 8px;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-btn);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -108,11 +109,11 @@
 }
 
 .confirm-btn.active {
-  background: #1677ff;
+  background: var(--color-primary);
   color: #fff;
 }
 
 .confirm-btn.active:active {
-  background: #0d5fcc;
+  opacity: 0.9;
   transform: scale(0.98);
 }

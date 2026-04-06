@@ -1,9 +1,5 @@
 <!-- 登录功能示例页面 -->
 <view class="container">
-  <view class="header">
-    <text class="title">微信用户登录功能测试</text>
-    <text class="subtitle">测试基于云开发的微信用户登录功能</text>
-  </view>
 
   <!-- 登录状态显示 -->
   <view class="status-section">

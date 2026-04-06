@@ -35,12 +35,20 @@ Page({
     }
   },
 
-  // 加载分类列表
+  // 加载分类列表（与商品管理页一致：传入 merchantId/storeId，避免云函数用 openid 查不到导致 0 分类）
   loadCategories() {
+    const merchantInfo = wx.getStorageSync('merchantInfo') || {};
+    const merchantId = merchantInfo._id || null;
+    const storeId = merchantInfo.storeId || null;
+
     wx.cloud.callFunction({
       name: 'categoryManage',
       data: {
-        action: 'getCategories'
+        action: 'getCategories',
+        data: {
+          merchantId: merchantId,
+          storeId: storeId
+        }
       }
     }).then(res => {
       console.log('【添加商品】分类加载结果:', res.result);
@@ -504,11 +512,15 @@ Page({
         }));
     }
     
+    const merchantInfo = wx.getStorageSync('merchantInfo') || {};
+    const merchantId = merchantInfo._id || null;
+
     const res = await wx.cloud.callFunction({
       name: 'productManage',
       data: {
         action: 'addProduct',
         data: {
+          merchantId: merchantId,
           name: formData.name.trim(),
           categoryId: formData.categoryId,
           price: parseFloat(formData.price),

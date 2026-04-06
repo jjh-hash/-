@@ -1,5 +1,8 @@
 // pages/admin-user-list/index.js
 // 用户管理页面
+const log = require('../../../../utils/logger.js');
+const { debounce } = require('../../../utils/debounce.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -27,9 +30,10 @@ Page({
   },
 
   onLoad() {
-    console.log('用户管理页面加载');
+    log.log('用户管理页面加载');
     this.verifyAdminAccess();
     this.loadUserList();
+    this.onSearchDebounced = debounce(this._onSearch, 400);
   },
 
   onShow() {
@@ -70,7 +74,7 @@ Page({
         }
       });
 
-      console.log('【用户列表】云函数返回:', res.result);
+      log.log('【用户列表】云函数返回:', res.result);
 
       if (res.result && res.result.code === 200) {
         this.setData({
@@ -79,7 +83,7 @@ Page({
           loading: false
         });
       } else {
-        console.log('【用户列表】使用模拟数据');
+        log.log('【用户列表】使用模拟数据');
         this.setData({
           users: this.getMockUsers(),
           total: 4,
@@ -87,7 +91,7 @@ Page({
         });
       }
     } catch (err) {
-      console.error('加载用户列表失败:', err);
+      log.error('加载用户列表失败:', err);
       this.setData({
         users: this.getMockUsers(),
         total: 4,
@@ -161,10 +165,14 @@ Page({
     this.loadUserList();
   },
 
+  _onSearch() {
+    this.setData({ page: 1 });
+    this.loadUserList();
+  },
   onSearch(e) {
     const keyword = e.detail.value;
-    this.setData({ keyword, page: 1 });
-    this.loadUserList();
+    this.setData({ keyword });
+    this.onSearchDebounced();
   },
 
   onBanUser(e) {
@@ -224,7 +232,7 @@ Page({
         });
       }
     } catch (err) {
-      console.error('封禁用户失败:', err);
+      log.error('封禁用户失败:', err);
       wx.showToast({
         title: '操作失败',
         icon: 'none'
@@ -259,7 +267,7 @@ Page({
         });
       }
     } catch (err) {
-      console.error('解封用户失败:', err);
+      log.error('解封用户失败:', err);
       wx.showToast({
         title: '操作失败',
         icon: 'none'

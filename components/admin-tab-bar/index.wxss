@@ -1,0 +1,32 @@
+.admin-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-bg-card, #fff);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-border, #eee);
+  z-index: 100;
+}
+.admin-tabbar .tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--color-text-secondary, #7A7E83);
+  font-size: 12px;
+}
+.admin-tabbar .tab.active {
+  color: var(--color-primary, #07c160);
+}
+.admin-tabbar .t-icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+}
+.admin-tabbar .t-text {
+  font-size: 12px;
+}

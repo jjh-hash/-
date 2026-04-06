@@ -1,11 +1,10 @@
 {
   "name": "paymentManage",
   "version": "1.0.0",
-  "description": "微信支付管理云函数",
+  "description": "支付管理云函数 - 微信支付统一下单",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "~2.6.3",
-    "xml2js": "^0.6.2"
+    "wx-server-sdk": "~2.6.3"
   }
 }
 

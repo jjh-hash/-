@@ -447,6 +447,7 @@ Page({
 
   // 再来一单
   async onOrderAgain() {
+    if (!getApp().ensureLogin('请先登录后再下单')) return;
     const orderInfo = this.data.orderInfo;
     
     if (orderInfo.orderType === 'express') {

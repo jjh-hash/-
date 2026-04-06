@@ -1,3 +1,5 @@
+const { verifyAdminPage } = require('../../utils/verifyAdminPage.js');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -11,6 +13,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!verifyAdminPage()) return;
     if (options.id) {
       this.setData({ merchantId: options.id });
       this.loadMerchantDetail();

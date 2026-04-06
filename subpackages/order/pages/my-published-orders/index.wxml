@@ -1,13 +1,4 @@
 <view class="page">
-  <!-- 自定义导航 -->
-  <view class="nav">
-    <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
-    <view class="nav-bar">
-      <text class="back" bindtap="onBack">◀</text>
-      <text class="title">我的订单</text>
-      <view class="icons"></view>
-    </view>
-  </view>
 
   <!-- 分类选择器 -->
   <view class="tab-container">
@@ -95,7 +86,7 @@
               <text class="special-value price">¥{{item.bounty}}</text>
             </view>
             <view class="special-images" wx:if="{{item.images && item.images.length > 0}}">
-              <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="special-image" src="{{img}}" mode="aspectFill" />
+              <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="special-image" src="{{img}}" mode="aspectFill" lazy-load />
             </view>
           </view>
 
@@ -120,7 +111,7 @@
               </text>
             </view>
             <view class="special-images" wx:if="{{item.images && item.images.length > 0}}">
-              <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="special-image" src="{{img}}" mode="aspectFill" />
+              <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="special-image" src="{{img}}" mode="aspectFill" lazy-load />
             </view>
           </view>
 
@@ -130,7 +121,7 @@
               <text class="receiver-title">接单者信息</text>
             </view>
             <view class="receiver-info">
-              <image class="receiver-avatar" src="{{item.receiverInfo.avatarUrl || '/pages/小标/默认头像.png'}}" mode="aspectFill"></image>
+              <image class="receiver-avatar" src="{{item.receiverInfo.avatarUrl || '/pages/小标/默认头像.png'}}" mode="aspectFill" lazy-load></image>
               <view class="receiver-details">
                 <text class="receiver-name">{{item.receiverInfo.nickname || '用户'}}</text>
                 <text class="receiver-status" wx:if="{{item.orderStatus === 'received'}}">已接单，等待确认</text>
@@ -146,7 +137,7 @@
               <text class="receiver-title">发布者信息</text>
             </view>
             <view class="receiver-info">
-              <image class="receiver-avatar" src="{{item.userInfo.avatarUrl || '/pages/小标/默认头像.png'}}" mode="aspectFill"></image>
+              <image class="receiver-avatar" src="{{item.userInfo.avatarUrl || '/pages/小标/默认头像.png'}}" mode="aspectFill" lazy-load></image>
               <view class="receiver-details">
                 <text class="receiver-name">{{item.userInfo.nickname || '用户'}}</text>
                 <text class="receiver-status" wx:if="{{item.orderStatus === 'received'}}">已接单，等待确认</text>

@@ -1,4 +1,5 @@
 let timer = null;
+let loginTimeout = null;
 
 Page({
   data: {
@@ -8,8 +9,16 @@ Page({
     countdown: 0
   },
 
+  onHide() {
+    this.clearTimer();
+  },
+
   onUnload() {
     this.clearTimer();
+    if (loginTimeout) {
+      clearTimeout(loginTimeout);
+      loginTimeout = null;
+    }
   },
 
   onPhoneInput(e) {
@@ -48,7 +57,9 @@ Page({
       icon: 'success',
       duration: 800
     });
-    setTimeout(() => {
+    if (loginTimeout) clearTimeout(loginTimeout);
+    loginTimeout = setTimeout(() => {
+      loginTimeout = null;
       wx.reLaunch({
         url: '/subpackages/rider/pages/rider-home/index'
       });

@@ -1,26 +1,7 @@
 <view class="page">
   <!-- 状态栏 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px">
-  </view>
 
   <!-- 头部导航 -->
-  <view class="header">
-    <view class="back-btn" bindtap="onBackTap">
-      <text class="back-icon">←</text>
-    </view>
-    <text class="title">闲置出售</text>
-    <view class="search-container">
-      <view class="search-icon">🔍</view>
-      <input 
-        class="search-input" 
-        placeholder="搜索商品" 
-        placeholder-class="search-placeholder"
-        value="{{searchValue}}"
-        bindinput="onSearchInput"
-        bindconfirm="onSearchSubmit"
-      />
-    </view>
-  </view>
 
   <scroll-view scroll-y class="content">
     <!-- 分类标签 -->

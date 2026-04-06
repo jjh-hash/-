@@ -11,13 +11,16 @@ Page({
       { id: 'all', name: '全部订单', icon: '✓' },
       { id: 'express', name: '代拿快递', icon: '📦' },
       { id: 'gaming', name: '游戏陪玩', icon: '🎮' },
-      { id: 'reward', name: '悬赏', icon: '💰' }
+      { id: 'reward', name: '跑腿', icon: '💰' }
     ]
   },
 
   onLoad() {
-    console.log('【历史订单页面】页面加载');
-    this.loadOrders();
+    console.log('【历史订单页面】页面加载，统一重定向至订单页');
+    wx.redirectTo({
+      url: '/subpackages/order/pages/order/index',
+      fail: () => { this.loadOrders(); }
+    });
   },
 
   onShow() {
@@ -139,7 +142,7 @@ Page({
             }];
           } else if (order.orderType === 'reward') {
             orderItems = [{
-              name: `${order.category || '悬赏任务'}`,
+              name: `${order.category || '跑腿任务'}`,
               spec: order.helpContent ? `内容：${order.helpContent}` : '',
               quantity: 1
             }];
@@ -165,7 +168,7 @@ Page({
             } else if (order.orderType === 'gaming') {
               storeName = '游戏陪玩';
             } else if (order.orderType === 'reward') {
-              storeName = '悬赏';
+              storeName = '跑腿';
             } else {
               storeName = '商家订单';
             }
@@ -289,7 +292,7 @@ Page({
     } else if (selectedCategory === 'reward') {
       filteredOrders = allOrders.filter(order => 
         order.orderType === 'reward' || 
-        (order.storeName && order.storeName.includes('悬赏'))
+        (order.storeName && order.storeName.includes('跑腿'))
       );
     }
     
