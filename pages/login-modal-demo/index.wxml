@@ -44,9 +44,7 @@
       静默登录示例
     </button>
 
-    <button wx:if="{{isLoggedIn}}" class="demo-btn danger" bindtap="logout">
-      退出登录
-    </button>
+    
   </view>
 
   <!-- 设置按钮 -->

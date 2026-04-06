@@ -111,31 +111,7 @@ Page({
     this.saveSetting('pushEnabled', e.detail.value);
   },
 
-  // 退出登录
-  onLogout() {
-    wx.showModal({
-      title: '退出登录',
-      content: '确定要退出当前账号吗？',
-      confirmColor: '#ff4d4f',
-      success: (res) => {
-        if (res.confirm) {
-          // TODO: 调用云函数清除登录状态
-          // wx.cloud.callFunction({
-          //   name: 'auth/logout'
-          // }).then(() => {
-          //   wx.reLaunch({
-          //     url: '/pages/merchant-login/index'
-          //   });
-          // });
-          
-          // 模拟退出登录
-          wx.reLaunch({
-            url: '/subpackages/merchant/pages/merchant-login/index'
-          });
-        }
-      }
-    });
-  },
+
 
   // 营业时间选择
   async showBusinessHoursPicker() {

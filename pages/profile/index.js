@@ -23,7 +23,6 @@ Page({
    * 构建「我的」菜单（管理端已迁至 Web，不在此展示入口）
    */
   buildMenuSections() {
-    const hasUserToken = !!wx.getStorageSync('userToken');
     const moreServiceItems = [
       { type: 'campus-partner', icon: '/pages/小标/接单.png', text: '校园兼职' },
       { type: 'switch-merchant', icon: '/pages/小标/商家.png', text: '商家端' }
@@ -43,18 +42,15 @@ Page({
       },
       { title: '法律与协议', cols: 2, items: [
           { type: 'user-agreement', icon: '/pages/小标/关于我们.png', text: '用户协议' },
-          { type: 'privacy-policy', icon: '/pages/小标/设置.png', text: '隐私政策' }
+          { type: 'privacy-policy', icon: '/pages/小标/隐私政策.png', text: '隐私政策' }
         ]
       },
-      { title: '更多服务', cols: moreServiceItems.length === 3 ? 3 : 2, items: moreServiceItems }
+      { title: '更多服务', cols: moreServiceItems.length === 3 ? 3 : 2, items: moreServiceItems },
+      { title: '账号', cols: 1, items: [
+          { type: 'logout', icon: '/pages/小标/退出登录.png', text: '退出登录' }
+        ]
+      }
     ];
-    if (hasUserToken) {
-      menuSections.push({
-        title: '账号',
-        cols: 1,
-        items: [{ type: 'logout', icon: '/pages/小标/设置.png', text: '退出登录' }]
-      });
-    }
     this.setData({ menuSections });
   },
 
@@ -196,25 +192,34 @@ Page({
         });
         break;
       case 'logout':
+        // 退出登录
         wx.showModal({
-          title: '提示',
+          title: '退出登录',
           content: '确定要退出登录吗？',
           success: (res) => {
             if (res.confirm) {
               const app = getApp();
-              app.logoutUser();
-              this.setData({
-                userInfo: { nickname: '微信用户', avatar: '' }
+              wx.removeStorageSync('userInfo');
+              wx.removeStorageSync('userToken');
+              app.globalData.userInfo = null;
+              app.globalData.userToken = null;
+              app.globalData.isLoggedIn = false;
+              app.globalData.openid = null;
+              wx.showToast({
+                title: '已退出登录',
+                icon: 'success',
+                duration: 2000
               });
-              this.buildMenuSections();
-              wx.showToast({ title: '已退出登录', icon: 'none' });
+              // 刷新页面，显示默认用户信息
+              this.loadUserInfo();
             }
           }
         });
         break;
+
     }
-  }
-  ,
+  },
+
   onBack() {
     const pages = getCurrentPages();
     if (pages.length > 1) {

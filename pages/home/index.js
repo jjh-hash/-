@@ -1,11 +1,17 @@
-const log = require('../../utils/logger.js');
-const { callFunctionWithTimeout } = require('../../utils/cloudWithTimeout.js');
+const log = console;
 const cloudImages = require('../../config/cloudImages.js');
-
 const CACHE_KEY_PRODUCTS = 'home_products_cache';
 const CACHE_KEY_BANNERS = 'home_banners_cache';
-const CACHE_KEY_CATEGORY = 'home_category_cache';
-const CACHE_EXPIRE_TIME = 5 * 60 * 1000; // 5分钟缓存过期
+
+// 带超时的云函数调用
+function callFunctionWithTimeout(options, timeout = 10000) {
+  return Promise.race([
+    wx.cloud.callFunction(options),
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('请求超时')), timeout);
+    })
+  ]);
+}
 
 Page({
   data: {
@@ -47,9 +53,8 @@ Page({
     productListLoading: false,
     announcement: null,
     showAnnouncement: false,
-    userLocation: null,
-    searchKeyword: '',
-    categoryCache: {}
+    userLocation: null, // 用户位置信息
+    searchKeyword: '' // 搜索关键词
   },
 
   onLoad() {
@@ -253,173 +258,80 @@ Page({
     });
   },
 
-  onReachBottom() {
-    if (!this.loadingProducts && this.data.hasMoreProducts) {
-      this.loadProducts(this.data.searchKeyword || undefined, true);
+  // 加载商家列表（优化版本：添加请求去重）
+  // 注意：首页不传storeCategory参数，显示所有商家（包括"其他"分类）
+  async loadStores(keyword) {
+    // 防止重复请求
+    if (this.loadingStores) {
+      return;
     }
-  },
-
-  // 分类切换
-  onCategoryTap(e) {
-    const key = e.currentTarget.dataset.key;
-    if (key === this.data.activeCategoryKey) return;
-    this.setData({ activeCategoryKey: key });
-    this.loadProducts(this.data.searchKeyword || undefined, false, key);
-  },
-
-  // 加载菜品流（keyword 可选，isLoadMore 上拉加载更多，categoryKey 分类筛选）
-  // 混合展示：商家卡片 + 商品卡片，盖饭套餐/全部时插入商家
-  async loadProducts(keyword, isLoadMore = false, categoryKey) {
-    if (this.loadingProducts) return;
-
-    this.loadingProducts = true;
-    const pageSize = this.data.productPageSize || 20;
-    const page = isLoadMore ? this.data.productPage : 1;
-    const catKey = categoryKey !== undefined ? categoryKey : this.data.activeCategoryKey;
-
-    if (!isLoadMore) {
-      this.setData({ productListLoading: true });
-    }
-
+    
+    this.loadingStores = true;
+    
     try {
-      // 检查分类缓存
-      if (!isLoadMore && !keyword) {
-        const cachedData = this.getCategoryCache(catKey);
-        if (cachedData) {
-          const payload = this.applyProductSort(this.data.activeFilter, cachedData.originalProducts);
-          if (payload) {
-            this.setData({
-              originalProducts: cachedData.originalProducts,
-              productPage: cachedData.productPage,
-              hasMoreProducts: cachedData.hasMoreProducts,
-              displayProductsLeft: payload.left,
-              displayProductsRight: payload.right,
-              productListLoading: false
-            });
-            this.loadingProducts = false;
-            return;
-          }
-        }
-      }
-
-      if (!isLoadMore) {
-        wx.showLoading({ title: keyword ? '搜索中...' : '加载中...' });
-      }
-
-      const needStores = !keyword && !isLoadMore && (catKey === 'all' || catKey === '盖饭套餐');
+      wx.showLoading({ title: keyword ? '搜索中...' : '加载中...' });
       
-      // 并行请求商家列表和商品列表，减少加载时间
-      const [storeRes, productRes] = await Promise.all([
-        needStores ? callFunctionWithTimeout({
-          name: 'getStoreList',
-          data: {
-            page: 1,
-            pageSize: catKey === '盖饭套餐' ? 8 : 5,
-            storeCategory: catKey === '盖饭套餐' ? '学校食堂' : undefined
-          }
-        }, 12000) : Promise.resolve({ result: { code: 200, data: { list: [] } } }),
-        callFunctionWithTimeout({
-          name: 'getProductList',
-          data: {
-            page,
-            pageSize,
-            keyword: keyword || undefined,
-            categoryName: catKey && catKey !== 'all' ? catKey : undefined
-          }
-        }, 15000)
-      ]);
-
-      let storeList = [];
-      if (needStores && storeRes.result && storeRes.result.code === 200 && storeRes.result.data.list) {
-        storeList = (storeRes.result.data.list || []).map(s => ({
-          type: 'store',
-          _id: s._id || s.storeId,
-          storeId: s.storeId || s._id,
-          name: s.name || '',
-          logo: this.formatImageUrl(s.logoUrl || s.img || ''),
-          minOrderAmount: s.minOrderAmount ?? s.start ?? 20,
-          deliveryFee: s.deliveryFee ?? s.delivery ?? 3,
-          sales: s.sales ?? s.monthlySales ?? s.month ?? 0
-        }));
-      } else if (needStores) {
-        log.error('【首页】加载商家列表失败:', storeRes.result?.message || '未知错误');
-      }
-
-      const res = productRes;
-
-      if (!isLoadMore) wx.hideLoading();
-
-      log.log('【首页】加载菜品流:', res.result);
-
-      if (res.result && res.result.code === 200) {
-        const total = res.result.data.total != null ? res.result.data.total : 0;
-        const productList = (res.result.data.list || []).map(p => ({
-          type: 'product',
-          _id: p._id,
-          name: p.name || '',
-          coverUrl: this.formatImageUrl(p.coverUrl || ''),
-          price: p.price,
-          sales: p.sales != null ? p.sales : 0,
-          storeId: p.storeId || '',
-          storeName: p.storeName || '',
-          storeLogo: this.formatImageUrl(p.storeLogo || '')
-        }));
-
-        const newItems = isLoadMore ? productList : [...storeList, ...productList];
-        const originalProducts = isLoadMore
-          ? (this.data.originalProducts || []).concat(newItems)
-          : newItems;
-        const hasMoreProducts = (page * pageSize) < total;
-
-        const payload = this.applyProductSort(this.data.activeFilter, originalProducts);
-        if (payload) {
-          const categoryData = {
-            originalProducts,
-            productPage: page + 1,
-            hasMoreProducts
-          };
-          
-          // 合并setData调用，减少渲染次数
-          const dataToUpdate = {
-            originalProducts,
-            productPage: page + 1,
-            hasMoreProducts,
-            displayProductsLeft: payload.left,
-            displayProductsRight: payload.right
-          };
-          
-          if (!isLoadMore) {
-            dataToUpdate.productListLoading = false;
-          }
-          
-          this.setData(dataToUpdate);
-          
-          // 缓存分类数据
-          this.setCategoryCache(catKey, categoryData);
-          
-          // 写入缓存，供下次启动优先渲染
-          if (catKey === 'all' && !keyword && !isLoadMore) {
-            wx.setStorage({
-              key: CACHE_KEY_PRODUCTS,
-              data: {
-                left: payload.left,
-                right: payload.right,
-                original: originalProducts,
-                page: page + 1,
-                hasMore: hasMoreProducts
-              }
-            });
-          }
-        } else {
-          this.setData({
-            originalProducts,
-            productPage: page + 1,
-            hasMoreProducts,
-            productListLoading: false
-          });
+      const res = await wx.cloud.callFunction({
+        name: 'getStoreList',
+        data: {
+          page: 1,
+          pageSize: 20,
+          keyword: keyword || undefined
+          // 不传storeCategory参数，返回所有商家（包括"其他"分类）
         }
-
-        if (!isLoadMore) this.lastLoadTime = Date.now();
+      });
+      
+      console.log('【首页】加载商家列表:', res.result);
+      
+      if (res.result && res.result.code === 200) {
+        // 处理商家列表，确保图片URL正确
+        const shops = (res.result.data.list || []).map(shop => {
+          // 计算距离（如果有店铺位置信息）
+          let distance = shop.distance || this.calculateDistance(shop);
+          
+          // 获取评分
+          const rating = parseFloat(shop.ratingAvg || shop.score || shop.rating || 0);
+          
+          // 计算星星数组（5颗星）
+          const stars = [];
+          const fullStars = Math.floor(rating); // 完整星星数
+          const hasHalfStar = (rating - fullStars) >= 0.5; // 是否有半星
+          
+          for (let i = 0; i < 5; i++) {
+            if (i < fullStars) {
+              stars.push('full'); // 完整星星
+            } else if (i === fullStars && hasHalfStar) {
+              stars.push('half'); // 半星
+            } else {
+              stars.push('empty'); // 空星
+            }
+          }
+          
+          console.log('【首页】店铺评分处理:', shop.name, '评分:', rating, '星星数组:', stars);
+          
+          return {
+            ...shop,
+            logoUrl: this.formatImageUrl(shop.logoUrl || shop.img || ''),
+            img: this.formatImageUrl(shop.logoUrl || shop.img || ''),
+            month: shop.monthlySales || shop.month || shop.sales || 0,
+            sales: shop.monthlySales || shop.sales || 0,
+            distance: distance, // 距离（米）
+            distanceText: distance < 1000 ? `${Math.round(distance)}m` : `${(distance / 1000).toFixed(1)}km`,
+            rating: rating, // 评分
+            stars: stars // 星星数组
+          };
+        });
+        
+        // 保存原始数据
+        this.setData({
+          originalShops: shops,
+          shops: shops
+        });
+        
+        // 应用当前排序
+        this.applySort(this.data.activeFilter);
+        
+        this.lastLoadTime = Date.now(); // 记录加载时间
       } else {
         log.error('【首页】加载菜品流失败:', res.result);
       }
@@ -430,32 +342,8 @@ Page({
       }
     } finally {
       wx.hideLoading();
-      this.loadingProducts = false;
-      if (!isLoadMore) {
-        this.setData({ productListLoading: false });
-      }
+      this.loadingStores = false;
     }
-  },
-
-  // 获取分类缓存
-  getCategoryCache(categoryKey) {
-    const cache = this.data.categoryCache[categoryKey];
-    if (cache && (Date.now() - cache.timestamp) < CACHE_EXPIRE_TIME) {
-      return cache.data;
-    }
-    return null;
-  },
-
-  // 设置分类缓存
-  setCategoryCache(categoryKey, data) {
-    const newCache = {
-      ...this.data.categoryCache,
-      [categoryKey]: {
-        data,
-        timestamp: Date.now()
-      }
-    };
-    this.setData({ categoryCache: newCache });
   },
 
   // 格式化图片URL（处理云存储fileID）
@@ -530,109 +418,128 @@ Page({
   // 筛选栏点击
   onFilterTap(e) {
     const index = parseInt(e.currentTarget.dataset.index);
-    if (index === this.data.activeFilter) return;
-    this.setData({ activeFilter: index });
-    const payload = this.applyProductSort(index);
-    if (payload) {
-      this.setData({
-        displayProductsLeft: payload.left,
-        displayProductsRight: payload.right
-      });
-    }
-  },
-
-  // 菜品排序并拆分为左右列（0 推荐 1 销量 2 低价优先）
-  // 支持混合列表：商家卡片置顶不参与排序，商品按规则排序
-  applyProductSort(sortType, sourceProducts) {
-    const raw = sourceProducts !== undefined ? sourceProducts : (this.data.originalProducts || []);
-    const stores = [];
-    const products = [];
     
-    // 一次遍历完成分类，避免多次filter
-    for (let i = 0; i < raw.length; i++) {
-      const item = raw[i];
-      if (item.type === 'store') {
-        stores.push(item);
-      } else if (item.type === 'product') {
-        products.push(item);
-      }
+    if (index === this.data.activeFilter) {
+      return; // 如果点击的是当前选中的，不处理
     }
-
+    
+    this.setData({
+      activeFilter: index
+    });
+    
+    // 应用排序
+    this.applySort(index);
+  },
+  
+  // 应用排序
+  applySort(sortType) {
+    // 深拷贝原始数据，确保stars数组也被复制
+    const shops = this.data.originalShops.map(shop => ({
+      ...shop,
+      stars: shop.stars ? [...shop.stars] : []
+    }));
+    
     switch (sortType) {
-      case 0: // 综合排序（按销量）
-      case 1: // 销量
-        products.sort((a, b) => (b.sales || 0) - (a.sales || 0));
+      case 0: // 综合排序
+        // 综合排序：综合考虑销量、评分、距离等因素
+        shops.sort((a, b) => {
+          // 归一化销量（假设最大销量为10000）
+          const maxSales = Math.max(...shops.map(s => s.sales || s.monthlySales || 0), 10000);
+          const normalizedSalesA = ((a.sales || a.monthlySales || 0) / maxSales) * 100;
+          const normalizedSalesB = ((b.sales || b.monthlySales || 0) / maxSales) * 100;
+          
+          // 归一化评分（5分制）
+          const normalizedRatingA = ((a.rating || a.ratingAvg || a.score || 0) / 5) * 100;
+          const normalizedRatingB = ((b.rating || b.ratingAvg || b.score || 0) / 5) * 100;
+          
+          // 归一化距离（假设最大距离为2000米）
+          const maxDistance = 2000;
+          const normalizedDistanceA = Math.max(0, 100 - ((a.distance || maxDistance) / maxDistance) * 100);
+          const normalizedDistanceB = Math.max(0, 100 - ((b.distance || maxDistance) / maxDistance) * 100);
+          
+          // 综合评分 = 销量权重(0.5) + 评分权重(0.3) + 距离权重(0.2)
+          const scoreA = normalizedSalesA * 0.5 + normalizedRatingA * 0.3 + normalizedDistanceA * 0.2;
+          const scoreB = normalizedSalesB * 0.5 + normalizedRatingB * 0.3 + normalizedDistanceB * 0.2;
+          
+          return scoreB - scoreA;
+        });
         break;
-      case 2: // 价格
-        products.sort((a, b) => {
-          const pa = parseFloat(a.price) || 0;
-          const pb = parseFloat(b.price) || 0;
-          return pa - pb;
+        
+      case 1: // 销量排序
+        shops.sort((a, b) => {
+          const salesA = a.sales || a.monthlySales || 0;
+          const salesB = b.sales || b.monthlySales || 0;
+          return salesB - salesA; // 降序
+        });
+        break;
+        
+      case 2: // 星级排序
+        shops.sort((a, b) => {
+          const ratingA = a.rating || a.ratingAvg || a.score || 0;
+          const ratingB = b.rating || b.ratingAvg || b.score || 0;
+          if (ratingB !== ratingA) {
+            return ratingB - ratingA; // 降序
+          }
+          // 如果评分相同，按销量排序
+          const salesA = a.sales || a.monthlySales || 0;
+          const salesB = b.sales || b.monthlySales || 0;
+          return salesB - salesA;
+        });
+        break;
+        
+      case 3: // 距离排序
+        shops.sort((a, b) => {
+          const distanceA = a.distance || 9999;
+          const distanceB = b.distance || 9999;
+          return distanceA - distanceB; // 升序
         });
         break;
       default:
         break;
     }
-
-    const toDisplay = item => {
-      if (item.type === 'store') {
-        return {
-          type: 'store',
-          listKey: 's_' + (item.storeId || item._id),
-          _id: item._id,
-          storeId: item.storeId,
-          name: item.name,
-          logo: item.logo || '/pages/小标/商家.png',
-          minOrderAmount: item.minOrderAmount,
-          deliveryFee: item.deliveryFee,
-          sales: item.sales
-        };
-      }
-      return {
-        type: 'product',
-        listKey: 'p_' + item._id,
-        _id: item._id,
-        name: item.name,
-        logo: item.coverUrl || item.storeLogo || '/pages/小标/商家.png',
-        price: item.price,
-        sales: item.sales,
-        storeName: item.storeName,
-        storeId: item.storeId
-      };
-    };
-
-    const left = [];
-    const right = [];
-    let leftH = 0;
-    let rightH = 0;
-    const EST_CARD_H = 140;
     
-    // 先添加商家卡片
-    for (let i = 0; i < stores.length; i++) {
-      const item = toDisplay(stores[i]);
-      if (leftH <= rightH) {
-        left.push(item);
-        leftH += EST_CARD_H;
-      } else {
-        right.push(item);
-        rightH += EST_CARD_H;
-      }
+    this.setData({
+      shops: shops
+    });
+    
+    console.log('【首页】排序完成，排序类型:', this.data.filters[sortType], '店铺数量:', shops.length);
+  },
+  
+  // 计算距离（使用模拟数据或真实位置）
+  calculateDistance(shop) {
+    // 如果店铺有位置信息，使用真实计算
+    if (shop.latitude && shop.longitude && this.data.userLocation) {
+      return this.getDistance(
+        this.data.userLocation.latitude,
+        this.data.userLocation.longitude,
+        shop.latitude,
+        shop.longitude
+      );
     }
     
-    // 再添加商品卡片
-    for (let i = 0; i < products.length; i++) {
-      const item = toDisplay(products[i]);
-      if (leftH <= rightH) {
-        left.push(item);
-        leftH += EST_CARD_H;
-      } else {
-        right.push(item);
-        rightH += EST_CARD_H;
-      }
+    // 否则使用模拟距离（200-2000米之间）
+    if (!shop._distance) {
+      shop._distance = 200 + Math.random() * 1800;
     }
-
-    log.log('【首页】列表排序完成:', this.data.filters[sortType], '商家:', stores.length, '商品:', products.length);
-    return { left, right };
+    return shop._distance;
+  },
+  
+  // 计算两点之间的距离（米）
+  getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // 地球半径（米）
+    const dLat = this.toRad(lat2 - lat1);
+    const dLon = this.toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    return Math.round(distance);
+  },
+  
+  // 角度转弧度
+  toRad(degrees) {
+    return degrees * (Math.PI / 180);
   },
 
   // 搜索输入
@@ -662,6 +569,330 @@ Page({
   onSearchFocus() {
     // 可以在这里添加搜索历史或热门搜索的显示逻辑
     // 目前直接允许输入搜索
+  },
+
+  // 分类点击事件
+  onCategoryTap(e) {
+    const key = e.currentTarget.dataset.key;
+    if (key === this.data.activeCategoryKey) return;
+    
+    this.setData({
+      activeCategoryKey: key,
+      productPage: 1,
+      originalProducts: [],
+      displayProductsLeft: [],
+      displayProductsRight: [],
+      hasMoreProducts: true
+    });
+    
+    this.loadProducts(undefined, false, key);
+  },
+
+  // 加载商品列表（优化版本：添加缓存和并行请求）
+  async loadProducts(keyword, isLoadMore = false, catKey = 'all') {
+    // 防止重复请求
+    if (this.loadingProducts) return;
+    
+    this.loadingProducts = true;
+    
+    try {
+      // 检查分类缓存
+      if (!isLoadMore && !keyword) {
+        const cachedData = this.getCategoryCache(catKey);
+        if (cachedData) {
+          const payload = this.applyProductSort(this.data.activeFilter, cachedData.originalProducts);
+          if (payload) {
+            this.setData({
+              originalProducts: cachedData.originalProducts,
+              productPage: cachedData.productPage,
+              hasMoreProducts: cachedData.hasMoreProducts,
+              displayProductsLeft: payload.left,
+              displayProductsRight: payload.right,
+              productListLoading: false
+            });
+            // 异步更新缓存数据，不阻塞用户体验
+            this.updateCategoryCacheAsync(catKey);
+            this.loadingProducts = false;
+            return;
+          }
+        }
+      }
+
+      if (!isLoadMore) {
+        wx.showLoading({ title: keyword ? '搜索中...' : '加载中...' });
+      }
+
+      const page = isLoadMore ? this.data.productPage + 1 : 1;
+      const pageSize = this.data.productPageSize;
+      const needStores = !keyword && !isLoadMore && (catKey === 'all' || catKey === '盖饭套餐');
+      
+      // 并行请求商家列表和商品列表，减少加载时间
+      const [storeRes, productRes] = await Promise.all([
+        needStores ? callFunctionWithTimeout({
+          name: 'getStoreList',
+          data: {
+            page: 1,
+            pageSize: catKey === '盖饭套餐' ? 8 : 5,
+            storeCategory: catKey === '盖饭套餐' ? '学校食堂' : undefined
+          }
+        }, 12000) : Promise.resolve({ result: { code: 200, data: { list: [] } } }),
+        callFunctionWithTimeout({
+          name: 'getProductList',
+          data: {
+            page,
+            pageSize,
+            keyword: keyword || undefined,
+            categoryName: catKey && catKey !== 'all' ? catKey : undefined
+          }
+        }, 15000)
+      ]);
+
+      // 处理商家列表
+      let stores = [];
+      if (storeRes.result && storeRes.result.code === 200) {
+        stores = (storeRes.result.data.list || []).map(shop => ({
+          ...shop,
+          type: 'store',
+          storeId: shop._id,
+          logo: this.formatImageUrl(shop.logoUrl || shop.img || ''),
+          name: shop.name,
+          minOrderAmount: shop.minOrderAmount || 0,
+          deliveryFee: shop.deliveryFee || 0
+        }));
+      }
+
+      // 处理商品列表
+      let products = [];
+      let hasMore = true;
+      if (productRes.result && productRes.result.code === 200) {
+        const list = productRes.result.data.list || [];
+        products = list.map(item => ({
+          ...item,
+          type: 'product',
+          logo: this.formatImageUrl(item.coverUrl || item.imageUrl || item.img || ''),
+          name: item.name,
+          storeName: item.storeName,
+          sales: item.sales || item.monthlySales || 0
+        }));
+        hasMore = list.length === pageSize;
+      }
+
+      // 合并商家和商品
+      const allItems = [...stores, ...products];
+      const originalProducts = isLoadMore ? [...this.data.originalProducts, ...allItems] : allItems;
+      const payload = this.applyProductSort(this.data.activeFilter, originalProducts);
+
+      if (payload) {
+        // 批量更新数据，减少setData调用
+        const updateData = {
+          originalProducts,
+          productPage: page,
+          hasMoreProducts: hasMore,
+          displayProductsLeft: payload.left,
+          displayProductsRight: payload.right,
+          productListLoading: false
+        };
+        
+        this.setData(updateData);
+
+        // 缓存数据
+        if (!isLoadMore && !keyword) {
+          this.setCategoryCache(catKey, {
+            originalProducts,
+            productPage: page,
+            hasMoreProducts: hasMore
+          });
+        }
+
+        // 缓存到全局缓存
+        if (!keyword) {
+          wx.setStorage({
+            key: CACHE_KEY_PRODUCTS,
+            data: {
+              left: payload.left,
+              right: payload.right,
+              original: originalProducts,
+              page,
+              hasMore
+            }
+          });
+        }
+      }
+
+      this.lastLoadTime = Date.now();
+    } catch (err) {
+      log.error('加载商品失败:', err);
+      if (err && err.message && err.message.includes('超时')) {
+        wx.showToast({ title: '网络较慢，请稍后重试', icon: 'none' });
+      } else {
+        // 显示更友好的错误提示
+        wx.showToast({ title: '加载失败，请重试', icon: 'none' });
+      }
+    } finally {
+      wx.hideLoading();
+      this.loadingProducts = false;
+    }
+  },
+
+  // 异步更新分类缓存
+  async updateCategoryCacheAsync(catKey) {
+    try {
+      const page = 1;
+      const pageSize = this.data.productPageSize;
+      const needStores = catKey === 'all' || catKey === '盖饭套餐';
+      
+      // 并行请求商家列表和商品列表
+      const [storeRes, productRes] = await Promise.all([
+        needStores ? callFunctionWithTimeout({
+          name: 'getStoreList',
+          data: {
+            page: 1,
+            pageSize: catKey === '盖饭套餐' ? 8 : 5,
+            storeCategory: catKey === '盖饭套餐' ? '学校食堂' : undefined
+          }
+        }, 10000) : Promise.resolve({ result: { code: 200, data: { list: [] } } }),
+        callFunctionWithTimeout({
+          name: 'getProductList',
+          data: {
+            page,
+            pageSize,
+            categoryName: catKey && catKey !== 'all' ? catKey : undefined
+          }
+        }, 10000)
+      ]);
+
+      // 处理商家列表
+      let stores = [];
+      if (storeRes.result && storeRes.result.code === 200) {
+        stores = (storeRes.result.data.list || []).map(shop => ({
+          ...shop,
+          type: 'store',
+          storeId: shop._id,
+          logo: this.formatImageUrl(shop.logoUrl || shop.img || ''),
+          name: shop.name,
+          minOrderAmount: shop.minOrderAmount || 0,
+          deliveryFee: shop.deliveryFee || 0
+        }));
+      }
+
+      // 处理商品列表
+      let products = [];
+      let hasMore = true;
+      if (productRes.result && productRes.result.code === 200) {
+        const list = productRes.result.data.list || [];
+        products = list.map(item => ({
+          ...item,
+          type: 'product',
+          logo: this.formatImageUrl(item.coverUrl || item.imageUrl || item.img || ''),
+          name: item.name,
+          storeName: item.storeName,
+          sales: item.sales || item.monthlySales || 0
+        }));
+        hasMore = list.length === pageSize;
+      }
+
+      // 合并商家和商品
+      const allItems = [...stores, ...products];
+      
+      // 更新缓存
+      this.setCategoryCache(catKey, {
+        originalProducts: allItems,
+        productPage: page,
+        hasMoreProducts: hasMore
+      });
+      
+      // 缓存到全局缓存
+      const payload = this.applyProductSort(this.data.activeFilter, allItems);
+      if (payload) {
+        wx.setStorage({
+          key: CACHE_KEY_PRODUCTS,
+          data: {
+            left: payload.left,
+            right: payload.right,
+            original: allItems,
+            page,
+            hasMore
+          }
+        });
+      }
+    } catch (err) {
+      log.error('异步更新分类缓存失败:', err);
+    }
+  },
+
+  // 应用商品排序
+  applyProductSort(sortType, products) {
+    const items = (products || this.data.originalProducts || []).slice();
+    
+    // 缓存排序结果，避免重复计算
+    const sortCacheKey = `${sortType}_${items.length}`;
+    if (this._sortCache && this._sortCache[sortCacheKey]) {
+      return this._sortCache[sortCacheKey];
+    }
+    
+    // 根据排序类型排序
+    switch (sortType) {
+      case 0: // 推荐
+        // 综合排序：优先显示店铺，然后按销量排序
+        items.sort((a, b) => {
+          if (a.type === 'store' && b.type !== 'store') return -1;
+          if (a.type !== 'store' && b.type === 'store') return 1;
+          return (b.sales || 0) - (a.sales || 0);
+        });
+        break;
+      case 1: // 销量
+        items.sort((a, b) => (b.sales || 0) - (a.sales || 0));
+        break;
+      case 2: // 低价优先
+        items.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+    }
+    
+    // 分左右两列
+    const left = [];
+    const right = [];
+    items.forEach((item, index) => {
+      if (index % 2 === 0) {
+        left.push(item);
+      } else {
+        right.push(item);
+      }
+    });
+    
+    const result = { left, right };
+    
+    // 缓存排序结果
+    if (!this._sortCache) {
+      this._sortCache = {};
+    }
+    this._sortCache[sortCacheKey] = result;
+    
+    return result;
+  },
+
+  // 获取分类缓存
+  getCategoryCache(catKey) {
+    try {
+      const cache = wx.getStorageSync(`category_cache_${catKey}`);
+      if (cache && (Date.now() - cache.timestamp) < 5 * 60 * 1000) { // 5分钟缓存
+        return cache.data;
+      }
+    } catch (e) {
+      log.error('获取分类缓存失败:', e);
+    }
+    return null;
+  },
+
+  // 设置分类缓存
+  setCategoryCache(catKey, data) {
+    try {
+      wx.setStorageSync(`category_cache_${catKey}`, {
+        data,
+        timestamp: Date.now()
+      });
+    } catch (e) {
+      log.error('设置分类缓存失败:', e);
+    }
   }
 });
 

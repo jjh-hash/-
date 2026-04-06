@@ -75,19 +75,6 @@ class UserAuth {
   }
 
   /**
-   * 用户登出
-   */
-  logout() {
-    this.app.logoutUser();
-    
-    wx.showToast({
-      title: '已退出登录',
-      icon: 'success',
-      duration: 1500
-    });
-  }
-
-  /**
    * 确保用户已登录（如果未登录则自动登录）
    * @param {boolean} showLoading 是否显示加载提示
    * @returns {Promise<Object|null>} 用户信息或null

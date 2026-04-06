@@ -77,25 +77,6 @@ Page({
   },
 
   /**
-   * 用户登出
-   */
-  handleLogout() {
-    wx.showModal({
-      title: '确认登出',
-      content: '确定要退出登录吗？',
-      success: (res) => {
-        if (res.confirm) {
-          UserAuth.logout();
-          this.setData({
-            isLoggedIn: false,
-            userInfo: null
-          });
-        }
-      }
-    });
-  },
-
-  /**
    * 获取用户信息（自动登录）
    */
   async handleGetUserInfo() {

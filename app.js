@@ -53,21 +53,7 @@ App({
     // 公告检查延迟更久，避免影响页面加载
     setTimeout(() => {
       this.checkAnnouncement();
-    }, 3000);
-    
-    // 购物车 Tab 角标、订阅消息预拉：延后执行，避免同步 Storage 阻塞启动
-    setTimeout(() => {
-      try {
-        const cartUtil = require('./utils/cart.js');
-        if (cartUtil && cartUtil.updateTabBarBadge) cartUtil.updateTabBarBadge();
-      } catch (e) {}
-      try {
-        const subscribeMessage = require('./utils/subscribeMessage.js');
-        if (subscribeMessage && subscribeMessage.preloadOrderStatusTemplateId) {
-          subscribeMessage.preloadOrderStatusTemplateId();
-        }
-      } catch (e) {}
-    }, 500);
+    }, 2000);
   },
 
   globalData: {
@@ -181,23 +167,6 @@ App({
         error: error.message || '未知错误'
       };
     }
-  },
-
-  /**
-   * 用户登出
-   */
-  logoutUser() {
-    // 清除本地存储
-    wx.removeStorageSync('userInfo');
-    wx.removeStorageSync('userToken');
-    
-    // 重置全局数据
-    this.globalData.userInfo = null;
-    this.globalData.userToken = null;
-    this.globalData.isLoggedIn = false;
-    this.globalData.openid = null;
-    
-    console.log('用户已登出');
   },
 
   /**

@@ -4,6 +4,33 @@ const subscribeMessage = require('../../../../utils/subscribeMessage.js');
 const CACHE_KEY_ORDERS = 'order_list_cache';
 const CACHE_EXPIRE_TIME = 5 * 60 * 1000; // 5分钟缓存过期
 
+// 带超时的云函数调用
+function callFunctionWithTimeout(options, timeout = 10000) {
+  return Promise.race([
+    wx.cloud.callFunction(options),
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('请求超时')), timeout);
+    })
+  ]);
+}
+
+// 带重试的云函数调用
+async function callFunctionWithRetry(options, maxRetries = 2, timeout = 10000) {
+  let lastError;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await callFunctionWithTimeout(options, timeout);
+    } catch (error) {
+      lastError = error;
+      if (i < maxRetries - 1) {
+        // 等待一段时间后重试
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -233,18 +260,62 @@ Page({
     
     // 节流：避免短时间内多次轮询
     const now = Date.now();
-    if (now - (this.data.lastRefreshTime || 0) < 5000) return;
+    if (now - (this.data.lastRefreshTime || 0) < 8000) return; // 增加节流时间
     if (now - (this.data.lastScrollTime || 0) < 3000) return;
     if (this.data.scrollTop > 100) return;
     if (!this.data.loading) {
       this.setData({ lastRefreshTime: now });
-      this.loadOrders();
+      // 只更新活跃订单，减少数据传输
+      this.loadActiveOrders();
     }
   },
 
   getPollingInterval() {
-    // 增加轮询间隔，减少轮询频率
-    return 15000;
+    // 动态调整轮询间隔，根据订单状态
+    const hasActiveOrders = this.data.allOrders.some(order => {
+      const s = order.orderStatus;
+      return s === 'pending' || s === 'confirmed' || s === 'preparing' || s === 'delivering';
+    });
+    return hasActiveOrders ? 10000 : 30000; // 活跃订单10秒，否则30秒
+  },
+
+  // 只加载活跃订单，减少数据传输
+  async loadActiveOrders() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'orderManage',
+        data: {
+          action: 'getActiveOrders',
+          data: {}
+        }
+      });
+
+      if (res.result && res.result.code === 200) {
+        const activeOrders = res.result.data?.list || [];
+        if (activeOrders.length > 0) {
+          // 更新本地订单数据
+          const updatedOrders = this.data.allOrders.map(order => {
+            const activeOrder = activeOrders.find(ao => ao._id === order.id);
+            return activeOrder ? {
+              ...order,
+              status: this.getStatusText(activeOrder.orderStatus, activeOrder.riderOpenid, activeOrder.payStatus || 'unpaid'),
+              statusClass: this.getStatusClass(activeOrder.orderStatus),
+              statusBadgeClass: this.getStatusBadgeClass(activeOrder.orderStatus, activeOrder.payStatus || 'unpaid'),
+              orderStatus: activeOrder.orderStatus,
+              payStatus: activeOrder.payStatus || 'unpaid'
+            } : order;
+          });
+
+          this.setData({
+            orders: updatedOrders,
+            allOrders: updatedOrders,
+            filteredOrders: this._filterByCategory(updatedOrders, this.data.selectedCategory)
+          });
+        }
+      }
+    } catch (error) {
+      log.error('【用户订单页面】加载活跃订单失败:', error);
+    }
   },
 
   onScroll(e) {
@@ -327,7 +398,7 @@ Page({
         wx.showLoading({ title: '加载中...' });
       }
 
-      const res = await wx.cloud.callFunction({
+      const res = await callFunctionWithRetry({
         name: 'orderManage',
         data: {
           action: 'getOrderList',
@@ -336,7 +407,7 @@ Page({
             pageSize: pageSize
           }
         }
-      });
+      }, 2, 15000);
 
       if (!isPullRefresh && !isLoadMore) wx.hideLoading();
 
@@ -354,13 +425,13 @@ Page({
         let refundsMap = {};
         if (!isLoadMore) {
           try {
-            const refundRes = await wx.cloud.callFunction({
+            const refundRes = await callFunctionWithRetry({
               name: 'refundManage',
               data: {
                 action: 'getRefundList',
                 data: { page: 1, pageSize: 100 }
               }
-            });
+            }, 1, 10000);
             if (refundRes.result && refundRes.result.code === 200) {
               const refundList = refundRes.result.data?.list || [];
               refundList.forEach(refund => {

@@ -905,8 +905,8 @@ Page({
         url: '/pages/profile/index'
       });
     }
-  }
-  ,
+  },
+
   onBack() {
     const pages = getCurrentPages();
     if (pages.length > 1) {

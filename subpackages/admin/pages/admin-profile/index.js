@@ -448,31 +448,7 @@ Page({
     return resultMap[result] || result;
   },
 
-  // 退出登录
-  onLogout() {
-    wx.showModal({
-      title: '确认退出',
-      content: '确定要退出管理后台吗？',
-      success: (res) => {
-        if (res.confirm) {
-          // 清除管理员token
-          wx.removeStorageSync('adminToken');
-          
-          wx.showToast({
-            title: '已退出登录',
-            icon: 'success'
-          });
-          
-          // 跳转到商家注册页面
-          setTimeout(() => {
-            wx.navigateTo({
-              url: '/pages/merchant-register/index'
-            });
-          }, 1500);
-        }
-      }
-    });
-  },
+
 
   // 修改密码 - 跳转到修改密码页面
   onChangePassword() {
@@ -500,30 +476,5 @@ Page({
     });
   },
 
-  // 退出管理端
-  onExitAdmin() {
-    wx.showModal({
-      title: '确认退出',
-      content: '确定要退出管理端返回客户端吗？',
-      confirmColor: '#ff4d4f',
-      success: (res) => {
-        if (res.confirm) {
-          // 清除管理员token
-          wx.removeStorageSync('adminToken');
-          
-          wx.showToast({
-            title: '已退出管理端',
-            icon: 'success'
-          });
-          
-          // 跳转到客户端首页
-          setTimeout(() => {
-            wx.reLaunch({
-              url: '/pages/home/index'
-            });
-          }, 1500);
-        }
-      }
-    });
-  }
+
 });

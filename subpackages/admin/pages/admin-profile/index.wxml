@@ -84,11 +84,7 @@
           <view class="menu-arrow">></view>
         </view>
         
-        <view class="menu-item" bindtap="onExitAdmin">
-          <view class="menu-icon logout">🚪</view>
-          <text class="menu-text">退出管理端</text>
-          <view class="menu-arrow">></view>
-        </view>
+
       </view>
     </view>
   </view>

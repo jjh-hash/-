@@ -20,9 +20,27 @@ exports.main = async (event, context) => {
   log.log('【首页菜品流】参数:', { page, pageSize, keyword, categoryName });
 
   try {
-    // 1. 获取已审核且营业中的店铺 ID 列表和基本信息
+    // 1. 获取已审核且营业中的店铺 ID 列表
+    const merchantsResult = await db.collection('merchants')
+      .where({ status: 'active' })
+      .field({ storeId: true })
+      .get();
+
+    const storeIds = (merchantsResult.data || [])
+      .map(m => m.storeId)
+      .filter(Boolean);
+
+    if (storeIds.length === 0) {
+      return {
+        code: 200,
+        message: 'ok',
+        data: { list: [], total: 0, page, pageSize }
+      };
+    }
+
     const storesResult = await db.collection('stores')
       .where({
+        _id: db.command.in(storeIds),
         businessStatus: 'open'
       })
       .field({ _id: true, name: true, logoUrl: true, avatar: true })

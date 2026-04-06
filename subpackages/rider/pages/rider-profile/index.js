@@ -428,46 +428,6 @@ Page({
     return phone;
   },
 
-  // 退出接单端
-  onLogout() {
-    wx.showModal({
-      title: '退出接单端',
-      content: '确定要退出接单端吗？',
-      confirmColor: '#ff4d4f',
-      success: (res) => {
-        if (res.confirm) {
-          // 只清除骑手相关存储，不清除客户端用户信息
-          // 注意：不调用 app.logoutUser()，因为这会清除客户端用户信息
-          wx.removeStorageSync('riderInfo');
-          wx.removeStorageSync('riderToken');
-          
-          // 清除骑手相关的全局数据（如果有）
-          const app = getApp();
-          if (app && app.globalData) {
-            // 只清除骑手相关数据，保留客户端用户信息
-            if (app.globalData.riderInfo) {
-              app.globalData.riderInfo = null;
-            }
-            if (app.globalData.riderToken) {
-              app.globalData.riderToken = null;
-            }
-          }
-          
-          wx.showToast({
-            title: '已退出',
-            icon: 'success',
-            duration: 1500
-          });
-          
-          // 跳转到客户端个人中心页面，保持用户登录状态
-          setTimeout(() => {
-            wx.reLaunch({
-              url: '/pages/profile/index'
-            });
-          }, 1500);
-        }
-      }
-    });
-  }
+
 });
 

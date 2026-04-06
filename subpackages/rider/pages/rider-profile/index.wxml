@@ -83,10 +83,7 @@
       </view>
     </view>
 
-    <!-- 退出接单端按钮 -->
-    <view class="logout-section">
-      <button class="logout-btn" bindtap="onLogout">退出接单端</button>
-    </view>
+    
   </scroll-view>
 </view>
 

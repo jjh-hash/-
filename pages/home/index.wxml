@@ -144,103 +144,105 @@
     </view>
 
     <!-- 菜品流列表 -->
-    <view class="shop-list-section" wx:else>
-      <view class="shop-list shop-skeleton-list shop-skeleton-overlay" wx:if="{{productListLoading}}">
-        <block wx:for="{{[1,2,3,4,5]}}" wx:key="*this">
-          <view class="shop shop-skeleton">
-            <view class="cover ds-skeleton" style="width:88px;height:66px;border-radius:var(--radius-btn);"></view>
-            <view class="meta">
-              <view class="ds-skeleton-line" style="width:80%;margin-bottom:8px;"></view>
-              <view class="ds-skeleton-line" style="width:50%;margin-bottom:6px;"></view>
-              <view class="ds-skeleton-line" style="width:60%;"></view>
+    <view wx:else>
+      <!-- 骨架屏 -->
+      <view class="shop-list-section" wx:if="{{productListLoading}}">
+        <view class="shop-list shop-skeleton-list shop-skeleton-overlay">
+          <block wx:for="{{[1,2,3,4,5]}}" wx:key="*this">
+            <view class="shop shop-skeleton">
+              <view class="cover ds-skeleton" style="width:88px;height:66px;border-radius:var(--radius-btn);"></view>
+              <view class="meta">
+                <view class="ds-skeleton-line" style="width:80%;margin-bottom:8px;"></view>
+                <view class="ds-skeleton-line" style="width:50%;margin-bottom:6px;"></view>
+                <view class="ds-skeleton-line" style="width:60%;"></view>
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+      
+      <!-- 瀑布流布局 -->
+      <view class="shop-list-section" wx:elif="{{originalProducts.length > 0}}">
+        <view class="shop-waterfall-wrap ds-fade-in">
+          <view class="shop-waterfall-row">
+            <!-- 左列 -->
+            <view class="shop-waterfall-col">
+              <block wx:for="{{displayProductsLeft}}" wx:key="listKey">
+                <view wx:if="{{item.type === 'store'}}" class="shop-card shop-card-store ds-fade-in" bindtap="onStoreTap" data-store-id="{{item.storeId}}">
+                  <view class="shop-card-cover">
+                    <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
+                    <view class="shop-card-store-tag">店铺</view>
+                  </view>
+                  <view class="shop-card-meta">
+                    <text class="product-card-name ellipsis">{{item.name}}</text>
+                    <view class="product-card-row2">
+                      <text class="product-store-name">起送¥{{item.minOrderAmount}} · 配送¥{{item.deliveryFee}}</text>
+                      <text class="shop-card-store-entry">进店 ›</text>
+                    </view>
+                  </view>
+                </view>
+                <view wx:elif="{{item.type === 'product'}}" class="shop-card ds-fade-in" bindtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
+                  <view class="shop-card-cover">
+                    <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
+                  </view>
+                  <view class="shop-card-meta">
+                    <text class="product-card-name ellipsis">{{item.name}}</text>
+                    <text class="product-store-name product-store-name-top">{{item.storeName}}</text>
+                    <view class="product-card-row2">
+                      <text class="product-card-sales" wx:if="{{item.sales > 0}}">月售{{item.sales}}</text>
+                      <view class="product-card-add ds-press" catchtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
+                        <text class="product-card-add-icon">+</text>
+                      </view>
+                    </view>
+                  </view>
+                </view>
+              </block>
+            </view>
+            
+            <!-- 右列 -->
+            <view class="shop-waterfall-col">
+              <block wx:for="{{displayProductsRight}}" wx:key="listKey">
+                <view wx:if="{{item.type === 'store'}}" class="shop-card shop-card-store ds-fade-in" bindtap="onStoreTap" data-store-id="{{item.storeId}}">
+                  <view class="shop-card-cover">
+                    <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
+                    <view class="shop-card-store-tag">店铺</view>
+                  </view>
+                  <view class="shop-card-meta">
+                    <text class="product-card-name ellipsis">{{item.name}}</text>
+                    <view class="product-card-row2">
+                      <text class="product-store-name">起送¥{{item.minOrderAmount}} · 配送¥{{item.deliveryFee}}</text>
+                      <text class="shop-card-store-entry">进店 ›</text>
+                    </view>
+                  </view>
+                </view>
+                <view wx:elif="{{item.type === 'product'}}" class="shop-card ds-fade-in" bindtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
+                  <view class="shop-card-cover">
+                    <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
+                  </view>
+                  <view class="shop-card-meta">
+                    <text class="product-card-name ellipsis">{{item.name}}</text>
+                    <text class="product-store-name product-store-name-top">{{item.storeName}}</text>
+                    <view class="product-card-row2">
+                      <text class="product-card-sales" wx:if="{{item.sales > 0}}">月售{{item.sales}}</text>
+                      <view class="product-card-add ds-press" catchtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
+                        <text class="product-card-add-icon">+</text>
+                      </view>
+                    </view>
+                  </view>
+                </view>
+              </block>
             </view>
           </view>
-        </block>
+          <view class="load-more-footer">
+            <text wx:if="{{hasMoreProducts}}">上拉加载更多</text>
+            <text wx:else>— 没有更多了 —</text>
+          </view>
+        </view>
       </view>
-      <view class="shop-waterfall-wrap ds-fade-in">
-        <view class="shop-waterfall-row">
-          <view class="shop-waterfall-col">
-            <block wx:for="{{displayProductsLeft}}" wx:key="listKey">
-              <view wx:if="{{item.type === 'store'}}" class="shop-card shop-card-store ds-fade-in" bindtap="onStoreTap" data-store-id="{{item.storeId}}">
-                <view class="shop-card-cover">
-                  <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
-                  <view class="shop-card-store-tag">店铺</view>
-                </view>
-                <view class="shop-card-meta">
-                  <view class="product-card-row1">
-                    <text class="product-card-name ellipsis">{{item.name}}</text>
-                  </view>
-                  <view class="product-card-row2">
-                    <text class="product-store-name">起送¥{{item.minOrderAmount}} · 配送¥{{item.deliveryFee}}</text>
-                    <text class="shop-card-store-entry">进店 ›</text>
-                  </view>
-                </view>
-              </view>
-              <view wx:elif="{{item.type === 'product'}}" class="shop-card ds-fade-in" bindtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
-                <view class="shop-card-cover">
-                  <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
-                </view>
-                <view class="shop-card-meta">
-                  <view class="product-card-row1">
-                    <text class="product-card-name ellipsis">{{item.name}}</text>
-                    <text class="product-store-name product-store-name-top">{{item.storeName}}</text>
-                  </view>
-                  <view class="product-card-row2">
-                    <view class="product-card-left">
-                      <text class="product-card-sales" wx:if="{{item.sales > 0}}">月售{{item.sales}}</text>
-                    </view>
-                    <view class="product-card-add ds-press" catchtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
-                      <text class="product-card-add-icon">+</text>
-                    </view>
-                  </view>
-                </view>
-              </view>
-            </block>
-          </view>
-          <view class="shop-waterfall-col">
-            <block wx:for="{{displayProductsRight}}" wx:key="listKey">
-              <view wx:if="{{item.type === 'store'}}" class="shop-card shop-card-store ds-fade-in" bindtap="onStoreTap" data-store-id="{{item.storeId}}">
-                <view class="shop-card-cover">
-                  <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
-                  <view class="shop-card-store-tag">店铺</view>
-                </view>
-                <view class="shop-card-meta">
-                  <view class="product-card-row1">
-                    <text class="product-card-name ellipsis">{{item.name}}</text>
-                  </view>
-                  <view class="product-card-row2">
-                    <text class="product-store-name">起送¥{{item.minOrderAmount}} · 配送¥{{item.deliveryFee}}</text>
-                    <text class="shop-card-store-entry">进店 ›</text>
-                  </view>
-                </view>
-              </view>
-              <view wx:elif="{{item.type === 'product'}}" class="shop-card ds-fade-in" bindtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
-                <view class="shop-card-cover">
-                  <image class="shop-card-img" src="{{item.logo}}" mode="aspectFill" lazy-load binderror="onImageError" data-id="{{item._id}}" />
-                </view>
-                <view class="shop-card-meta">
-                  <view class="product-card-row1">
-                    <text class="product-card-name ellipsis">{{item.name}}</text>
-                    <text class="product-store-name product-store-name-top">{{item.storeName}}</text>
-                  </view>
-                  <view class="product-card-row2">
-                    <view class="product-card-left">
-                      <text class="product-card-sales" wx:if="{{item.sales > 0}}">月售{{item.sales}}</text>
-                    </view>
-                    <view class="product-card-add ds-press" catchtap="onProductTap" data-store-id="{{item.storeId}}" data-product-id="{{item._id}}">
-                      <text class="product-card-add-icon">+</text>
-                    </view>
-                  </view>
-                </view>
-              </view>
-            </block>
-          </view>
-        </view>
-        <view class="load-more-footer" wx:if="{{originalProducts.length > 0}}">
-          <text wx:if="{{hasMoreProducts}}">上拉加载更多</text>
-          <text wx:else>— 没有更多了 —</text>
-        </view>
-        <view class="empty-state ds-fade-in" wx:if="{{!productListLoading && !searchKeyword && originalProducts.length === 0}}">
+      
+      <!-- 空状态 -->
+      <view class="shop-list-section" wx:else>
+        <view class="empty-state ds-fade-in">
           <view class="ds-empty-icon-wrap"><text class="ds-empty-icon-char">菜</text></view>
           <text class="empty-text">暂无菜品</text>
         </view>

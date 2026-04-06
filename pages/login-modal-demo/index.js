@@ -131,13 +131,5 @@ Page({
         });
       }
     });
-  },
-
-  /**
-   * 用户登出
-   */
-  logout() {
-    UserAuth.logout();
-    this.checkLoginStatus();
   }
 });
