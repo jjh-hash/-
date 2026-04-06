@@ -27,17 +27,39 @@ Page({
       setTimeout(() => wx.navigateBack(), 1500);
       return;
     }
-    let totalFeeFen = 0;
-    storeList.forEach(s => {
-      const deliveryFee = (s.storeInfo && s.storeInfo.deliveryFee) != null ? s.storeInfo.deliveryFee : 2;
-      const orderTotal = (s.cartTotal || 0) + Number(deliveryFee);
-      totalFeeFen += Math.round(orderTotal * 100);
-    });
-    const totalFeeYuan = (totalFeeFen / 100).toFixed(2);
-    const totalFeeText = '¥' + totalFeeYuan;
-    this.setData({ storeList, totalFeeFen, totalFeeYuan, totalFeeText });
+    this.setData({ storeList }, () => this.recalculateUnifiedTotal());
     this.loadUserAddress();
     subscribeMessage.preloadOrderStatusTemplateId();
+  },
+
+  extractFloorFromAddress(addressObj) {
+    const houseNumber = String(addressObj?.houseNumber || '').trim();
+    const firstDigitMatch = houseNumber.match(/^([1-6])\d{2}$/);
+    if (firstDigitMatch) return Number(firstDigitMatch[1]);
+    const text = `${addressObj?.buildingName || ''}${houseNumber}${addressObj?.addressDetail || ''}${addressObj?.address || ''}`;
+    const floorMatch = text.match(/([1-6])\s*楼/);
+    if (floorMatch) return Number(floorMatch[1]);
+    return 0;
+  },
+
+  getDeliveryFeeByFloor(floor) {
+    if (floor >= 1 && floor <= 3) return 1.5;
+    if (floor >= 4 && floor <= 6) return 2.0;
+    return 2.0;
+  },
+
+  recalculateUnifiedTotal() {
+    const storeList = this.data.storeList || [];
+    const hasAddress = this.data.hasAddress && this.data.address;
+    if (!storeList.length || !hasAddress) {
+      this.setData({ totalFeeFen: 0, totalFeeYuan: '0.00', totalFeeText: '¥0.00' });
+      return;
+    }
+    const floor = this.extractFloorFromAddress(this.data.address);
+    const perOrderFee = this.getDeliveryFeeByFloor(floor);
+    const totalFeeFen = Math.round(perOrderFee * 100) * storeList.length;
+    const totalFeeYuan = (totalFeeFen / 100).toFixed(2);
+    this.setData({ totalFeeFen, totalFeeYuan, totalFeeText: '¥' + totalFeeYuan });
   },
 
   async loadUserAddress() {
@@ -56,10 +78,10 @@ Page({
           buildingName: defaultAddr.buildingName || '',
           houseNumber: defaultAddr.houseNumber || ''
         };
-        this.setData({ address, hasAddress: true });
+        this.setData({ address, hasAddress: true }, () => this.recalculateUnifiedTotal());
       }
     } catch (e) {
-      this.setData({ hasAddress: false });
+      this.setData({ hasAddress: false }, () => this.recalculateUnifiedTotal());
     }
   },
 

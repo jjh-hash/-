@@ -7,7 +7,7 @@ Page({
     cartItems: [],
     cartTotal: 0,
     storeInfo: {},
-    deliveryFee: 2,
+    deliveryFee: 0,
     totalAmount: 0,
     userInfo: {
       name: '',
@@ -41,25 +41,17 @@ Page({
         
         log.log('【结算页面】解析购物车数据:', cartData);
         
-        // 从storeInfo中获取配送费
-        const deliveryFee = cartData.storeInfo?.deliveryFee || 2;
-        
         this.setData({
           cartItems: cartData.cartItems || [],
           cartTotal: cartData.cartTotal || 0,
           storeInfo: cartData.storeInfo || {},
-          deliveryFee: deliveryFee,
+          deliveryFee: 0,
           deliveryType: cartData.deliveryType || 'delivery' // 保存配送方式
         }, () => {
           // 检查公告是否需要展开按钮
           this.checkAnnouncementLength();
         });
-        
-        // 计算总金额（商品金额 + 配送费）
-        const totalAmount = this.data.cartTotal + deliveryFee;
-        this.setData({
-          totalAmount: totalAmount
-        });
+        this.recalculateAmountByAddress();
         
         log.log('【结算页面】设置完成:', {
           cartItems: this.data.cartItems,
@@ -89,6 +81,41 @@ Page({
     subscribeMessage.preloadOrderStatusTemplateId();
     // 加载平台配置，获取预计配送时间
     this.loadPlatformConfig();
+  },
+
+  // 从地址文本中提取楼层（仅支持 1~6 楼）
+  extractFloorFromAddress(addressObj) {
+    // 优先按门牌号首位识别楼层：232 -> 2楼，543 -> 5楼
+    const houseNumber = String(addressObj?.houseNumber || '').trim();
+    const firstDigitMatch = houseNumber.match(/^([1-6])\d{2}$/);
+    if (firstDigitMatch) return Number(firstDigitMatch[1]);
+
+    // 兼容老数据：地址里写了“X楼”
+    const text = `${addressObj?.buildingName || ''}${houseNumber}${addressObj?.addressDetail || ''}${addressObj?.address || ''}`;
+    const floorMatch = text.match(/([1-6])\s*楼/);
+    if (floorMatch) return Number(floorMatch[1]);
+    return 0;
+  },
+
+  // 楼层配送费：1~3楼 1.5 元，4~6楼 2 元，其余默认 2 元
+  getDeliveryFeeByFloor(floor) {
+    if (floor >= 1 && floor <= 3) return 1.5;
+    if (floor >= 4 && floor <= 6) return 2.0;
+    return 2.0;
+  },
+
+  recalculateAmountByAddress() {
+    if (!this.data.hasAddress) {
+      this.setData({ deliveryFee: 0, totalAmount: 0 });
+      return;
+    }
+    const floor = this.extractFloorFromAddress(this.data.userInfo);
+    const deliveryFee = this.getDeliveryFeeByFloor(floor);
+    // 只收配送费，餐费线下转给骑手
+    this.setData({
+      deliveryFee,
+      totalAmount: deliveryFee
+    });
   },
   
   // 加载平台配置
@@ -149,10 +176,14 @@ Page({
           userInfo: {
             name: defaultAddress.name,
             phone: defaultAddress.phone,
-            address: `${defaultAddress.addressDetail}${defaultAddress.buildingName ? defaultAddress.buildingName : ''}${defaultAddress.houseNumber ? defaultAddress.houseNumber : ''}`
+            address: `${defaultAddress.addressDetail}${defaultAddress.buildingName ? defaultAddress.buildingName : ''}${defaultAddress.houseNumber ? defaultAddress.houseNumber : ''}`,
+            addressDetail: defaultAddress.addressDetail || '',
+            buildingName: defaultAddress.buildingName || '',
+            houseNumber: defaultAddress.houseNumber || ''
           },
           hasAddress: true
         });
+        this.recalculateAmountByAddress();
         
         log.log('【结算页面】设置默认地址:', this.data.userInfo);
       } else {
@@ -161,10 +192,14 @@ Page({
           userInfo: {
             name: '',
             phone: '',
-            address: ''
+            address: '',
+            addressDetail: '',
+            buildingName: '',
+            houseNumber: ''
           },
           hasAddress: false
         });
+        this.recalculateAmountByAddress();
         log.log('【结算页面】用户没有地址');
       }
     } catch (error) {
@@ -174,10 +209,14 @@ Page({
         userInfo: {
           name: '',
           phone: '',
-          address: ''
+          address: '',
+          addressDetail: '',
+          buildingName: '',
+          houseNumber: ''
         },
         hasAddress: false
       });
+      this.recalculateAmountByAddress();
     }
   },
 
@@ -327,8 +366,8 @@ Page({
         const orderData = res.result.data;
         const orderId = orderData?.orderId;
         const orderNo = orderData?.orderNo;
-        // 使用页面计算的金额转换为分（更可靠）
-        const totalAmountFen = Math.round(this.data.totalAmount * 100);
+        // 以云函数返回的应付金额为准：仅配送费
+        const totalAmountFen = Number(orderData?.amountPayableFen || 0);
         
         log.log('【下单】订单创建成功，订单号:', orderNo, '订单ID:', orderId, '支付金额（分）:', totalAmountFen);
         

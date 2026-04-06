@@ -18,6 +18,34 @@ const SUBSCRIBE_EVENT_TEXT = {
   completed: '订单已送达'
 };
 
+function extractFloorFromAddress(addressObj) {
+  const houseNumber = String((addressObj && addressObj.houseNumber) || '').trim();
+  const firstDigitMatch = houseNumber.match(/^([1-6])\d{2}$/);
+  if (firstDigitMatch) return Number(firstDigitMatch[1]);
+  const text = `${(addressObj && addressObj.buildingName) || ''}${houseNumber}${(addressObj && addressObj.addressDetail) || ''}${(addressObj && addressObj.address) || ''}`;
+  const floorMatch = text.match(/([1-6])\s*楼/);
+  return floorMatch ? Number(floorMatch[1]) : 0;
+}
+
+function calcDeliveryRule(addressObj) {
+  const floor = extractFloorFromAddress(addressObj);
+  if (floor >= 1 && floor <= 3) {
+    return { floor, deliveryFeeFen: 150, riderIncomeFen: 100 };
+  }
+  if (floor >= 4 && floor <= 6) {
+    return { floor, deliveryFeeFen: 200, riderIncomeFen: 130 };
+  }
+  return { floor: 0, deliveryFeeFen: 200, riderIncomeFen: 130 };
+}
+
+function getRiderIncomeFenFromOrder(order) {
+  if (order && typeof order.riderIncome === 'number' && order.riderIncome >= 0) {
+    return order.riderIncome;
+  }
+  const rule = calcDeliveryRule(order && order.address ? order.address : null);
+  return rule.riderIncomeFen;
+}
+
 /**
  * 发送订单状态类订阅消息（静默失败，不影响主流程）
  * 模板「订单状态变更通知」：thing1 商家名称、thing2 订单状态、thing7 温馨提示、thing10 商品名称、phone_number12 商家电话
@@ -453,7 +481,6 @@ async function createOrder(openid, data) {
     
     const config = platformConfig || defaultConfig;
     const platformFeeRate = config.platformFeeRate || defaultConfig.platformFeeRate;
-    const platformDeliveryFee = config.deliveryFee || defaultConfig.deliveryFee; // 配送费（分）
     // 修复：使用更严格的判断，避免当值为 0 或无效值时使用默认值
     let orderTimeoutMinutes;
     if (platformConfig && platformConfig.orderTimeoutMinutes !== undefined && platformConfig.orderTimeoutMinutes !== null) {
@@ -486,18 +513,34 @@ async function createOrder(openid, data) {
     // 4. 生成订单号
     const orderNo = `ORD${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
     
+    const addressObj = address ? {
+      name: address.name || userInfo.nickname || '用户',
+      phone: address.phone || userInfo.phone || '',
+      address: address.address || '未设置地址',
+      addressDetail: address.addressDetail || address.address || '',
+      buildingName: address.buildingName || '',
+      houseNumber: address.houseNumber || ''
+    } : {
+      name: userInfo.nickname || '用户',
+      phone: userInfo.phone || '',
+      address: '未设置地址',
+      addressDetail: '未设置地址',
+      buildingName: '',
+      houseNumber: ''
+    };
+    const deliveryRule = calcDeliveryRule(addressObj);
+
     // 5. 计算订单金额
-    // 金额计算逻辑：
-    // - 商品金额：顾客购买商品的金额
-    // - 平台服务费：从商品金额中扣除，给平台管理端
-    // - 配送费：给骑手
-    // - 总金额（顾客支付）= 商品金额 + 配送费
-    // - 商家收入 = 商品金额 - 平台服务费
+    // 规则：
+    // - amountGoods 仅作代买金额展示，不参与在线支付
+    // - 在线支付金额仅收配送费（按楼层）
+    // - 骑手收入按楼层固定值
     const amountGoodsFen = Math.round(cartTotal * 100); // 商品金额（分）
-    const platformFee = Math.round(amountGoodsFen * platformFeeRate); // 平台服务费（分），从商品金额中扣除
-    const deliveryFeeFen = platformDeliveryFee; // 配送费（分，从平台配置获取），给骑手
-    const totalAmount = cartTotal + (deliveryFeeFen / 100); // 总金额（元）= 商品金额 + 配送费（平台服务费不加入总金额）
-    const merchantIncome = cartTotal - (platformFee / 100); // 商家收入（元）= 商品金额 - 平台服务费
+    const platformFee = 0;
+    const deliveryFeeFen = deliveryRule.deliveryFeeFen; // 配送费（分）
+    const totalAmount = deliveryFeeFen / 100; // 仅支付配送费
+    const merchantIncome = 0;
+    const riderIncomeFen = deliveryRule.riderIncomeFen;
     
     // 计算订单超时时间（使用服务器时间）
     // 在云函数中，Date.now() 返回的就是服务器时间戳
@@ -563,21 +606,9 @@ async function createOrder(openid, data) {
       expiredAt: expiredAt,
       
       // 配送信息 - 完整保存地址信息
-      address: address ? {
-        name: address.name || userInfo.nickname || '用户',
-        phone: address.phone || userInfo.phone || '',
-        address: address.address || '未设置地址',
-        addressDetail: address.addressDetail || address.address || '',
-        buildingName: address.buildingName || '',
-        houseNumber: address.houseNumber || ''
-      } : {
-        name: userInfo.nickname || '用户',
-        phone: userInfo.phone || '',
-        address: '未设置地址',
-        addressDetail: '未设置地址',
-        buildingName: '',
-        houseNumber: ''
-      },
+      address: addressObj,
+      deliveryFloor: deliveryRule.floor,
+      riderIncome: riderIncomeFen, // 骑手结算收入（分）
       
       // 备注
       remark: remark || '',
@@ -641,7 +672,8 @@ async function createOrder(openid, data) {
       data: {
         orderId: result._id,
         orderNo: orderNo,
-        amountTotal: totalAmount
+        amountTotal: totalAmount,
+        amountPayableFen: deliveryFeeFen
       }
     };
     
@@ -675,7 +707,6 @@ async function createUnifiedOrders(openid, data) {
       if (configRes.data.length > 0) platformConfig = configRes.data[0];
     } catch (e) {}
     const platformFeeRate = (platformConfig && platformConfig.platformFeeRate) != null ? platformConfig.platformFeeRate : 0.08;
-    const platformDeliveryFee = (platformConfig && platformConfig.deliveryFee) != null ? platformConfig.deliveryFee : 300;
     const orderTimeoutMinutes = (platformConfig && platformConfig.orderTimeoutMinutes != null) ? parseInt(platformConfig.orderTimeoutMinutes, 10) : 20;
     const validMinutes = !isNaN(orderTimeoutMinutes) && orderTimeoutMinutes >= 5 ? orderTimeoutMinutes : 20;
     const expiredAt = new Date(Date.now() + validMinutes * 60 * 1000);
@@ -709,6 +740,7 @@ async function createUnifiedOrders(openid, data) {
       buildingName: '',
       houseNumber: ''
     };
+    const deliveryRule = calcDeliveryRule(addressObj);
 
     for (const row of stores) {
       const { storeId, storeInfo, cartItems, cartTotal, deliveryType } = row;
@@ -721,10 +753,10 @@ async function createUnifiedOrders(openid, data) {
       }
 
       const amountGoodsFen = Math.round((cartTotal || 0) * 100);
-      const platformFee = Math.round(amountGoodsFen * platformFeeRate);
-      const deliveryFeeFen = platformDeliveryFee;
-      const totalAmount = (cartTotal || 0) + deliveryFeeFen / 100;
-      const merchantIncome = (cartTotal || 0) - platformFee / 100;
+      const platformFee = 0;
+      const deliveryFeeFen = deliveryRule.deliveryFeeFen;
+      const totalAmount = deliveryFeeFen / 100;
+      const merchantIncome = 0;
       const orderNo = `ORD${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
       const orderData = {
@@ -756,6 +788,8 @@ async function createUnifiedOrders(openid, data) {
         amountTotal: Math.round(totalAmount * 100),
         amountPayable: Math.round(totalAmount * 100),
         merchantIncome: Math.round(merchantIncome * 100),
+        deliveryFloor: deliveryRule.floor,
+        riderIncome: deliveryRule.riderIncomeFen,
         expiredAt,
         address: addressObj,
         remark: remark || '',
@@ -4061,8 +4095,8 @@ async function confirmDelivery(openid, data) {
     // 更新销售统计
     await updateSalesStatistics(order);
     
-    // 更新骑手的今日订单数和今日收入统计
-    await updateRiderTodayStats(openid);
+    // 更新骑手的今日订单数和今日收入统计（按楼层收入）
+    await updateRiderTodayStats(openid, order);
     
     console.log('【确认送达】送达成功');
     
@@ -4083,16 +4117,18 @@ async function confirmDelivery(openid, data) {
 
 /**
  * 更新骑手今日统计数据
- * 每完成一个订单，今日接单数+1，今日收入固定+1元（与订单金额/配送费无关）
+ * 每完成一个订单，今日接单数+1，今日收入按楼层规则累计
  */
-async function updateRiderTodayStats(riderOpenid) {
+async function updateRiderTodayStats(riderOpenid, order) {
   try {
     if (!riderOpenid) {
       console.warn('【更新骑手统计】缺少骑手openid');
       return;
     }
     
-    console.log('【更新骑手统计】开始更新，骑手openid:', riderOpenid);
+    const incomeFen = getRiderIncomeFenFromOrder(order);
+    const incomeYuan = Number((incomeFen / 100).toFixed(2));
+    console.log('【更新骑手统计】开始更新，骑手openid:', riderOpenid, '收入(元):', incomeYuan);
     
     // 获取今天的日期（格式：YYYY-MM-DD）
     // 云函数运行在UTC时区，需要转换为中国时区（UTC+8）
@@ -4134,11 +4170,11 @@ async function updateRiderTodayStats(riderOpenid) {
       const updateResult = await db.collection('rider_stats').doc(stats._id).update({
         data: {
           todayOrders: db.command.inc(1), // 今日接单数+1
-          todayIncome: db.command.inc(1.00), // 今日收入固定+1元/单
+          todayIncome: db.command.inc(incomeYuan),
           updatedAt: db.serverDate()
         }
       });
-      console.log('【更新骑手统计】更新成功，订单数+1，收入+1元，更新结果:', updateResult);
+      console.log('【更新骑手统计】更新成功，订单数+1，收入+', incomeYuan, '元，更新结果:', updateResult);
       } catch (updateError) {
         console.error('【更新骑手统计】更新失败:', updateError);
         // 如果更新失败，尝试重新创建记录
@@ -4149,7 +4185,7 @@ async function updateRiderTodayStats(riderOpenid) {
               riderOpenid: riderOpenid,
               date: dateStr,
               todayOrders: (stats.todayOrders || 0) + 1, // 今日接单数+1
-              todayIncome: ((stats.todayIncome || 0) + 1.00).toFixed(2), // 今日收入固定+1元/单
+              todayIncome: ((stats.todayIncome || 0) + incomeYuan).toFixed(2),
               createdAt: db.serverDate(),
               updatedAt: db.serverDate()
             }
@@ -4167,12 +4203,12 @@ async function updateRiderTodayStats(riderOpenid) {
           riderOpenid: riderOpenid,
           date: dateStr,
           todayOrders: 1, // 今日接单数
-          todayIncome: 1.00, // 今日收入固定1元/单
+          todayIncome: incomeYuan,
           createdAt: db.serverDate(),
           updatedAt: db.serverDate()
         }
       });
-      console.log('【更新骑手统计】创建新记录，订单数=1，收入=1元，创建结果:', addResult);
+      console.log('【更新骑手统计】创建新记录，订单数=1，收入=', incomeYuan, '元，创建结果:', addResult);
       } catch (addError) {
         console.error('【更新骑手统计】创建新记录失败:', addError);
         // 如果创建失败，记录错误但不抛出，避免影响订单完成流程
@@ -4282,19 +4318,12 @@ async function getRiderTodayStats(riderOpenid, data) {
         return false;
       });
       
-      // 计算统计数据（每单固定1元，与订单金额/配送费无关）
+      // 计算统计数据（按订单的 riderIncome 汇总）
       const orders = todayCompletedOrders.length;
-      const income = (orders * 1.00).toFixed(2);
+      const incomeFen = todayCompletedOrders.reduce((sum, order) => sum + getRiderIncomeFenFromOrder(order), 0);
+      const income = (incomeFen / 100).toFixed(2);
       
       console.log('【获取骑手统计】从订单数据计算:', { orders, income, todayCompletedOrders: todayCompletedOrders.length });
-      
-      // 如果计算出的数据不为0，尝试更新统计数据（异步，不等待结果）
-      if (orders > 0) {
-        // 异步更新统计数据，不阻塞返回
-        updateRiderTodayStats(riderOpenid).catch(err => {
-          console.error('【获取骑手统计】更新统计数据失败:', err);
-        });
-      }
       
       return {
         code: 200,
@@ -4349,8 +4378,8 @@ async function getRiderTotalStats(riderOpenid, data) {
       .get();
     
     const totalOrders = completedOrdersResult.data ? completedOrdersResult.data.length : 0;
-    // 计算总收入：每单固定1元，与订单金额/配送费无关
-    const totalIncome = totalOrders * 1.00;
+    const totalIncomeFen = (completedOrdersResult.data || []).reduce((sum, order) => sum + getRiderIncomeFenFromOrder(order), 0);
+    const totalIncome = totalIncomeFen / 100;
     
     console.log('【获取骑手总统计】总接单数:', totalOrders, '总收入:', totalIncome.toFixed(2));
     
@@ -4413,8 +4442,8 @@ async function getRiderWeekStats(riderOpenid, data) {
     }) : [];
     
     const totalOrders = weekOrders.length;
-    // 每单固定1元，与订单金额/配送费无关
-    const totalIncome = totalOrders * 1.00;
+    const totalIncomeFen = weekOrders.reduce((sum, order) => sum + getRiderIncomeFenFromOrder(order), 0);
+    const totalIncome = totalIncomeFen / 100;
     
     return {
       code: 200,
@@ -4471,8 +4500,8 @@ async function getRiderMonthStats(riderOpenid, data) {
     }) : [];
     
     const totalOrders = monthOrders.length;
-    // 每单固定1元，与订单金额/配送费无关
-    const totalIncome = totalOrders * 1.00;
+    const totalIncomeFen = monthOrders.reduce((sum, order) => sum + getRiderIncomeFenFromOrder(order), 0);
+    const totalIncome = totalIncomeFen / 100;
     
     return {
       code: 200,
@@ -4897,15 +4926,14 @@ async function getRiderTodayIncome(riderOpenid, data) {
       return {
         id: order._id,
         orderNo: order.orderNo,
-        income: '2.00', // 每完成一单收入2元（固定值，与统计逻辑一致）
+        income: (getRiderIncomeFenFromOrder(order) / 100).toFixed(2),
         items: itemsText,
         completedAt: formatDate(order.completedAt),
         createdAt: formatDate(order.createdAt)
       };
     });
     
-    // 计算总收入（每单2元）
-    const totalIncome = total * 2.00;
+    const totalIncome = incomeList.reduce((sum, row) => sum + (parseFloat(row.income) || 0), 0);
     
     return {
       code: 200,

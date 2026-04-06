@@ -13,7 +13,7 @@ Page({
       minOrderAmountLimit: 20, // 最低订单金额下限（元）
       estimatedDeliveryMinutes: 30, // 预计送达时间（分钟）
       orderTimeoutMinutes: 15, // 订单超时时间（分钟）
-      depositAmount: 100 // 校园兼职保证金（元），缴纳满30天后可申请退还
+      depositAmount: 25 // 校园兼职保证金（元），缴纳满30天后可申请退还
     },
     
     // 邀请码列表
@@ -84,7 +84,7 @@ Page({
               minOrderAmountLimit: (config.minOrderAmountLimit || 2000) / 100, // 转换为元
               estimatedDeliveryMinutes: config.estimatedDeliveryMinutes || 30,
               orderTimeoutMinutes: config.orderTimeoutMinutes || 15,
-              depositAmount: (config.depositAmount !== undefined ? config.depositAmount : 10000) / 100 // 校园兼职保证金（元）
+              depositAmount: (config.depositAmount !== undefined ? config.depositAmount : 2500) / 100 // 校园兼职保证金（元）
             }
           });
         }

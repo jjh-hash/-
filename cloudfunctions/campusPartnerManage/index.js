@@ -1,4 +1,4 @@
-// 校园兼职管理：申请、缴纳保证金、状态查询、申请退还（缴纳满 30 天后可退，保证金 100 元）
+// 校园兼职管理：申请、缴纳保证金、状态查询、申请退还（缴纳满 30 天后可退，保证金 25 元）
 const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
@@ -45,7 +45,7 @@ exports.main = async (event, context) => {
 async function getDepositAmountFen() {
   const res = await db.collection('platform_config').limit(1).get();
   const config = (res.data && res.data[0]) || {};
-  return config.depositAmount !== undefined ? config.depositAmount : 10000;
+  return config.depositAmount !== undefined ? config.depositAmount : 2500;
 }
 
 // 查询当前用户校园兼职状态

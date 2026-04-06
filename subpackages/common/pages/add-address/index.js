@@ -5,13 +5,53 @@ Page({
     buildingName: '',
     houseNumber: '',
     name: '',
-    phone: ''
+    phone: '',
+    mode: 'add',
+    addressId: ''
   },
 
-  onLoad() {
+  onLoad(options) {
     if (!getApp().globalData.isLoggedIn) {
       wx.showToast({ title: '请先登录后添加地址', icon: 'none' });
       setTimeout(() => wx.navigateBack(), 1500);
+      return;
+    }
+    const mode = options?.mode === 'edit' ? 'edit' : 'add';
+    const addressId = options?.addressId || '';
+    this.setData({ mode, addressId });
+    if (mode === 'edit' && addressId) {
+      this.loadAddressForEdit(addressId);
+    }
+  },
+
+  async loadAddressForEdit(addressId) {
+    try {
+      wx.showLoading({ title: '加载中...' });
+      const res = await wx.cloud.callFunction({
+        name: 'addressManage',
+        data: {
+          action: 'getAddressList',
+          data: {}
+        }
+      });
+      wx.hideLoading();
+      const list = (res.result && res.result.code === 200 && res.result.data && res.result.data.list) ? res.result.data.list : [];
+      const current = list.find(item => item._id === addressId);
+      if (!current) {
+        wx.showToast({ title: '地址不存在', icon: 'none' });
+        setTimeout(() => wx.navigateBack(), 1200);
+        return;
+      }
+      this.setData({
+        addressDetail: current.addressDetail || '',
+        buildingName: current.buildingName || '',
+        houseNumber: current.houseNumber || '',
+        name: current.name || '',
+        phone: current.phone || ''
+      });
+    } catch (error) {
+      wx.hideLoading();
+      wx.showToast({ title: '地址加载失败', icon: 'none' });
     }
   },
 
@@ -99,12 +139,14 @@ Page({
     try {
       wx.showLoading({ title: '保存中...' });
 
-      // 调用云函数保存地址
+      const isEdit = this.data.mode === 'edit' && !!this.data.addressId;
+      // 调用云函数保存/更新地址
       const res = await wx.cloud.callFunction({
         name: 'addressManage',
         data: {
-          action: 'addAddress',
+          action: isEdit ? 'updateAddress' : 'addAddress',
           data: {
+            ...(isEdit ? { addressId: this.data.addressId } : {}),
             addressDetail: addressDetail.trim(),
             buildingName: buildingName.trim(),
             houseNumber: houseNumber.trim(),
@@ -121,7 +163,7 @@ Page({
 
       if (res.result && res.result.code === 200) {
         wx.showToast({
-          title: '地址保存成功',
+          title: isEdit ? '地址修改成功' : '地址保存成功',
           icon: 'success',
           duration: 1500
         });
