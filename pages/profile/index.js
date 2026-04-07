@@ -42,12 +42,12 @@ Page({
       },
       { title: '法律与协议', cols: 2, items: [
           { type: 'user-agreement', icon: '/pages/小标/关于我们.png', text: '用户协议' },
-          { type: 'privacy-policy', icon: '/pages/小标/隐私政策.png', text: '隐私政策' }
+          { type: 'privacy-policy', icon: '/pages/小标/隐私政策.2.png', text: '隐私政策' }
         ]
       },
       { title: '更多服务', cols: moreServiceItems.length === 3 ? 3 : 2, items: moreServiceItems },
       { title: '账号', cols: 1, items: [
-          { type: 'logout', icon: '/pages/小标/退出登录.png', text: '退出登录' }
+          { type: 'logout', icon: '/pages/小标/退出登录.2.png', text: '退出登录' }
         ]
       }
     ];
