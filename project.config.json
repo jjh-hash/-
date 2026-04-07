@@ -38,6 +38,18 @@
   "packOptions": {
     "ignore": [
       {
+        "value": "admin-web",
+        "type": "folder"
+      },
+      {
+        "value": "cloudfunctions",
+        "type": "folder"
+      },
+      {
+        "value": "node_modules",
+        "type": "folder"
+      },
+      {
         "value": "docs",
         "type": "folder"
       },
@@ -52,6 +64,14 @@
       {
         "value": ".md",
         "type": "suffix"
+      },
+      {
+        "value": "package-lock.json",
+        "type": "file"
+      },
+      {
+        "value": "scripts",
+        "type": "folder"
       }
     ],
     "include": []

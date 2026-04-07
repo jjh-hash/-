@@ -1,8 +1,9 @@
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
+    isLoggedIn: false,
     userInfo: {
-      nickname: "微信用户",
+      nickname: "",
       avatar: ""
     },
     showUserInfoModal: false,
@@ -60,28 +61,35 @@ Page({
   async loadUserInfo() {
     const app = getApp();
     let userInfo = null;
-    if (app.globalData.isLoggedIn && app.globalData.userInfo) {
+    const hasToken = !!wx.getStorageSync('userToken');
+    if (app.globalData.isLoggedIn && app.globalData.userInfo && hasToken) {
       userInfo = app.globalData.userInfo;
     } else {
-      userInfo = wx.getStorageSync('userInfo');
-      if (userInfo) {
+      const storedUserInfo = wx.getStorageSync('userInfo');
+      if (storedUserInfo && hasToken) {
+        userInfo = storedUserInfo;
         app.globalData.userInfo = userInfo;
         app.globalData.isLoggedIn = true;
+      } else {
+        app.globalData.isLoggedIn = false;
       }
     }
-    if (userInfo) {
-      this.setData({ userInfo });
-    }
+    this.setData({
+      isLoggedIn: !!(userInfo && hasToken),
+      userInfo: userInfo || { nickname: '', avatar: '' }
+    });
     // 若当前显示为默认（微信用户/无头像）且本地有登录态，从服务器拉取最新用户信息并回写
     const isDefault = !userInfo || !userInfo.nickname || userInfo.nickname === '微信用户' || !userInfo.avatar;
-    const hasToken = !!wx.getStorageSync('userToken');
     if (isDefault && hasToken) {
       try {
         const res = await app.loginUser();
         if (res && res.success && res.userInfo) {
           wx.setStorageSync('userInfo', res.userInfo);
           app.globalData.userInfo = res.userInfo;
-          this.setData({ userInfo: res.userInfo });
+          this.setData({
+            userInfo: res.userInfo,
+            isLoggedIn: true
+          });
         }
       } catch (e) {
         console.warn('从服务器恢复用户信息失败', e);
@@ -233,6 +241,10 @@ Page({
    * 编辑用户信息
    */
   editUserInfo() {
+    if (!this.data.isLoggedIn) {
+      getApp().showLoginModal();
+      return;
+    }
     this.setData({
       showUserInfoModal: true
     });

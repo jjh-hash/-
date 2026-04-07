@@ -93,4 +93,6 @@
       </view>
     </view>
   </view>
+
+  <admin-tab-bar active="management" />
 </view>

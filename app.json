@@ -35,6 +35,9 @@
       "root": "subpackages/admin",
       "name": "admin",
       "pages": [
+        "pages/admin-dashboard/index",
+        "pages/admin-management/index",
+        "pages/admin-profile/index",
         "pages/admin-merchant-list/index",
         "pages/admin-merchant-detail/index",
         "pages/admin-statistics/index",

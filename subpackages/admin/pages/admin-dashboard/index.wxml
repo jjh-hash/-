@@ -155,4 +155,5 @@
 
   </view>
 
+  <admin-tab-bar active="dashboard" />
 </view>
