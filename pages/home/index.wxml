@@ -1,5 +1,10 @@
 <view class="page">
-  <announcement-modal id="announcementModal" announcement="{{announcement}}" show="{{showAnnouncement}}" bind:close="onCloseAnnouncement" />
+  <announcement-modal
+    id="announcementModal"
+    announcement="{{announcement}}"
+    show="{{showAnnouncement}}"
+    bind:close="onCloseAnnouncement"
+  ></announcement-modal>
   
   <scroll-view scroll-y class="content" style="height: {{scrollViewHeight}}px;">
     <!-- 沉浸式顶部：轮播图延伸至状态栏 -->
@@ -143,7 +148,6 @@
       </view>
     </view>
 
-    <!-- 菜品流列表 -->
     <view wx:else>
       <!-- 骨架屏 -->
       <view class="shop-list-section" wx:if="{{productListLoading}}">

@@ -2,14 +2,15 @@
   <!-- 状态栏占位，避免头像/昵称被遮挡 -->
   <view class="status-bar-spacer" style="height: {{statusBarHeight}}px;"></view>
   <!-- 用户信息区域 -->
-  <view class="profile-section" bindtap="editUserInfo">
-    <view class="avatar">
+  <view class="profile-section">
+    <view class="avatar" bindtap="editUserInfo">
       <image class="avatar-img" src="{{userInfo.avatar}}" mode="aspectFill" wx:if="{{userInfo.avatar}}" />
-      <view class="avatar-placeholder" wx:else>
+      <view class="avatar-placeholder" wx:elif="{{isLoggedIn}}">
         <text class="avatar-placeholder-text">{{userInfo.nickname ? userInfo.nickname.substring(0, 1) : '用'}}</text>
       </view>
+      <view class="avatar-empty" wx:else></view>
     </view>
-    <text class="nickname">{{userInfo.nickname || '微信用户'}}</text>
+    <text class="nickname">{{isLoggedIn ? (userInfo.nickname || '微信用户') : '未登录'}}</text>
   </view>
 
   <user-info-modal

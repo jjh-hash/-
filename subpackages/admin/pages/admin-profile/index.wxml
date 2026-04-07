@@ -88,4 +88,6 @@
       </view>
     </view>
   </view>
+
+  <admin-tab-bar active="profile" />
 </view>

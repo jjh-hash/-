@@ -1,4 +1,7 @@
 {
   "backgroundColor": "#FFF0E0",
-  "backgroundTextStyle": "dark"
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "admin-tab-bar": "/components/admin-tab-bar/index"
+  }
 }

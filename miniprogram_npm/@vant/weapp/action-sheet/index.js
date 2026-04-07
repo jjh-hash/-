@@ -1,4 +1,4 @@
-  "use strict";
+"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var component_1 = require("../common/component");
 var button_1 = require("../mixins/button");

@@ -1,7 +1,7 @@
 // pages/admin-user-list/index.js
 // 用户管理页面
 const log = require('../../../../utils/logger.js');
-const { debounce } = require('../../../utils/debounce.js');
+const { debounce } = require('../../utils/debounce.js');
 
 Page({
   data: {
