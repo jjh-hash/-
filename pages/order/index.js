@@ -907,6 +907,12 @@ Page({
     }
   },
 
+  goToHome() {
+    wx.reLaunch({
+      url: '/pages/home/index'
+    });
+  },
+
   onBack() {
     const pages = getCurrentPages();
     if (pages.length > 1) {
