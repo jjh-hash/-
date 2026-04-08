@@ -35,6 +35,7 @@ Page({
         name: 'merchantManage',
         data: {
           action: 'getDetail',
+          adminSessionToken: wx.getStorageSync('adminToken') || '',
           data: {
             merchantId: this.data.merchantId
           }

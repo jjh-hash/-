@@ -63,10 +63,12 @@ Page({
     wx.showLoading({ title: '加载中...' });
     
     try {
+      const adminSessionToken = wx.getStorageSync('adminToken') || '';
       const res = await wx.cloud.callFunction({
         name: 'merchantManage',
         data: {
           action: 'getList',
+          adminSessionToken,
           data: {
             page: this.data.page,
             pageSize: this.data.pageSize,
@@ -78,89 +80,35 @@ Page({
 
       console.log('【商家列表】云函数返回:', res.result);
 
-      if (res.result && res.result.code === 200 && res.result.data.list.length > 0) {
-        // 使用真实数据
+      if (res.result && res.result.code === 200 && res.result.data) {
+        const list = res.result.data.list || [];
         this.setData({
-          merchants: res.result.data.list,
-          total: res.result.data.total,
+          merchants: list,
+          total: res.result.data.total || 0,
           loading: false
         });
-        this.lastLoadTime = Date.now(); // 记录加载时间
+        this.lastLoadTime = Date.now();
+      } else if (res.result && (res.result.code === 401 || res.result.code === 403)) {
+        wx.showToast({
+          title: res.result.message || '请重新登录管理端',
+          icon: 'none'
+        });
+        this.setData({ merchants: [], total: 0, loading: false });
       } else {
-        // 使用模拟数据
-        console.log('【商家列表】使用模拟数据');
-        this.setData({
-          merchants: this.getMockMerchants(),
-          total: 4,
-          loading: false
+        wx.showToast({
+          title: (res.result && res.result.message) || '加载失败',
+          icon: 'none'
         });
+        this.setData({ merchants: [], total: 0, loading: false });
       }
     } catch (err) {
       console.error('加载商家列表失败:', err);
-      // 使用模拟数据
-      this.setData({
-        merchants: this.getMockMerchants(),
-        total: 4,
-        loading: false
-      });
+      wx.showToast({ title: '加载失败', icon: 'none' });
+      this.setData({ merchants: [], total: 0, loading: false });
     } finally {
       wx.hideLoading();
       this.loadingMerchants = false;
     }
-  },
-
-  // 模拟商家数据
-  getMockMerchants() {
-    return [
-      {
-        _id: '1',
-        merchantName: '河工零食',
-        contactPhone: '13800138001',
-        status: 'pending',
-        qualificationStatus: 'pending',
-        createdAt: '2025-01-03 10:30',
-        storeInfo: {
-          name: '河工零食店',
-          businessStatus: 'open'
-        }
-      },
-      {
-        _id: '2',
-        merchantName: '校园咖啡',
-        contactPhone: '13800138002',
-        status: 'active',
-        qualificationStatus: 'approved',
-        createdAt: '2025-01-02 15:20',
-        storeInfo: {
-          name: '校园咖啡厅',
-          businessStatus: 'open'
-        }
-      },
-      {
-        _id: '3',
-        merchantName: '快餐王',
-        contactPhone: '13800138003',
-        status: 'suspended',
-        qualificationStatus: 'approved',
-        createdAt: '2025-01-01 09:15',
-        storeInfo: {
-          name: '快餐王餐厅',
-          businessStatus: 'closed'
-        }
-      },
-      {
-        _id: '4',
-        merchantName: '嘿嘿',
-        contactPhone: '15890121731',
-        status: 'suspended',
-        qualificationStatus: 'approved',
-        createdAt: '2025-10-23 13:15',
-        storeInfo: {
-          name: '嘿嘿',
-          businessStatus: 'closed'
-        }
-      }
-    ];
   },
 
   // 状态筛选
@@ -292,6 +240,7 @@ Page({
         name: 'merchantManage',
         data: {
           action: action,
+          adminSessionToken: wx.getStorageSync('adminToken') || '',
           data: { merchantId },
           adminId: 'admin_123'
         }
@@ -333,6 +282,7 @@ Page({
         name: 'merchantManage',
         data: {
           action: 'delete',
+          adminSessionToken: wx.getStorageSync('adminToken') || '',
           data: { merchantId },
           adminId: 'admin_123'
         }
