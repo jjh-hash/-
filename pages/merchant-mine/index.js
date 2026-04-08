@@ -30,9 +30,13 @@ Page({
     try {
       wx.showLoading({ title: '刷新中...' });
       
-      // 调用商家登录云函数重新获取最新信息
+      const cur = wx.getStorageSync('merchantInfo') || {};
       const res = await wx.cloud.callFunction({
-        name: 'merchantLogin'
+        name: 'merchantLogin',
+        data: {
+          loginType: 'wx',
+          merchantId: cur._id || undefined
+        }
       });
       
       wx.hideLoading();

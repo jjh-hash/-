@@ -159,6 +159,14 @@ Page({
             url: '/subpackages/merchant/pages/merchant-workbench/index' 
           });
         }, 1500);
+      } else if (res.result && res.result.code === 201 && res.result.data && res.result.data.merchants) {
+        wx.setStorageSync('merchantWxLoginPick', {
+          merchants: res.result.data.merchants,
+          user: res.result.data.user
+        });
+        wx.navigateTo({
+          url: '/subpackages/merchant/pages/merchant-account-select/index'
+        });
       } else if (res.result && res.result.code === 403) {
         // 未注册商家
         wx.showModal({

@@ -1,0 +1,40 @@
+<view class="page">
+  <view class="nav-row" bindtap="onSwitchLogin">
+    <text class="nav-back">‹</text>
+    <text class="nav-text">切换登录方式</text>
+  </view>
+
+  <view class="header">
+    <text class="title">选择登录账号</text>
+    <view class="subtitle">
+      <text>当前登录方式有 </text>
+      <text class="accent">{{count}}</text>
+      <text> 个关联账号，请选择登录账号</text>
+    </view>
+  </view>
+
+  <view class="section-label">商家账号</view>
+
+  <view class="card-list">
+    <view
+      wx:for="{{merchants}}"
+      wx:key="_id"
+      class="account-card {{selectedId === item._id ? 'account-card--active' : ''}}"
+      bindtap="onSelect"
+      data-id="{{item._id}}"
+    >
+      <view class="card-main">
+        <text class="name">{{item.merchantName}}</text>
+        <text class="account-line">登录账号：{{item.account || '（未设置）'}}</text>
+      </view>
+      <view wx:if="{{item.isLastLogin}}" class="tag">上次登录</view>
+    </view>
+  </view>
+
+  <view class="footer">
+    <button class="btn-continue" bindtap="onContinue" disabled="{{!selectedId}}">
+      <text>继续</text>
+      <text class="arrow">›</text>
+    </button>
+  </view>
+</view>

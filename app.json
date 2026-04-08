@@ -13,6 +13,7 @@
         "pages/merchant/index",
         "pages/merchant-register/index",
         "pages/merchant-login/index",
+        "pages/merchant-account-select/index",
         "pages/merchant-info/index",
         "pages/merchant-workbench/index",
         "pages/merchant-mine/index",
