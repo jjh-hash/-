@@ -17,7 +17,6 @@ Page({
     images: [],
     maxImages: 9,
     uploading: false,
-    isAnonymous: false, // 是否匿名发布
     realNickName: '', // 用户真实昵称
     realAvatarUrl: '' // 用户真实头像
   },
@@ -118,14 +117,6 @@ Page({
   onContactInfoInput(e) {
     this.setData({
       contactInfo: e.detail.value
-    });
-  },
-
-  // 切换匿名状态
-  onAnonymousChange(e) {
-    const isAnonymous = e.detail.value;
-    this.setData({
-      isAnonymous: isAnonymous
     });
   },
 
@@ -268,19 +259,14 @@ Page({
       const userInfo = wx.getStorageSync('userInfo') || {};
       const openid = userInfo.openid || '';
 
-      // 根据匿名选项决定使用真实信息还是匿名信息
+      // 使用真实卖家信息发布（已移除匿名发布）
       // 注意：用户信息字段名是 nickname 和 avatar，不是 nickName 和 avatarUrl
       const realNickname = this.data.realNickName || userInfo.nickname || userInfo.nickName || '';
       const realAvatar = this.data.realAvatarUrl || userInfo.avatar || userInfo.avatarUrl || '/pages/小标/商家.png';
-      
-      const sellerName = this.data.isAnonymous 
-        ? '匿名用户' 
-        : (realNickname || '微信用户');
-      const sellerAvatar = this.data.isAnonymous 
-        ? '/pages/小标/商家.png' 
-        : (realAvatar || '/pages/小标/商家.png');
-      
-      console.log('【发布页面】匿名状态:', this.data.isAnonymous);
+
+      const sellerName = realNickname || '微信用户';
+      const sellerAvatar = realAvatar || '/pages/小标/商家.png';
+
       console.log('【发布页面】真实昵称:', realNickname);
       console.log('【发布页面】真实头像:', realAvatar);
       console.log('【发布页面】最终卖家名称:', sellerName);

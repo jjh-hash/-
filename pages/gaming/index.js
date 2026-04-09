@@ -36,6 +36,16 @@ Page({
   },
 
   onLoad() {
+    wx.showToast({
+      title: '该功能暂未开放',
+      icon: 'none'
+    });
+    setTimeout(() => {
+      wx.switchTab({
+        url: '/pages/home/index'
+      });
+    }, 300);
+    return;
     // 页面加载时加载用户默认地址
     this.loadUserAddress();
     // 初始化总价

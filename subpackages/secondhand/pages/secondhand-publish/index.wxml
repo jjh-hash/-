@@ -130,22 +130,6 @@
       <view class="tip">方便买家联系您，建议填写真实联系方式</view>
     </view>
 
-    <!-- 匿名发布 -->
-    <view class="section">
-      <view class="section-title">发布设置</view>
-      <view class="switch-row">
-        <view class="switch-label">
-          <text class="switch-title">匿名发布</text>
-          <text class="switch-desc">开启后将显示为"匿名用户"，隐藏您的头像和昵称</text>
-        </view>
-        <switch 
-          checked="{{isAnonymous}}" 
-          bindchange="onAnonymousChange"
-          color="#ff6b35"
-        />
-      </view>
-    </view>
-
     <view class="safe-area-bottom"></view>
   </scroll-view>
 

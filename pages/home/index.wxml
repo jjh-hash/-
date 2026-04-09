@@ -91,6 +91,7 @@
             </view>
           </view>
         </view>
+        <!-- 审核期先隐藏游戏搭子入口，后续按需恢复
         <view class="service-bottom service-bg-gaming ds-press" bindtap="onServiceTap" data-key="gaming">
           <view class="service-bottom-left">
             <image class="service-bottom-icon-img" src="{{cloudImages.gamingIcon}}" mode="aspectFit" lazy-load />
@@ -104,6 +105,7 @@
             <text class="service-bottom-arrow">›</text>
           </view>
         </view>
+        -->
       </view>
     </view>
 

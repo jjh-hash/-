@@ -1241,9 +1241,11 @@ Page({
         url: '/subpackages/category/pages/express/index'
       });
     } else if (order.orderType === 'gaming') {
-      wx.navigateTo({
-        url: '/subpackages/category/pages/gaming/index'
+      wx.showToast({
+        title: '该功能暂未开放',
+        icon: 'none'
       });
+      return;
     } else if (order.orderType === 'reward') {
       wx.navigateTo({
         url: '/subpackages/category/pages/reward/index'

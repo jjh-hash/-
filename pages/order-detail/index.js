@@ -455,9 +455,11 @@ Page({
         url: '/pages/express/index'
       });
     } else if (orderInfo.orderType === 'gaming') {
-      wx.navigateTo({
-        url: '/pages/gaming/index'
+      wx.showToast({
+        title: '该功能暂未开放',
+        icon: 'none'
       });
+      return;
     } else if (orderInfo.orderType === 'reward') {
       wx.navigateTo({
         url: '/pages/reward/index'

@@ -225,6 +225,13 @@ Page({
   },
 
   navigateToService(key) {
+    if (key === 'gaming') {
+      wx.showToast({
+        title: '该功能暂未开放',
+        icon: 'none'
+      });
+      return;
+    }
     const urls = {
       reward: '/subpackages/category/pages/reward/index',
       gaming: '/subpackages/category/pages/gaming/index',

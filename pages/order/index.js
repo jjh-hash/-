@@ -766,10 +766,11 @@ Page({
         url: '/pages/express/index'
       });
     } else if (order.orderType === 'gaming') {
-      // 游戏陪玩订单，跳转到游戏陪玩页面
-      wx.navigateTo({
-        url: '/pages/gaming/index'
+      wx.showToast({
+        title: '该功能暂未开放',
+        icon: 'none'
       });
+      return;
     } else if (order.orderType === 'reward') {
       // 悬赏订单，跳转到悬赏页面
       wx.navigateTo({
