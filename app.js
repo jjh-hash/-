@@ -1,5 +1,31 @@
 App({
   onLaunch() {
+    this._launchAt = Date.now();
+    // 1. 最小化初始化：仅保留核心功能
+    this.initCore();
+
+    // 2. 将次要/后台任务放到首屏后分批执行，减少启动主路径耗时
+    this.scheduleLaunchTasks();
+  },
+
+  scheduleLaunchTasks() {
+    // 第一批：读取登录态（较轻量）
+    this._secondaryTimer = setTimeout(() => {
+      this.initSecondary();
+    }, 700);
+
+    // 第二批：公告/角标/订阅预拉（非首屏必需）
+    this._backgroundTimer = setTimeout(() => {
+      this.initBackground();
+      try {
+        const cost = Date.now() - this._launchAt;
+        console.info('[perf] app launch staged init finished(ms):', cost);
+      } catch (e) {}
+    }, 1600);
+  },
+  
+  // 核心初始化（必须在启动时执行的操作）
+  initCore() {
     // 初始化云开发环境
     if (!wx.cloud) {
       console.error('请使用 2.2.3 或以上的基础库以使用云能力');
@@ -7,7 +33,10 @@ App({
       wx.cloud.init({
         env: 'cloud1-7g0bpzkg04df43f9', // 云环境ID
         traceUser: true,
+        // 启用lazy loading，减少启动时间
+        lazy: true
       });
+      
       // 管理端页面内发起的云函数自动附带服务端可校验的 adminSessionToken（普通用户页不注入）
       const _origCallFunction = wx.cloud.callFunction.bind(wx.cloud);
       wx.cloud.callFunction = function (options) {
@@ -43,40 +72,31 @@ App({
         wx.removeStorage({ key: 'home_products_cache' });
       } catch (e) {}
     });
-    
-    // 立即执行的关键初始化
+  },
+  
+  // 次要初始化（可以延迟执行的操作）
+  initSecondary() {
+    // 检查用户登录状态
     this.checkUserLogin();
-    
-    // 不再自动弹出登录弹窗，用户可先浏览，需要时在「我的」等入口自行登录
-    // setTimeout(() => { this.checkLoginModal(); }, 500);
-    
-    // 公告检查延迟更久，避免影响页面加载
-    setTimeout(() => {
-      this.checkAnnouncement();
-    }, 2000);
-    
-    // 购物车 Tab 角标、订阅消息预拉：延后执行，避免同步 Storage 阻塞启动
-    setTimeout(() => {
-      try {
-        const cartUtil = require('./utils/cart.js');
-        if (cartUtil && cartUtil.updateTabBarBadge) cartUtil.updateTabBarBadge();
-      } catch (e) {}
-      try {
-        const subscribeMessage = require('./utils/subscribeMessage.js');
-        if (subscribeMessage && subscribeMessage.preloadOrderStatusTemplateId) {
-          subscribeMessage.preloadOrderStatusTemplateId();
-        }
-      } catch (e) {}
-    }, 100);
+  },
+  
+  // 后台任务（可以延后执行的操作）
+  initBackground() {
+    // 公告检查
+    this.checkAnnouncement();
 
-    // 内存告警：释放非必要资源，降低闪退风险
-    wx.onMemoryWarning && wx.onMemoryWarning((res) => {
-      console.warn('【内存告警】level:', res.level, 'lastResidentSize:', res.lastResidentSize);
-      // 可在此释放非关键缓存，如首页列表缓存（用户重新进入会再拉）
-      try {
-        wx.removeStorage({ key: 'home_products_cache' });
-      } catch (e) {}
-    });
+    // 购物车 Tab 角标、订阅消息预拉
+    try {
+      const cartUtil = require('./utils/cart.js');
+      if (cartUtil && cartUtil.updateTabBarBadge) cartUtil.updateTabBarBadge();
+    } catch (e) {}
+    
+    try {
+      const subscribeMessage = require('./utils/subscribeMessage.js');
+      if (subscribeMessage && subscribeMessage.preloadOrderStatusTemplateId) {
+        subscribeMessage.preloadOrderStatusTemplateId();
+      }
+    } catch (e) {}
   },
 
   globalData: {

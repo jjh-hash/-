@@ -179,7 +179,13 @@ Page({
                 log.error('【用户订单页面】订单监听错误:', err);
                 // 忽略已关闭状态的错误
                 if (!err.message || !err.message.includes('CLOSED')) {
-                  this.handleWatchError(err);
+                  // 检查是否是网络错误
+                  if (err.message && (err.message.includes('realtime listener reconnect ws fail') || err.message.includes('Failed to fetch'))) {
+                    log.warn('【用户订单页面】网络错误，降级到轮询');
+                    this.startPolling();
+                  } else {
+                    this.handleWatchError(err);
+                  }
                 }
               }
             });
@@ -229,6 +235,13 @@ Page({
       return;
     }
     
+    // 检查是否是网络错误
+    if (err.message && (err.message.includes('realtime listener reconnect ws fail') || err.message.includes('Failed to fetch'))) {
+      log.warn('【用户订单页面】网络错误，直接降级到轮询');
+      this.startPolling();
+      return;
+    }
+    
     this.setData({ watchConnected: false });
     const reconnectCount = this.data.reconnectCount || 0;
     const maxReconnect = 3;
@@ -249,7 +262,7 @@ Page({
     log.log('【用户订单页面】启动智能轮询');
     this.setData({ pollingActive: true });
     // 延迟执行第一次轮询，避免与页面初始化冲突
-    setTimeout(() => this.pollOrders(), 3000);
+    this._pollTimeout = setTimeout(() => this.pollOrders(), 3000);
     const timerId = setInterval(() => this.pollOrders(), this.getPollingInterval());
     this.setData({ pollingTimer: timerId });
   },
@@ -259,6 +272,10 @@ Page({
     if (id) {
       clearInterval(id);
       this.setData({ pollingTimer: null });
+    }
+    if (this._pollTimeout) {
+      clearTimeout(this._pollTimeout);
+      this._pollTimeout = null;
     }
     this.setData({ pollingActive: false });
   },
@@ -274,25 +291,64 @@ Page({
       return;
     }
     
-    // 节流：避免短时间内多次轮询
-    const now = Date.now();
-    if (now - (this.data.lastRefreshTime || 0) < 8000) return; // 增加节流时间
-    if (now - (this.data.lastScrollTime || 0) < 3000) return;
-    if (this.data.scrollTop > 100) return;
-    if (!this.data.loading) {
-      this.setData({ lastRefreshTime: now });
-      // 只更新活跃订单，减少数据传输
-      this.loadActiveOrders();
-    }
+    // 检查网络状况
+    wx.getNetworkType({
+      success: (res) => {
+        const networkType = res.networkType;
+        if (networkType === 'none') {
+          // 无网络，暂停轮询
+          log.warn('【用户订单页面】网络断开，暂停轮询');
+          return;
+        }
+        
+        // 节流：避免短时间内多次轮询
+        const now = Date.now();
+        if (now - (this.data.lastRefreshTime || 0) < 8000) return; // 增加节流时间
+        if (now - (this.data.lastScrollTime || 0) < 3000) return;
+        if (this.data.scrollTop > 100) return;
+        if (!this.data.loading) {
+          this.setData({ lastRefreshTime: now });
+          // 只更新活跃订单，减少数据传输
+          this.loadActiveOrders();
+        }
+      }
+    });
   },
 
   getPollingInterval() {
-    // 动态调整轮询间隔，根据订单状态
+    // 动态调整轮询间隔，根据订单状态和网络状况
     const hasActiveOrders = this.data.allOrders.some(order => {
       const s = order.orderStatus;
       return s === 'pending' || s === 'confirmed' || s === 'preparing' || s === 'delivering';
     });
-    return hasActiveOrders ? 10000 : 30000; // 活跃订单10秒，否则30秒
+    
+    // 默认间隔
+    let interval = hasActiveOrders ? 10000 : 30000; // 活跃订单10秒，否则30秒
+    
+    // 检查网络状况，调整间隔
+    wx.getNetworkType({
+      success: (res) => {
+        const networkType = res.networkType;
+        switch (networkType) {
+          case '2g':
+            interval *= 2; // 2G网络，间隔加倍
+            break;
+          case '3g':
+            interval *= 1.5; // 3G网络，间隔增加50%
+            break;
+          case '4g':
+          case '5g':
+          case 'wifi':
+            // 高速网络，使用默认间隔
+            break;
+          default:
+            // 未知网络，使用默认间隔
+            break;
+        }
+      }
+    });
+    
+    return interval;
   },
 
   // 只加载活跃订单，减少数据传输

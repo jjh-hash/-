@@ -3,6 +3,20 @@ const cartUtil = require('../../utils/cart.js');
 
 const TAB_BAR_HEIGHT = 50; // 底部 tabBar 高度（px）
 
+// 防抖函数
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const context = this;
+    const later = () => {
+      clearTimeout(timeout);
+      func.apply(context, args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 Page({
   data: {
     statusBarHeight: (wx.getWindowInfo && wx.getWindowInfo().statusBarHeight) || 20,
@@ -26,36 +40,55 @@ Page({
   },
 
   /** 从本地全局购物车读取并按店组装列表 */
-  loadCart() {
-    const cart = cartUtil.getGlobalCart();
-    const storeList = [];
-    Object.keys(cart).forEach(storeId => {
-      const bucket = cart[storeId];
-      if (bucket && bucket.items && bucket.items.length > 0) {
-        const cartTotal = bucket.cartTotal != null ? bucket.cartTotal : cartUtil.computeCartTotal(bucket.items);
-        const deliveryFee = (bucket.storeInfo && bucket.storeInfo.deliveryFee) != null ? bucket.storeInfo.deliveryFee : 2;
-        storeList.push({
-          storeId: bucket.storeId || storeId,
-          storeInfo: bucket.storeInfo || {},
-          items: bucket.items,
-          cartTotal,
-          deliveryType: bucket.deliveryType || 'delivery'
-        });
-      }
-    });
-    let totalAmount = 0;
-    storeList.forEach(s => {
-      const fee = (s.storeInfo && s.storeInfo.deliveryFee) != null ? s.storeInfo.deliveryFee : 2;
-      totalAmount += (s.cartTotal || 0) + Number(fee);
-    });
-    const totalAmountText = (typeof totalAmount === 'number' && !isNaN(totalAmount)) ? totalAmount.toFixed(2) : '0.00';
-    this.setData({
-      storeList,
-      isEmpty: storeList.length === 0,
-      totalAmount,
-      totalAmountText
-    });
-  },
+  loadCart: debounce(function() {
+    try {
+      const cart = cartUtil.getGlobalCart();
+      const storeList = [];
+      let totalAmount = 0;
+      
+      // 遍历购物车数据，按店铺分组
+      Object.keys(cart).forEach(storeId => {
+        const bucket = cart[storeId];
+        if (bucket && bucket.items && bucket.items.length > 0) {
+          // 复用已计算的cartTotal，避免重复计算
+          const cartTotal = bucket.cartTotal != null ? bucket.cartTotal : cartUtil.computeCartTotal(bucket.items);
+          const deliveryFee = (bucket.storeInfo && bucket.storeInfo.deliveryFee) != null ? bucket.storeInfo.deliveryFee : 2;
+          
+          // 构建店铺数据
+          const storeData = {
+            storeId: bucket.storeId || storeId,
+            storeInfo: bucket.storeInfo || {},
+            items: bucket.items,
+            cartTotal,
+            deliveryType: bucket.deliveryType || 'delivery'
+          };
+          
+          storeList.push(storeData);
+          // 计算总金额
+          totalAmount += (cartTotal || 0) + Number(deliveryFee);
+        }
+      });
+      
+      const totalAmountText = (typeof totalAmount === 'number' && !isNaN(totalAmount)) ? totalAmount.toFixed(2) : '0.00';
+      
+      // 批量更新数据，减少setData调用
+      this.setData({
+        storeList,
+        isEmpty: storeList.length === 0,
+        totalAmount,
+        totalAmountText
+      });
+    } catch (error) {
+      console.error('加载购物车失败:', error);
+      // 出错时重置购物车数据
+      this.setData({
+        storeList: [],
+        isEmpty: true,
+        totalAmount: 0,
+        totalAmountText: '0.00'
+      });
+    }
+  }, 100),
 
   /** 统一付款：跳转统一结算页 */
   onUnifiedPay() {

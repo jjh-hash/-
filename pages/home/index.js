@@ -2,6 +2,7 @@ const log = console;
 const cloudImages = require('../../config/cloudImages.js');
 const CACHE_KEY_PRODUCTS = 'home_products_cache';
 const CACHE_KEY_BANNERS = 'home_banners_cache';
+const FIRST_SCREEN_ITEMS_PER_COL = 4;
 
 // 带超时的云函数调用
 function callFunctionWithTimeout(options, timeout = 10000) {
@@ -11,6 +12,20 @@ function callFunctionWithTimeout(options, timeout = 10000) {
       setTimeout(() => reject(new Error('请求超时')), timeout);
     })
   ]);
+}
+
+// 防抖函数
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const context = this;
+    const later = () => {
+      clearTimeout(timeout);
+      func.apply(context, args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
 
 Page({
@@ -58,33 +73,50 @@ Page({
   },
 
   onLoad() {
-    try {
-      const sys = wx.getSystemInfoSync();
-      const win = wx.getWindowInfo ? wx.getWindowInfo() : null;
-      const bar = (win && win.statusBarHeight) || sys.statusBarHeight || 20;
-      const h = sys.windowHeight > 0 ? sys.windowHeight : 600;
-      this.setData({
-        statusBarHeight: bar,
-        scrollViewHeight: h
-      });
-    } catch (e) {
-      log.error('【首页】系统信息', e);
-    }
+    // 启动阶段避免同步系统信息读取阻塞，改为异步获取
+    wx.getSystemInfo({
+      success: (sys) => {
+        const bar = sys.statusBarHeight || 20;
+        const h = sys.windowHeight > 0 ? sys.windowHeight : 600;
+        this.setData({
+          statusBarHeight: bar,
+          scrollViewHeight: h
+        });
+      },
+      fail: (e) => {
+        log.error('【首页】系统信息', e);
+      }
+    });
     this.setGreeting();
+    this._hasWarmCache = false;
+
     // 优先从缓存渲染，减少首屏白屏
     wx.getStorage({
       key: CACHE_KEY_PRODUCTS,
       success: (res) => {
         const c = res.data;
         if (c && c.left && c.right && Array.isArray(c.left) && Array.isArray(c.right)) {
+          this._hasWarmCache = true;
+          // 启动首屏只注入最小可见数据，降低首屏 setData 开销
+          const leftLite = c.left.slice(0, FIRST_SCREEN_ITEMS_PER_COL);
+          const rightLite = c.right.slice(0, FIRST_SCREEN_ITEMS_PER_COL);
           this.setData({
-            displayProductsLeft: c.left,
-            displayProductsRight: c.right,
-            originalProducts: c.original || [],
+            displayProductsLeft: leftLite,
+            displayProductsRight: rightLite,
+            originalProducts: [],
             productPage: c.page || 1,
             hasMoreProducts: c.hasMore !== false,
             productListLoading: false
           });
+
+          // 首屏完成后再回填完整缓存，避免启动阶段大对象跨层传输
+          this._restoreFullCacheTimer = setTimeout(() => {
+            this.setData({
+              displayProductsLeft: c.left,
+              displayProductsRight: c.right,
+              originalProducts: c.original || []
+            });
+          }, 420);
         }
       }
     });
@@ -97,8 +129,12 @@ Page({
         }
       }
     });
-    this.loadProducts();
-    this.loadBanners();
+    // 将网络刷新延后到首帧后，首屏优先使用缓存/骨架渲染
+    this._firstLoadAt = Date.now();
+    this._initialRefreshTimer = setTimeout(() => {
+      this.loadProducts();
+      this.loadBanners();
+    }, this._hasWarmCache ? 900 : 260);
   },
 
   // 根据时段设置问候语文案（颜色固定白色，适配各种轮播图）
@@ -116,12 +152,19 @@ Page({
   },
 
   onShow() {
-    const lastLoadTime = this.lastLoadTime || 0;
-    const now = Date.now();
-    if ((this.data.originalProducts || []).length === 0 || (now - lastLoadTime) > 60000) {
-      this.loadBanners();
-      this.loadProducts(undefined, false, this.data.activeCategoryKey);
-    }
+    // 延迟执行数据加载，避免阻塞启动
+    setTimeout(() => {
+      // 首次进入时 onLoad 已经触发初始化刷新，避免重复触发
+      if (this._firstLoadAt && (Date.now() - this._firstLoadAt) < 3000) {
+        return;
+      }
+      const lastLoadTime = this.lastLoadTime || 0;
+      const now = Date.now();
+      if ((this.data.originalProducts || []).length === 0 || (now - lastLoadTime) > 60000) {
+        this.loadBanners();
+        this.loadProducts(undefined, false, this.data.activeCategoryKey);
+      }
+    }, 100);
   },
 
   async onPullDownRefresh() {
@@ -542,10 +585,10 @@ Page({
     return degrees * (Math.PI / 180);
   },
 
-  // 搜索输入
-  onSearchInput(e) {
+  // 搜索输入（防抖处理）
+  onSearchInput: debounce(function(e) {
     this.setData({ searchKeyword: e.detail.value.trim() });
-  },
+  }, 300),
 
   // 搜索提交
   onSearchSubmit(e) {
@@ -886,13 +929,61 @@ Page({
   // 设置分类缓存
   setCategoryCache(catKey, data) {
     try {
-      wx.setStorageSync(`category_cache_${catKey}`, {
+      // 限制缓存大小，避免内存占用过大
+      const cacheKey = `category_cache_${catKey}`;
+      wx.setStorageSync(cacheKey, {
         data,
         timestamp: Date.now()
       });
+      
+      // 清理过期缓存
+      this.cleanupOldCache();
     } catch (e) {
       log.error('设置分类缓存失败:', e);
     }
+  },
+  
+  // 清理过期缓存
+  cleanupOldCache() {
+    try {
+      const categoryKeys = ['all', '盖饭套餐', '面食', '饮品', '小食'];
+      categoryKeys.forEach(key => {
+        const cacheKey = `category_cache_${key}`;
+        const cache = wx.getStorageSync(cacheKey);
+        if (cache && (Date.now() - cache.timestamp) > 30 * 60 * 1000) { // 30分钟过期
+          wx.removeStorageSync(cacheKey);
+        }
+      });
+    } catch (e) {
+      log.error('清理缓存失败:', e);
+    }
+  },
+  
+  // 页面卸载时清理内存
+  onUnload() {
+    // 清理排序缓存
+    if (this._sortCache) {
+      this._sortCache = null;
+    }
+    
+    // 清理定时器
+    if (this._scrollTimer) {
+      clearTimeout(this._scrollTimer);
+      this._scrollTimer = null;
+    }
+    if (this._initialRefreshTimer) {
+      clearTimeout(this._initialRefreshTimer);
+      this._initialRefreshTimer = null;
+    }
+    if (this._restoreFullCacheTimer) {
+      clearTimeout(this._restoreFullCacheTimer);
+      this._restoreFullCacheTimer = null;
+    }
+    
+    // 清理加载状态
+    this.loadingBanners = false;
+    this.loadingStores = false;
+    this.loadingProducts = false;
   }
 });
 

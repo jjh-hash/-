@@ -180,25 +180,15 @@
   "lazyCodeLoading": "requiredComponents",
   "preloadRule": {
     "pages/home/index": {
-      "network": "all",
+      "network": "wifi",
       "packages": [
-        "order",
-        "store",
-        "rider"
+        "store"
       ]
     },
     "pages/profile/index": {
-      "network": "all",
+      "network": "wifi",
       "packages": [
-        "common",
-        "rider"
-      ]
-    },
-    "subpackages/order/pages/order/index": {
-      "network": "all",
-      "packages": [
-        "store",
-        "rider"
+        "common"
       ]
     }
   }
