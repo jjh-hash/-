@@ -1,5 +1,10 @@
 const log = console;
-const cloudImages = require('../../config/cloudImages.js');
+let cloudImages = {};
+try {
+  cloudImages = require('../../config/cloudImages.js');
+} catch (e) {
+  log.error('加载云图片配置失败:', e);
+}
 const CACHE_KEY_PRODUCTS = 'home_products_cache';
 const CACHE_KEY_BANNERS = 'home_banners_cache';
 

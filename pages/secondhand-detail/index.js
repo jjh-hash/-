@@ -163,7 +163,7 @@ Page({
         if (phone && phone !== '未绑定' && phone.trim() !== '') {
           // 直接跳转到聊天页面
           wx.navigateTo({
-            url: `/pages/chat/index?toUserId=${sellerId}&toUserName=${encodeURIComponent(sellerUserInfo.nickname || sellerUserInfo.userName || '卖家')}&messageType=secondhand&relatedId=${this.data.productId}&relatedTitle=${encodeURIComponent(this.data.product ? this.data.product.title : '闲置商品')}`
+            url: `/subpackages/common/pages/chat/index?toUserId=${sellerId}&toUserName=${encodeURIComponent(sellerUserInfo.nickname || sellerUserInfo.userName || '卖家')}&messageType=secondhand&relatedId=${this.data.productId}&relatedTitle=${encodeURIComponent(this.data.product ? this.data.product.title : '闲置商品')}`
           });
         } else {
           // 没有电话号码，显示提示
@@ -195,7 +195,7 @@ Page({
             if (phone && phone !== '未绑定' && phone.trim() !== '') {
               // 直接跳转到聊天页面
               wx.navigateTo({
-                url: `/pages/chat/index?toUserId=${sellerId}&toUserName=${encodeURIComponent(sellerUserInfo.nickname || sellerUserInfo.userName || '卖家')}&messageType=secondhand&relatedId=${this.data.productId}&relatedTitle=${encodeURIComponent(this.data.product ? this.data.product.title : '闲置商品')}`
+                url: `/subpackages/common/pages/chat/index?toUserId=${sellerId}&toUserName=${encodeURIComponent(sellerUserInfo.nickname || sellerUserInfo.userName || '卖家')}&messageType=secondhand&relatedId=${this.data.productId}&relatedTitle=${encodeURIComponent(this.data.product ? this.data.product.title : '闲置商品')}`
               });
               return;
             }

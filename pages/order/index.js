@@ -3,7 +3,7 @@ const subscribeMessage = require('../../utils/subscribeMessage.js');
 
 Page({
   data: {
-    statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
+    statusBarHeight: 20,
     orders: [],
     allOrders: [], // 存储所有订单
     filteredOrders: [], // 过滤后的订单
@@ -19,18 +19,13 @@ Page({
   },
 
   onLoad() {
-    subscribeMessage.preloadOrderStatusTemplateId();
-    wx.redirectTo({
-      url: '/subpackages/order/pages/order/index',
-      fail: () => {
-        this.loadOrders();
-        wx.showToast({
-          title: '请从底部「订单」进入完整订单页',
-          icon: 'none',
-          duration: 2500
-        });
-      }
+    const win = wx.getWindowInfo ? wx.getWindowInfo() : null;
+    const sys = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
+    this.setData({
+      statusBarHeight: (win && win.statusBarHeight) || sys.statusBarHeight || 20
     });
+    subscribeMessage.preloadOrderStatusTemplateId();
+    this.loadOrders();
   },
 
   onShow() {

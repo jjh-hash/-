@@ -10,7 +10,11 @@ const config = {
   gamingIcon: 'cloud://cloud1-7g0bpzkg04df43f9.636c-cloud1-7g0bpzkg04df43f9-1357734676/static/27e611ce6700b2100b57425af52f931b.jpg',
   secondhandIcon: 'cloud://cloud1-7g0bpzkg04df43f9.636c-cloud1-7g0bpzkg04df43f9-1357734676/static/09a0485967ded76dac25c980f66f8568.jpg',
   serviceFlashBg: 'cloud://cloud1-7g0bpzkg04df43f9.636c-cloud1-7g0bpzkg04df43f9-1357734676/static/service-flash-bg.png',
-  deliveryBoyIcon: 'cloud://cloud1-7g0bpzkg04df43f9.636c-cloud1-7g0bpzkg04df43f9-1357734676/static/delivery-boy-icon.png'
+  deliveryBoyIcon: 'cloud://cloud1-7g0bpzkg04df43f9.636c-cloud1-7g0bpzkg04df43f9-1357734676/static/delivery-boy-icon.png',
+  profileLogoutIcon:
+    'cloud://cloud1-7g0bpzkg04df43f9.636c-cloud1-7g0bpzkg04df43f9-1357734676/static/profile-logout.png',
+  profilePrivacyPolicyIcon:
+    'cloud://cloud1-7g0bpzkg04df43f9.636c-cloud1-7g0bpzkg04df43f9-1357734676/static/profile-privacy-policy.png'
 };
 
 function getUrl(key) {
@@ -24,5 +28,11 @@ module.exports = {
   get secondhandIcon() { return getUrl('secondhandIcon') || PLACEHOLDER; },
   get serviceFlashBg() { return getUrl('serviceFlashBg') || PLACEHOLDER; },
   get deliveryBoyIcon() { return getUrl('deliveryBoyIcon') || PLACEHOLDER; },
+  get profileLogoutIcon() {
+    return getUrl('profileLogoutIcon') || PLACEHOLDER;
+  },
+  get profilePrivacyPolicyIcon() {
+    return getUrl('profilePrivacyPolicyIcon') || PLACEHOLDER;
+  },
   setConfig: (key, fileId) => { if (key in config) config[key] = fileId; }
 };
