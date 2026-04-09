@@ -159,25 +159,35 @@ Page({
           this.startPolling();
           return;
         }
-        this.data.watchOrder = db.collection('orders')
-          .where({ userOpenid: openid })
-          .watch({
-            onChange: (snapshot) => {
-              if (!this.data.watchConnected) {
-                this.setData({ watchConnected: true });
-                log.log('【用户订单页面】Watch连接成功');
-                this.stopPolling();
+        // 确保watchOrder为null
+        this.data.watchOrder = null;
+        try {
+          this.data.watchOrder = db.collection('orders')
+            .where({ userOpenid: openid })
+            .watch({
+              onChange: (snapshot) => {
+                if (!this.data.watchConnected) {
+                  this.setData({ watchConnected: true });
+                  log.log('【用户订单页面】Watch连接成功');
+                  this.stopPolling();
+                }
+                if (snapshot.docChanges && snapshot.docChanges.length > 0) {
+                  this.handleOrderChange();
+                }
+              },
+              onError: (err) => {
+                log.error('【用户订单页面】订单监听错误:', err);
+                // 忽略已关闭状态的错误
+                if (!err.message || !err.message.includes('CLOSED')) {
+                  this.handleWatchError(err);
+                }
               }
-              if (snapshot.docChanges && snapshot.docChanges.length > 0) {
-                this.handleOrderChange();
-              }
-            },
-            onError: (err) => {
-              log.error('【用户订单页面】订单监听错误:', err);
-              this.handleWatchError(err);
-            }
-          });
-        log.log('【用户订单页面】Watch监听已启动');
+            });
+          log.log('【用户订单页面】Watch监听已启动');
+        } catch (watchError) {
+          log.error('【用户订单页面】创建监听实例失败:', watchError);
+          this.startPolling();
+        }
       }).catch(err => {
         log.error('【用户订单页面】获取openid失败:', err);
         this.startPolling();
@@ -213,6 +223,12 @@ Page({
   },
 
   handleWatchError(err) {
+    // 忽略已关闭状态的错误
+    if (err.message && err.message.includes('CLOSED')) {
+      log.warn('【用户订单页面】忽略已关闭状态的错误');
+      return;
+    }
+    
     this.setData({ watchConnected: false });
     const reconnectCount = this.data.reconnectCount || 0;
     const maxReconnect = 3;
@@ -331,7 +347,10 @@ Page({
       try {
         this.data.watchOrder.close();
       } catch (error) {
-        log.error('【用户订单页面】停止订单监听失败:', error);
+        // 忽略关闭已关闭实例的错误
+        if (!error.message || !error.message.includes('CLOSED')) {
+          log.error('【用户订单页面】停止订单监听失败:', error);
+        }
       }
       this.data.watchOrder = null;
     }
@@ -936,6 +955,13 @@ Page({
   // 阻止事件冒泡
   stopPropagation() {
     // 空函数，用于阻止事件冒泡
+  },
+
+  // 跳转到首页
+  onGoHome() {
+    wx.reLaunch({
+      url: '/pages/home/index'
+    });
   },
 
   // 点击订单卡片，跳转到订单详情

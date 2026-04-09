@@ -28,8 +28,11 @@
     </view>
     
     <!-- 空状态 -->
-    <view wx:elif="{{filteredOrders.length === 0 && !loading}}" class="empty-container">
-      <text>暂无订单</text>
+    <view wx:elif="{{filteredOrders.length === 0 && !loading}}" class="empty">
+      <text class="empty-icon">📋</text>
+      <text class="empty-text">暂无订单</text>
+      <text class="empty-desc">去首页逛逛，发现好吃好玩的</text>
+      <navigator class="go-home" url="/pages/home/index" open-type="switchTab">去逛逛</navigator>
     </view>
     
     <!-- 订单列表 -->
