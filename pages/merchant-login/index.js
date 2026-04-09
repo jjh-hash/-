@@ -93,10 +93,10 @@ Page({
           duration: 1500
         });
         
-        // 跳转到商家工作台（商家更常先看店铺状态与收益）
+        // 跳转到商家订单页面
         setTimeout(() => {
           wx.reLaunch({ 
-            url: '/subpackages/merchant/pages/merchant-workbench/index' 
+            url: '/subpackages/merchant/pages/merchant-orders/index' 
           });
         }, 1500);
       } else {
@@ -153,10 +153,10 @@ Page({
           duration: 1500
         });
         
-        // 跳转到商家工作台（商家更常先看店铺状态与收益）
+        // 跳转到商家订单页面
         setTimeout(() => {
           wx.reLaunch({ 
-            url: '/subpackages/merchant/pages/merchant-workbench/index' 
+            url: '/subpackages/merchant/pages/merchant-orders/index' 
           });
         }, 1500);
       } else if (res.result && res.result.code === 201 && res.result.data && res.result.data.merchants) {

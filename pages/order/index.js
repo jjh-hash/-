@@ -3,7 +3,7 @@ const subscribeMessage = require('../../utils/subscribeMessage.js');
 
 Page({
   data: {
-    statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
+    statusBarHeight: 20,
     orders: [],
     allOrders: [], // 存储所有订单
     filteredOrders: [], // 过滤后的订单
@@ -19,18 +19,13 @@ Page({
   },
 
   onLoad() {
-    subscribeMessage.preloadOrderStatusTemplateId();
-    wx.redirectTo({
-      url: '/subpackages/order/pages/order/index',
-      fail: () => {
-        this.loadOrders();
-        wx.showToast({
-          title: '请从底部「订单」进入完整订单页',
-          icon: 'none',
-          duration: 2500
-        });
-      }
+    const win = wx.getWindowInfo ? wx.getWindowInfo() : null;
+    const sys = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
+    this.setData({
+      statusBarHeight: (win && win.statusBarHeight) || sys.statusBarHeight || 20
     });
+    subscribeMessage.preloadOrderStatusTemplateId();
+    this.loadOrders();
   },
 
   onShow() {
@@ -771,10 +766,11 @@ Page({
         url: '/pages/express/index'
       });
     } else if (order.orderType === 'gaming') {
-      // 游戏陪玩订单，跳转到游戏陪玩页面
-      wx.navigateTo({
-        url: '/pages/gaming/index'
+      wx.showToast({
+        title: '该功能暂未开放',
+        icon: 'none'
       });
+      return;
     } else if (order.orderType === 'reward') {
       // 悬赏订单，跳转到悬赏页面
       wx.navigateTo({

@@ -151,13 +151,18 @@ Page({
       if (res.result && res.result.code === 200) {
         console.log('管理员登录成功，准备跳转管理后台');
         
-        // 保存管理员token和信息
-        const adminToken = 'admin_' + Date.now();
-        wx.setStorageSync('adminToken', adminToken);
+        const d = res.result.data || {};
+        const sessionToken = d.sessionToken;
+        if (!sessionToken) {
+          wx.showToast({ title: '登录数据异常，请更新云函数', icon: 'none' });
+          return;
+        }
+        wx.setStorageSync('adminToken', sessionToken);
         wx.setStorageSync('adminInfo', {
-          username: res.result.data.admin.username || account,
-          role: res.result.data.admin.role || 'super_admin',
-          expireTime: Date.now() + 24 * 60 * 60 * 1000 // 24小时过期
+          username: (d.admin && d.admin.username) || account,
+          role: (d.admin && d.admin.role) || 'super_admin',
+          permissions: (d.admin && d.admin.permissions) || [],
+          expireTime: d.expiresAt || Date.now() + 24 * 60 * 60 * 1000
         });
         
         // 显示成功提示

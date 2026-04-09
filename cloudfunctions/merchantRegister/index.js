@@ -128,20 +128,7 @@ exports.main = async (event, context) => {
     const wxContext = cloud.getWXContext();
     const { OPENID } = wxContext;
     
-    // 5. 检查是否已经注册过商家
-    const existingMerchant = await db.collection('merchants')
-      .where({
-        openid: OPENID
-      })
-      .get();
-    
-    if (existingMerchant.data.length > 0) {
-      return {
-        code: 400,
-        message: '您已经注册过商家账号',
-        data: null
-      };
-    }
+    // 5. 同一微信号可注册多个商家（多条 merchants 记录可共用同一 openid）
     
     // 6. 检查并更新用户角色为商家
     const userQuery = await db.collection('users')

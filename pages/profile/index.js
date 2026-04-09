@@ -1,6 +1,13 @@
+let cloudImages = {};
+try {
+  cloudImages = require('../../config/cloudImages.js');
+} catch (e) {
+  console.error('加载云图片配置失败:', e);
+}
+
 Page({
   data: {
-    statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
+    statusBarHeight: 20,
     isLoggedIn: false,
     userInfo: {
       nickname: "",
@@ -11,6 +18,11 @@ Page({
   },
 
   onLoad() {
+    const win = wx.getWindowInfo ? wx.getWindowInfo() : null;
+    const sys = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
+    this.setData({
+      statusBarHeight: (win && win.statusBarHeight) || sys.statusBarHeight || 20
+    });
     this.buildMenuSections();
     this.loadUserInfo();
   },
@@ -43,12 +55,12 @@ Page({
       },
       { title: '法律与协议', cols: 2, items: [
           { type: 'user-agreement', icon: '/pages/小标/关于我们.png', text: '用户协议' },
-          { type: 'privacy-policy', icon: '/pages/小标/隐私政策.2.png', text: '隐私政策' }
+          { type: 'privacy-policy', icon: cloudImages.profilePrivacyPolicyIcon, text: '隐私政策' }
         ]
       },
       { title: '更多服务', cols: moreServiceItems.length === 3 ? 3 : 2, items: moreServiceItems },
       { title: '账号', cols: 1, items: [
-          { type: 'logout', icon: '/pages/小标/退出登录.2.png', text: '退出登录' }
+          { type: 'logout', icon: cloudImages.profileLogoutIcon, text: '退出登录' }
         ]
       }
     ];
@@ -240,9 +252,36 @@ Page({
   /**
    * 编辑用户信息
    */
-  editUserInfo() {
+  async editUserInfo() {
     if (!this.data.isLoggedIn) {
-      getApp().showLoginModal();
+      const app = getApp();
+      wx.showLoading({
+        title: '登录中...',
+        mask: true
+      });
+      try {
+        const res = await app.loginUser();
+        wx.hideLoading();
+        if (res && res.success && res.userInfo) {
+          this.setData({
+            isLoggedIn: true,
+            userInfo: res.userInfo,
+            showUserInfoModal: true
+          });
+          return;
+        }
+        wx.showToast({
+          title: (res && res.error) || '登录失败，请重试',
+          icon: 'none'
+        });
+      } catch (e) {
+        wx.hideLoading();
+        console.error('我的页登录失败:', e);
+        wx.showToast({
+          title: '登录失败，请重试',
+          icon: 'none'
+        });
+      }
       return;
     }
     this.setData({

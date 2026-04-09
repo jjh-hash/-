@@ -1,5 +1,3 @@
-const log = require('../../../../utils/logger.js');
-
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -46,7 +44,7 @@ Page({
         showCancel: false,
         success: () => {
           wx.reLaunch({
-            url: '/pages/merchant-register/index'
+            url: '/subpackages/merchant/pages/merchant-register/index'
           });
         }
       });
@@ -80,7 +78,7 @@ Page({
         }
       });
 
-      log.log('【商家列表】云函数返回:', res.result);
+      console.log('【商家列表】云函数返回:', res.result);
 
       if (res.result && res.result.code === 200 && res.result.data) {
         const list = res.result.data.list || [];
@@ -104,7 +102,7 @@ Page({
         this.setData({ merchants: [], total: 0, loading: false });
       }
     } catch (err) {
-      log.error('加载商家列表失败:', err);
+      console.error('加载商家列表失败:', err);
       wx.showToast({ title: '加载失败', icon: 'none' });
       this.setData({ merchants: [], total: 0, loading: false });
     } finally {
@@ -265,7 +263,7 @@ Page({
         });
       }
     } catch (err) {
-      log.error('更新商家状态失败:', err);
+      console.error('更新商家状态失败:', err);
       wx.showToast({
         title: '操作失败',
         icon: 'none'
@@ -315,7 +313,7 @@ Page({
       }
     } catch (err) {
       wx.hideLoading();
-      log.error('删除商家失败:', err);
+      console.error('删除商家失败:', err);
       wx.showToast({
         title: '删除失败，请重试',
         icon: 'none',
@@ -341,7 +339,7 @@ Page({
         }
       });
     } catch (error) {
-      log.error('记录操作日志失败:', error);
+      console.error('记录操作日志失败:', error);
     }
   },
 
@@ -404,8 +402,8 @@ Page({
       }
     } catch (err) {
       wx.hideLoading();
-      log.error('生成邀请码失败:', err);
-      log.error('错误详情:', JSON.stringify(err, null, 2));
+      console.error('生成邀请码失败:', err);
+      console.error('错误详情:', JSON.stringify(err, null, 2));
       
       let errorMessage = '生成失败';
       if (err.errMsg) {

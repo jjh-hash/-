@@ -1,5 +1,10 @@
 const log = console;
-const cloudImages = require('../../config/cloudImages.js');
+let cloudImages = {};
+try {
+  cloudImages = require('../../config/cloudImages.js');
+} catch (e) {
+  log.error('加载云图片配置失败:', e);
+}
 const CACHE_KEY_PRODUCTS = 'home_products_cache';
 const CACHE_KEY_BANNERS = 'home_banners_cache';
 const FIRST_SCREEN_ITEMS_PER_COL = 4;
@@ -263,6 +268,13 @@ Page({
   },
 
   navigateToService(key) {
+    if (key === 'gaming') {
+      wx.showToast({
+        title: '该功能暂未开放',
+        icon: 'none'
+      });
+      return;
+    }
     const urls = {
       reward: '/subpackages/category/pages/reward/index',
       gaming: '/subpackages/category/pages/gaming/index',

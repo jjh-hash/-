@@ -156,7 +156,7 @@ Page({
     const otherUserName = message.fromUserId === (currentUserInfo?.openid) ? message.toUserName : message.fromUserName;
     
     wx.navigateTo({
-      url: `/pages/chat/index?toUserId=${otherUserId}&toUserName=${encodeURIComponent(otherUserName)}&messageType=${message.messageType}&relatedTitle=${encodeURIComponent(message.relatedTitle || '')}`
+      url: `/subpackages/common/pages/chat/index?toUserId=${otherUserId}&toUserName=${encodeURIComponent(otherUserName)}&messageType=${message.messageType}&relatedTitle=${encodeURIComponent(message.relatedTitle || '')}`
     });
   },
 
@@ -179,7 +179,7 @@ Page({
     const otherUserName = message.fromUserId === (currentUserInfo?.openid) ? message.toUserName : message.fromUserName;
     
     wx.navigateTo({
-      url: `/pages/chat/index?toUserId=${otherUserId}&toUserName=${encodeURIComponent(otherUserName)}&messageType=${message.messageType}&relatedTitle=${encodeURIComponent(message.relatedTitle || '')}`
+      url: `/subpackages/common/pages/chat/index?toUserId=${otherUserId}&toUserName=${encodeURIComponent(otherUserName)}&messageType=${message.messageType}&relatedTitle=${encodeURIComponent(message.relatedTitle || '')}`
     });
   },
 
