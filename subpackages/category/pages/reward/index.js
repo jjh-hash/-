@@ -17,6 +17,7 @@ function resolveCampusFromEntry(options) {
 }
 
 const { normalizeMoneyInput } = require('../../../../utils/moneyInput');
+const { writeHomeCurrentCampus } = require('../../../../utils/homeCampusStorage');
 
 Page({
   data: {
@@ -49,9 +50,7 @@ Page({
   onLoad(options) {
     const campus = resolveCampusFromEntry(options || {});
     this.setData({ campus });
-    try {
-      wx.setStorageSync('homeCurrentCampus', campus);
-    } catch (e) {}
+    writeHomeCurrentCampus(campus);
     // 页面加载时加载用户联系信息
     this.loadContactInfo();
     // 初始化总价

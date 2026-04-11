@@ -5,9 +5,14 @@ try {
 } catch (e) {
   log.error('加载云图片配置失败:', e);
 }
-/** 与数据库 stores / users.campus、云函数入参一致 */
-const CAMPUS_BAISHA = '白沙校区';
-const CAMPUS_JINSHUI = '金水校区';
+
+const {
+  CAMPUS_BAISHA,
+  CAMPUS_JINSHUI,
+  normalizeHomeCampus,
+  writeHomeCurrentCampus,
+  STORAGE_KEY
+} = require('../../utils/homeCampusStorage');
 
 function cacheKeyProducts(campus) {
   return `home_products_cache_${campus || CAMPUS_BAISHA}`;
@@ -92,8 +97,8 @@ Page({
   onLoad() {
     let initialCampus = CAMPUS_BAISHA;
     try {
-      const s = wx.getStorageSync('homeCurrentCampus');
-      if (s === CAMPUS_JINSHUI || s === CAMPUS_BAISHA) initialCampus = s;
+      const s = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
+      if (s) initialCampus = s;
     } catch (e) {}
     this.setData({ currentCampus: initialCampus });
 
@@ -199,10 +204,22 @@ Page({
   },
 
   onShow() {
+    // 从子包返回时：本地存储可能已由子包写入最新校区，与页面 data 对齐并刷新列表
+    let syncedFromStorage = false;
+    try {
+      syncedFromStorage = this.syncCampusFromStorageIfNeeded();
+    } catch (e) {
+      log.error('【首页】同步校区', e);
+    }
+
     // 延迟执行数据加载，避免阻塞启动
     setTimeout(() => {
       // 首次进入时 onLoad 已经触发初始化刷新，避免重复触发
       if (this._firstLoadAt && (Date.now() - this._firstLoadAt) < 3000) {
+        return;
+      }
+      // 若刚从存储对齐校区并已触发整页刷新，不再重复拉数
+      if (syncedFromStorage) {
         return;
       }
       const lastLoadTime = this.lastLoadTime || 0;
@@ -212,6 +229,49 @@ Page({
         this.loadProducts(undefined, false, this.data.activeCategoryKey);
       }
     }, 100);
+  },
+
+  /**
+   * 与本地 STORAGE_KEY（homeCurrentCampus）对齐，子包经 writeHomeCurrentCampus 写入。
+   * @returns {boolean} 是否已触发校区变更并刷新首页数据
+   */
+  syncCampusFromStorageIfNeeded() {
+    let s = '';
+    try {
+      s = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
+    } catch (e) {}
+    if (!s) return false;
+    const cur = normalizeHomeCampus(this.data.currentCampus);
+    if (s === cur) return false;
+    this.applyCampusAndRefresh(s);
+    return true;
+  },
+
+  /** 切换 data 中的校区并拉取轮播与商品（不写存储；手动切换时由调用方先写存储） */
+  applyCampusAndRefresh(campus) {
+    const c = normalizeHomeCampus(campus);
+    if (!c) return;
+    const cur = normalizeHomeCampus(this.data.currentCampus);
+    if (c === cur) return;
+
+    this.loadingBanners = false;
+    this.loadingProducts = false;
+    if (this._sortCache) this._sortCache = null;
+
+    this.setData(
+      {
+        currentCampus: c,
+        productPage: 1,
+        originalProducts: [],
+        displayProductsLeft: [],
+        displayProductsRight: [],
+        hasMoreProducts: true
+      },
+      () => {
+        this.loadBanners();
+        this.loadProducts(undefined, false, this.data.activeCategoryKey);
+      }
+    );
   },
 
   async onPullDownRefresh() {
@@ -702,28 +762,9 @@ Page({
     if (campus !== CAMPUS_BAISHA && campus !== CAMPUS_JINSHUI) return;
     if (campus === this.data.currentCampus) return;
 
-    try {
-      wx.setStorageSync('homeCurrentCampus', campus);
-    } catch (err) {}
+    writeHomeCurrentCampus(campus);
 
-    this.loadingBanners = false;
-    this.loadingProducts = false;
-    if (this._sortCache) this._sortCache = null;
-
-    this.setData(
-      {
-        currentCampus: campus,
-        productPage: 1,
-        originalProducts: [],
-        displayProductsLeft: [],
-        displayProductsRight: [],
-        hasMoreProducts: true
-      },
-      () => {
-        this.loadBanners();
-        this.loadProducts(undefined, false, this.data.activeCategoryKey);
-      }
-    );
+    this.applyCampusAndRefresh(campus);
   },
 
   // 加载商品列表（优化版本：添加缓存和并行请求）

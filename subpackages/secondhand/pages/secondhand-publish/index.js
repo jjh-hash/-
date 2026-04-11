@@ -1,5 +1,6 @@
 // pages/secondhand-publish/index.js
 const { normalizeMoneyInput } = require('../../../../utils/moneyInput');
+const { writeHomeCurrentCampus } = require('../../../../utils/homeCampusStorage');
 
 function resolveCampusFromEntry(options) {
   let campus = '';
@@ -45,6 +46,7 @@ Page({
   onLoad(options) {
     const campus = resolveCampusFromEntry(options || {});
     this.setData({ campus });
+    writeHomeCurrentCampus(campus);
     // 获取用户信息
     this.getUserInfo();
   },

@@ -1,3 +1,5 @@
+const { writeHomeCurrentCampus } = require('../../../../utils/homeCampusStorage');
+
 function resolveCampusFromEntry(options) {
   let campus = '';
   if (options && options.campus) {
@@ -37,9 +39,7 @@ Page({
   onLoad(options) {
     const campus = resolveCampusFromEntry(options || {});
     this.setData({ campus });
-    try {
-      wx.setStorageSync('homeCurrentCampus', campus);
-    } catch (e) {}
+    writeHomeCurrentCampus(campus);
     this.loadProducts();
   },
 

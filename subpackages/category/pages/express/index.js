@@ -1,3 +1,5 @@
+const { writeHomeCurrentCampus } = require('../../../../utils/homeCampusStorage');
+
 function resolveCampusFromEntry(options) {
   let campus = '';
   if (options && options.campus) {
@@ -67,9 +69,7 @@ Page({
   onLoad(options) {
     const campus = resolveCampusFromEntry(options || {});
     this.setData({ campus });
-    try {
-      wx.setStorageSync('homeCurrentCampus', campus);
-    } catch (e) {}
+    writeHomeCurrentCampus(campus);
     // 页面加载时加载用户联系信息
     this.loadContactInfo();
     // 计算并显示截止时间
