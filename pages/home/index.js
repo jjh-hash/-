@@ -98,7 +98,7 @@ Page({
     this.setData({ currentCampus: initialCampus });
 
     // 窗口高度：优先新 API（与机型/分屏一致）；避免仅用 100vh 在 tabBar 页裁切
-    this._applyWindowMetrics();
+    this.applyWindowMetrics();
     this._resizeHandler = (res) => {
       const h = res && res.size && res.size.windowHeight;
       if (h && h > 0) {
@@ -158,7 +158,7 @@ Page({
     }, this._hasWarmCache ? 900 : 260);
   },
 
-  _applyWindowMetrics() {
+  applyWindowMetrics() {
     try {
       const win = wx.getWindowInfo ? wx.getWindowInfo() : null;
       if (win && win.windowHeight > 0) {
@@ -468,7 +468,7 @@ Page({
     const storeId = e.currentTarget.dataset.storeId;
     const productId = e.currentTarget.dataset.productId;
     if (!storeId) return;
-    this._prefetchStoreDetail(storeId);
+    this.prefetchStoreDetail(storeId);
     const url = productId
       ? `/subpackages/store/pages/store-detail/index?storeId=${storeId}&productId=${productId}`
       : `/subpackages/store/pages/store-detail/index?storeId=${storeId}`;
@@ -479,12 +479,12 @@ Page({
   onStoreTap(e) {
     const storeId = e.currentTarget.dataset.storeId;
     if (!storeId) return;
-    this._prefetchStoreDetail(storeId);
+    this.prefetchStoreDetail(storeId);
     wx.navigateTo({ url: `/subpackages/store/pages/store-detail/index?storeId=${storeId}` });
   },
 
   // 提前请求店铺详情，供目标页复用
-  _prefetchStoreDetail(storeId) {
+  prefetchStoreDetail(storeId) {
     const app = getApp();
     if (app.globalData.prefetchedStoreDetail[storeId]) return;
     app.globalData.prefetchedStoreDetail[storeId] = wx.cloud.callFunction({
