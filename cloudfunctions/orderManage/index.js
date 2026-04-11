@@ -22,6 +22,38 @@ function normalizeCampusValue(campus) {
   return s;
 }
 
+/**
+ * 外卖配送单：订单校区是否与骑手所选校区一致（与 getReceiveOrders 校区隔离一致）
+ * 金水：仅 campus 明确为金水；白沙：可看白沙、无 campus、历史空值，不可看金水单
+ */
+function foodOrderMatchesRiderCampus(order, riderCampusNorm) {
+  const r = normalizeCampusValue(riderCampusNorm);
+  const oc = order && order.campus;
+  const oStr = oc == null || oc === '' ? '' : String(oc).trim();
+  if (r === '金水校区') {
+    return oStr === '金水校区';
+  }
+  if (!r || r === '白沙校区') {
+    if (oStr === '金水校区') return false;
+    return true;
+  }
+  return true;
+}
+
+/** 待抢外卖单查询：附加校区条件（db.command 片段） */
+function campusWhereForRiderFoodOrders(dbCmd, riderCampusNorm) {
+  const c = normalizeCampusValue(riderCampusNorm);
+  if (c === '金水校区') {
+    return { campus: '金水校区' };
+  }
+  return dbCmd.or([
+    { campus: '白沙校区' },
+    { campus: dbCmd.exists(false) },
+    { campus: '' },
+    { campus: null }
+  ]);
+}
+
 /** 订阅消息：订单状态通知模板的文案（thing 类最多 20 字） */
 const SUBSCRIBE_EVENT_TEXT = {
   paid: '支付成功',
@@ -3453,16 +3485,17 @@ async function getReceiveOrders(openid, data) {
  */
 async function getAvailableOrders(openid, data) {
   try {
-    const { page = 1, pageSize = 20 } = data || {};
-    
-    console.log('【获取可抢订单列表】参数:', { page, pageSize });
-    
+    const { page = 1, pageSize = 20, campus: rawCampus } = data || {};
+    const riderCampus = normalizeCampusValue(rawCampus);
+
+    console.log('【获取可抢订单列表】参数:', { page, pageSize, riderCampus });
+
     // 查询条件：状态为 ready 或 confirmed，且未分配骑手（riderOpenid 不存在或为空）
     // 只查询普通外卖订单（排除 gaming、reward、express）
     // 只查询已支付的订单（payStatus === 'paid'）
     // 注意：普通外卖订单可能没有 orderType 字段，所以使用 or 条件来处理
     // 同时处理 orderType 不存在、null 或者不在排除列表中的情况
-    const whereCondition = db.command.or([
+    const foodTypeOr = db.command.or([
       {
         orderStatus: db.command.in(['ready', 'confirmed']),
         riderOpenid: db.command.exists(false),
@@ -3482,8 +3515,12 @@ async function getAvailableOrders(openid, data) {
         orderType: db.command.nin(['gaming', 'reward', 'express']) // orderType 存在但不等于这些值
       }
     ]);
-    
-    console.log('【获取可抢订单列表】查询条件:', JSON.stringify(whereCondition));
+
+    /** 校区隔离：与 getReceiveOrders 一致；未传 campus 按白沙规则 */
+    const campusPart = campusWhereForRiderFoodOrders(db.command, riderCampus || '');
+    const whereCondition = db.command.and([foodTypeOr, campusPart]);
+
+    console.log('【获取可抢订单列表】含校区隔离');
     
     // 查询订单
     const result = await db.collection('orders')
@@ -3588,9 +3625,10 @@ async function checkCampusPartnerActive(openid) {
  */
 async function grabOrder(openid, data) {
   try {
-    const { orderId } = data;
-    
-    console.log('【骑手接单】参数:', { orderId, riderOpenid: openid });
+    const { orderId, campus: rawRiderCampus } = data || {};
+    const riderCampus = normalizeCampusValue(rawRiderCampus);
+
+    console.log('【骑手接单】参数:', { orderId, riderOpenid: openid, riderCampus });
     
     if (!orderId) {
       return {
@@ -3646,6 +3684,14 @@ async function grabOrder(openid, data) {
     }
     
     const order = orderResult.data;
+
+    // 校区隔离：不可抢非本校区外卖单（与 getAvailableOrders 列表一致）
+    if (!foodOrderMatchesRiderCampus(order, riderCampus || '')) {
+      return {
+        code: 403,
+        message: '不可接非本校区的外卖配送单'
+      };
+    }
     
     // 检查订单状态
     if (order.orderStatus !== 'ready' && order.orderStatus !== 'confirmed') {

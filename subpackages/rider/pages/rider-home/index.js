@@ -1,4 +1,5 @@
 const log = require('../../../../utils/logger.js');
+const { normalizeHomeCampus, STORAGE_KEY, CAMPUS_BAISHA } = require('../../../../utils/homeCampusStorage');
 
 Page({
   data: {
@@ -31,12 +32,29 @@ Page({
   },
 
   onLoad() {
+    try {
+      const c = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
+      if (c) this._riderCampusForApi = c;
+    } catch (e) {}
     this.loadRiderStatus();
     this.loadOrdersByTab(this.data.activeTab);
     this.startOrderWatch();
   },
 
+  /** 与首页 homeCurrentCampus 一致，供待抢单/抢单云函数校区隔离 */
+  getRiderCampusForApi() {
+    try {
+      const s = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
+      if (s) return s;
+    } catch (e) {}
+    return this._riderCampusForApi || CAMPUS_BAISHA;
+  },
+
   onShow() {
+    try {
+      const c = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
+      if (c) this._riderCampusForApi = c;
+    } catch (e) {}
     this.loadRiderStatus();
     const now = Date.now();
     if (!this._ordersLastLoadTime || now - this._ordersLastLoadTime > 60000) {
@@ -287,13 +305,15 @@ Page({
       this.setData({ loading: true });
       
       try {
+        const campus = this.getRiderCampusForApi();
         const res = await wx.cloud.callFunction({
           name: 'orderManage',
           data: {
             action: 'getAvailableOrders',
             data: {
               page: 1,
-              pageSize: 20
+              pageSize: 20,
+              campus
             }
           }
         });
@@ -481,7 +501,8 @@ Page({
               data: {
                 action: 'grabOrder',
                 data: {
-                  orderId: orderId
+                  orderId: orderId,
+                  campus: this.getRiderCampusForApi()
                 }
               }
             });

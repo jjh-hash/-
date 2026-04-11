@@ -1,5 +1,6 @@
 // 接单工作台：任务 | 配送 两 Tab 合并入口
 const log = require('../../../../utils/logger.js');
+const { normalizeHomeCampus, STORAGE_KEY, CAMPUS_BAISHA } = require('../../../../utils/homeCampusStorage');
 
 const ORDER_TYPE_TEXT = { gaming: '游戏陪玩', reward: '跑腿', express: '代拿快递' };
 
@@ -384,9 +385,13 @@ Page({
     if (tabIndex === 0) {
       this.setData({ deliveryLoading: true });
       try {
+        const campus =
+          normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY)) ||
+          this._receiveOrderCampus ||
+          CAMPUS_BAISHA;
         const res = await wx.cloud.callFunction({
           name: 'orderManage',
-          data: { action: 'getAvailableOrders', data: { page: 1, pageSize: 20 } }
+          data: { action: 'getAvailableOrders', data: { page: 1, pageSize: 20, campus } }
         });
         const raw = (res.result && res.result.code === 200) ? (res.result.data.list || []) : [];
         const list = raw.map(o => ({
