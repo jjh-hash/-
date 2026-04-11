@@ -1,3 +1,44 @@
+/**
+ * 规格加价（元）输入：保留合法中间态（如 "0."、"12.3"），避免 parseFloat 实时写入导致小数点异常
+ */
+function normalizeSpecPriceInput(raw) {
+  if (raw === undefined || raw === null) return '';
+  let s = String(raw).trim().replace(/。/g, '.');
+  s = s.replace(/[^\d.]/g, '');
+  const dot = s.indexOf('.');
+  if (dot !== -1) {
+    const intPart = s.slice(0, dot).replace(/\./g, '');
+    let decPart = s.slice(dot + 1).replace(/\./g, '');
+    decPart = decPart.slice(0, 2);
+    s = intPart + '.' + decPart;
+    if (s === '.') s = '0.';
+    else if (s.startsWith('.')) s = '0' + s;
+  } else {
+    s = s.replace(/\./g, '');
+  }
+  return s;
+}
+
+/** 提交前：规格加价字符串（元）→ 数字元 */
+function specPriceStrToYuanNum(val) {
+  if (val === '' || val === null || val === undefined) return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  const t = String(val).trim().replace(/。/g, '.');
+  if (t === '' || t === '.' || t === '0.') return 0;
+  const n = parseFloat(t);
+  return isNaN(n) ? 0 : n;
+}
+
+/** 编辑回显：接口给的元（number/string）→ 输入框字符串（加价为 0 时显示空，避免出现无意义的 0） */
+function formatSpecPriceForInput(yuan) {
+  if (yuan === '' || yuan === null || yuan === undefined) return '';
+  const n = typeof yuan === 'number' ? yuan : parseFloat(String(yuan).replace(/。/g, '.'));
+  if (isNaN(n)) return '';
+  const rounded = Math.round(n * 100) / 100;
+  if (rounded === 0) return '';
+  return String(rounded);
+}
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -106,7 +147,9 @@ Page({
             type: group.type || 'single', // 默认为单选
             options: (group.options || []).map(option => ({
               name: option.name || '',
-              price: typeof option.price === 'number' ? option.price : parseFloat(option.price) || 0
+              price: formatSpecPriceForInput(
+                typeof option.price === 'number' ? option.price : parseFloat(option.price) || 0
+              )
             }))
           }));
         }
@@ -193,7 +236,7 @@ Page({
       name: '',
       type: 'single', // 默认单选
       options: [
-        { name: '', price: 0 }
+        { name: '', price: '' }
       ]
     });
     this.setData({
@@ -253,7 +296,7 @@ Page({
     
     specifications[groupIndex].options.push({
       name: '',
-      price: 0
+      price: ''
     });
     
     this.setData({
@@ -376,9 +419,9 @@ Page({
       return;
     }
     
-    // 更新字段
+    // 更新字段（加价保持字符串，避免输入小数点时被 parseFloat 吞掉）
     if (field === 'price') {
-      option.price = parseFloat(value) || 0;
+      option.price = normalizeSpecPriceInput(value);
     } else if (field === 'name') {
       option.name = value;
     } else {
@@ -507,7 +550,7 @@ Page({
             .filter(option => option.name && option.name.trim())
             .map(option => ({
               name: option.name.trim(),
-              price: Math.round((parseFloat(option.price) || 0) * 100) // 转换为分
+              price: Math.round(specPriceStrToYuanNum(option.price) * 100) // 元 → 分
             }))
         }));
     }
@@ -579,7 +622,7 @@ Page({
             .filter(option => option.name && option.name.trim())
             .map(option => ({
               name: option.name.trim(),
-              price: Math.round((parseFloat(option.price) || 0) * 100) // 转换为分
+              price: Math.round(specPriceStrToYuanNum(option.price) * 100) // 元 → 分
             }))
         }));
     }

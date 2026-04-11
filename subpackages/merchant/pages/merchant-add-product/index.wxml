@@ -118,8 +118,8 @@
                   <input 
                     class="spec-option-price" 
                     type="digit" 
-                    placeholder="0" 
-                    value="{{option.price}}" 
+                    placeholder="选填" 
+                    value="{{option.price === 0 ? '' : option.price}}" 
                     bindinput="updateSpecOption"
                     data-group-index="{{index}}"
                     data-option-index="{{optionIndex}}"
