@@ -16,6 +16,8 @@ function resolveCampusFromEntry(options) {
   return campus;
 }
 
+const { normalizeMoneyInput } = require('../../../../utils/moneyInput');
+
 Page({
   data: {
     campus: '白沙校区',
@@ -301,16 +303,12 @@ Page({
     });
   },
 
-  // 赏金输入
+  // 赏金输入（不用 type=digit，避免部分 Android 无小数点键盘；此处统一过滤）
   onBountyInput(e) {
-    const bountyValue = e.detail.value;
-    const bounty = parseFloat(bountyValue) || 0;
-    
+    const bountyValue = normalizeMoneyInput(e.detail.value);
     this.setData({
-      bounty: bountyValue // 保存原始输入值
+      bounty: bountyValue
     });
-    
-    // 更新总价显示
     this.updateTotalPrice();
   },
 

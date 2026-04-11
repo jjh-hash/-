@@ -1,23 +1,4 @@
-/**
- * 规格加价（元）输入：保留合法中间态（如 "0."、"12.3"），避免 parseFloat 实时写入导致小数点异常
- */
-function normalizeSpecPriceInput(raw) {
-  if (raw === undefined || raw === null) return '';
-  let s = String(raw).trim().replace(/。/g, '.');
-  s = s.replace(/[^\d.]/g, '');
-  const dot = s.indexOf('.');
-  if (dot !== -1) {
-    const intPart = s.slice(0, dot).replace(/\./g, '');
-    let decPart = s.slice(dot + 1).replace(/\./g, '');
-    decPart = decPart.slice(0, 2);
-    s = intPart + '.' + decPart;
-    if (s === '.') s = '0.';
-    else if (s.startsWith('.')) s = '0' + s;
-  } else {
-    s = s.replace(/\./g, '');
-  }
-  return s;
-}
+const { normalizeMoneyInput: normalizeSpecPriceInput } = require('../../../../utils/moneyInput');
 
 /** 提交前：规格加价字符串（元）→ 数字元 */
 function specPriceStrToYuanNum(val) {

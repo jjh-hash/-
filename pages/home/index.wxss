@@ -85,13 +85,23 @@
 }
 
 .campus-switch-btn {
-  padding: 4px 12px;
+  box-sizing: border-box;
+  min-height: 36px;
+  min-width: 72px;
+  padding: 6px 12px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
   color: var(--color-text-secondary);
   background: var(--color-bg-card);
   transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.campus-switch-btn-hover {
+  opacity: 0.88;
 }
 
 .campus-switch-btn.active {

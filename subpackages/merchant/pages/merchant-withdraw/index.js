@@ -12,6 +12,8 @@ function formatDate(dateStr) {
   return y + '-' + m + '-' + day + ' ' + h + ':' + min;
 }
 
+const { normalizeMoneyInput } = require('../../../../utils/moneyInput');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -37,7 +39,7 @@ Page({
   },
 
   onAmountInput(e) {
-    this.setData({ amountInput: e.detail.value });
+    this.setData({ amountInput: normalizeMoneyInput(e.detail.value) });
   },
 
   onRemarkInput(e) {

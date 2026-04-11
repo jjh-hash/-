@@ -117,9 +117,8 @@
                   <text class="spec-option-price-label">加价</text>
                   <input 
                     class="spec-option-price" 
-                    type="digit" 
                     placeholder="选填" 
-                    value="{{option.price === 0 ? '' : option.price}}" 
+                    value="{{option.price}}" 
                     bindinput="updateSpecOption"
                     data-group-index="{{index}}"
                     data-option-index="{{optionIndex}}"

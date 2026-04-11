@@ -52,7 +52,6 @@
       <view class="price-row">
         <input 
           class="input price-input" 
-          type="digit"
           placeholder="请输入售价"
           value="{{price}}"
           bindinput="onPriceInput"
@@ -66,7 +65,6 @@
       <view class="price-row">
         <input 
           class="input price-input" 
-          type="digit"
           placeholder="请输入原价"
           value="{{originalPrice}}"
           bindinput="onOriginalPriceInput"

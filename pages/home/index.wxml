@@ -70,6 +70,8 @@
           <view class="campus-switch-buttons">
             <view 
               class="campus-switch-btn {{currentCampus === '白沙校区' ? 'active' : ''}}" 
+              hover-class="campus-switch-btn-hover"
+              hover-stay-time="80"
               bindtap="onCampusChange" 
               data-campus="白沙校区"
             >
@@ -77,6 +79,8 @@
             </view>
             <view 
               class="campus-switch-btn {{currentCampus === '金水校区' ? 'active' : ''}}" 
+              hover-class="campus-switch-btn-hover"
+              hover-stay-time="80"
               bindtap="onCampusChange" 
               data-campus="金水校区"
             >

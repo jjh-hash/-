@@ -97,20 +97,17 @@ Page({
     } catch (e) {}
     this.setData({ currentCampus: initialCampus });
 
-    // 启动阶段避免同步系统信息读取阻塞，改为异步获取
-    wx.getSystemInfo({
-      success: (sys) => {
-        const bar = sys.statusBarHeight || 20;
-        const h = sys.windowHeight > 0 ? sys.windowHeight : 600;
-        this.setData({
-          statusBarHeight: bar,
-          scrollViewHeight: h
-        });
-      },
-      fail: (e) => {
-        log.error('【首页】系统信息', e);
+    // 窗口高度：优先新 API（与机型/分屏一致）；避免仅用 100vh 在 tabBar 页裁切
+    this._applyWindowMetrics();
+    this._resizeHandler = (res) => {
+      const h = res && res.size && res.size.windowHeight;
+      if (h && h > 0) {
+        this.setData({ scrollViewHeight: h });
       }
-    });
+    };
+    try {
+      wx.onWindowResize(this._resizeHandler);
+    } catch (e) {}
     this.setGreeting();
     this._hasWarmCache = false;
 
@@ -159,6 +156,32 @@ Page({
       this.loadProducts();
       this.loadBanners();
     }, this._hasWarmCache ? 900 : 260);
+  },
+
+  _applyWindowMetrics() {
+    try {
+      const win = wx.getWindowInfo ? wx.getWindowInfo() : null;
+      if (win && win.windowHeight > 0) {
+        this.setData({
+          statusBarHeight: win.statusBarHeight || 20,
+          scrollViewHeight: win.windowHeight
+        });
+        return;
+      }
+    } catch (e) {}
+    wx.getSystemInfo({
+      success: (sys) => {
+        const bar = sys.statusBarHeight || 20;
+        const h = sys.windowHeight > 0 ? sys.windowHeight : 600;
+        this.setData({
+          statusBarHeight: bar,
+          scrollViewHeight: h
+        });
+      },
+      fail: (e) => {
+        log.error('【首页】系统信息', e);
+      }
+    });
   },
 
   // 根据时段设置问候语文案（颜色固定白色，适配各种轮播图）
@@ -673,27 +696,34 @@ Page({
     this.loadProducts(undefined, false, key);
   },
 
-  // 校区切换事件
+  // 校区切换事件（必须在 setData 回调里再拉数：否则部分机型上 currentCampus 尚未合并，会仍请求旧校区）
   onCampusChange(e) {
     const campus = e.currentTarget.dataset.campus;
+    if (campus !== CAMPUS_BAISHA && campus !== CAMPUS_JINSHUI) return;
     if (campus === this.data.currentCampus) return;
 
     try {
       wx.setStorageSync('homeCurrentCampus', campus);
     } catch (err) {}
-    
-    this.setData({
-      currentCampus: campus,
-      productPage: 1,
-      originalProducts: [],
-      displayProductsLeft: [],
-      displayProductsRight: [],
-      hasMoreProducts: true
-    });
-    
-    // 重新加载轮播与今日推荐（避免沿用上学校区的缓存数据）
-    this.loadBanners();
-    this.loadProducts(undefined, false, this.data.activeCategoryKey);
+
+    this.loadingBanners = false;
+    this.loadingProducts = false;
+    if (this._sortCache) this._sortCache = null;
+
+    this.setData(
+      {
+        currentCampus: campus,
+        productPage: 1,
+        originalProducts: [],
+        displayProductsLeft: [],
+        displayProductsRight: [],
+        hasMoreProducts: true
+      },
+      () => {
+        this.loadBanners();
+        this.loadProducts(undefined, false, this.data.activeCategoryKey);
+      }
+    );
   },
 
   // 加载商品列表（优化版本：添加缓存和并行请求）
@@ -1060,7 +1090,13 @@ Page({
       clearTimeout(this._restoreFullCacheTimer);
       this._restoreFullCacheTimer = null;
     }
-    
+    if (this._resizeHandler) {
+      try {
+        wx.offWindowResize(this._resizeHandler);
+      } catch (e) {}
+      this._resizeHandler = null;
+    }
+
     // 清理加载状态
     this.loadingBanners = false;
     this.loadingStores = false;

@@ -114,7 +114,6 @@
           placeholder-class="bounty-placeholder"
           value="{{bounty}}"
           bindinput="onBountyInput"
-          type="digit"
         />
         <text class="bounty-unit">元</text>
       </view>

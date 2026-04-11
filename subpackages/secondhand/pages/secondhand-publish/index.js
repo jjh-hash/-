@@ -1,4 +1,6 @@
 // pages/secondhand-publish/index.js
+const { normalizeMoneyInput } = require('../../../../utils/moneyInput');
+
 function resolveCampusFromEntry(options) {
   let campus = '';
   if (options && options.campus) {
@@ -94,17 +96,17 @@ Page({
     });
   },
 
-  // 价格输入
+  // 价格输入（不用 type=digit，避免部分 Android 无小数点键盘）
   onPriceInput(e) {
     this.setData({
-      price: e.detail.value
+      price: normalizeMoneyInput(e.detail.value)
     });
   },
 
   // 原价输入
   onOriginalPriceInput(e) {
     this.setData({
-      originalPrice: e.detail.value
+      originalPrice: normalizeMoneyInput(e.detail.value)
     });
   },
 

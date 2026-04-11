@@ -18,7 +18,6 @@
       <text class="form-label">提现金额（元）</text>
       <input
         class="form-input"
-        type="digit"
         placeholder="请输入提现金额"
         value="{{amountInput}}"
         bindinput="onAmountInput"
