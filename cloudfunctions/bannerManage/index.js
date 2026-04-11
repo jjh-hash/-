@@ -7,17 +7,27 @@ cloud.init({
 
 const db = cloud.database();
 
+/** 与 banners 文档一致：白沙校区、金水校区；兼容 baisha、jinshui */
+function normalizeCampus(campus) {
+  if (campus == null || campus === '') return '';
+  const s = String(campus).trim();
+  if (s === 'baisha') return '白沙校区';
+  if (s === 'jinshui') return '金水校区';
+  return s;
+}
+
 exports.main = async (event, context) => {
   console.log('轮播图管理请求:', event);
   
-  const { action, data } = event;
+  const { action, data, campus: rawCampus } = event;
+  const campus = normalizeCampus(rawCampus);
   
   try {
     switch (action) {
       case 'create':
         return await createBanner(data);
       case 'getList':
-        return await getBannerList(data);
+        return await getBannerList(data, campus);
       case 'update':
         return await updateBanner(data);
       case 'delete':
@@ -93,7 +103,7 @@ async function createBanner(data) {
 /**
  * 获取轮播图列表
  */
-async function getBannerList(data) {
+async function getBannerList(data, campus) {
   const { status, isActive } = data;
   
   let whereCondition = {};
@@ -103,6 +113,11 @@ async function getBannerList(data) {
     whereCondition.status = 'active';
   } else if (status) {
     whereCondition.status = status;
+  }
+  
+  // 添加校区过滤
+  if (campus) {
+    whereCondition.campus = campus;
   }
   
   const result = await db.collection('banners')

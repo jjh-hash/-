@@ -5,8 +5,19 @@ try {
 } catch (e) {
   log.error('加载云图片配置失败:', e);
 }
-const CACHE_KEY_PRODUCTS = 'home_products_cache';
-const CACHE_KEY_BANNERS = 'home_banners_cache';
+/** 与数据库 stores / users.campus、云函数入参一致 */
+const CAMPUS_BAISHA = '白沙校区';
+const CAMPUS_JINSHUI = '金水校区';
+
+function cacheKeyProducts(campus) {
+  return `home_products_cache_${campus || CAMPUS_BAISHA}`;
+}
+function cacheKeyBanners(campus) {
+  return `home_banners_cache_${campus || CAMPUS_BAISHA}`;
+}
+function categoryCacheKey(campus, catKey) {
+  return `category_cache_${campus || CAMPUS_BAISHA}_${catKey}`;
+}
 const FIRST_SCREEN_ITEMS_PER_COL = 4;
 
 // 带超时的云函数调用
@@ -74,10 +85,18 @@ Page({
     announcement: null,
     showAnnouncement: false,
     userLocation: null, // 用户位置信息
-    searchKeyword: '' // 搜索关键词
+    searchKeyword: '', // 搜索关键词
+    currentCampus: CAMPUS_BAISHA
   },
 
   onLoad() {
+    let initialCampus = CAMPUS_BAISHA;
+    try {
+      const s = wx.getStorageSync('homeCurrentCampus');
+      if (s === CAMPUS_JINSHUI || s === CAMPUS_BAISHA) initialCampus = s;
+    } catch (e) {}
+    this.setData({ currentCampus: initialCampus });
+
     // 启动阶段避免同步系统信息读取阻塞，改为异步获取
     wx.getSystemInfo({
       success: (sys) => {
@@ -97,7 +116,7 @@ Page({
 
     // 优先从缓存渲染，减少首屏白屏
     wx.getStorage({
-      key: CACHE_KEY_PRODUCTS,
+      key: cacheKeyProducts(initialCampus),
       success: (res) => {
         const c = res.data;
         if (c && c.left && c.right && Array.isArray(c.left) && Array.isArray(c.right)) {
@@ -126,7 +145,7 @@ Page({
       }
     });
     wx.getStorage({
-      key: CACHE_KEY_BANNERS,
+      key: cacheKeyBanners(initialCampus),
       success: (res) => {
         const list = res.data;
         if (list && Array.isArray(list) && list.length > 0) {
@@ -196,14 +215,14 @@ Page({
     try {
       const res = await callFunctionWithTimeout({
         name: 'bannerManage',
-        data: { action: 'getList', data: { isActive: true } }
+        data: { action: 'getList', data: { isActive: true }, campus: this.data.currentCampus }
       }, 12000);
       
       if (res.result && res.result.code === 200) {
         const list = res.result.data.list || [];
         this.setData({ banners: list });
         if (list.length > 0) {
-          wx.setStorage({ key: CACHE_KEY_BANNERS, data: list });
+          wx.setStorage({ key: cacheKeyBanners(this.data.currentCampus), data: list });
         }
       }
     } catch (err) {
@@ -282,7 +301,10 @@ Page({
       secondhand: '/subpackages/secondhand/pages/secondhand/index'
     };
     const url = urls[key];
-    if (url) wx.navigateTo({ url });
+    if (url) {
+      const c = encodeURIComponent(this.data.currentCampus || CAMPUS_BAISHA);
+      wx.navigateTo({ url: `${url}?campus=${c}` });
+    }
   },
 
   // 点击轮播图
@@ -331,7 +353,8 @@ Page({
         data: {
           page: 1,
           pageSize: 20,
-          keyword: keyword || undefined
+          keyword: keyword || undefined,
+          campus: this.data.currentCampus
           // 不传storeCategory参数，返回所有商家（包括"其他"分类）
         }
       });
@@ -482,14 +505,21 @@ Page({
       activeFilter: index
     });
     
-    // 应用排序
-    this.applySort(index);
+    // 今日推荐瀑布流使用 originalProducts + applyProductSort（与 loadProducts 一致）
+    const originalProducts = this.data.originalProducts || [];
+    const payload = this.applyProductSort(index, originalProducts);
+    if (payload) {
+      this.setData({
+        displayProductsLeft: payload.left,
+        displayProductsRight: payload.right
+      });
+    }
   },
   
-  // 应用排序
+  // 应用排序（旧版「仅店铺列表」loadStores 路径；须防空）
   applySort(sortType) {
     // 深拷贝原始数据，确保stars数组也被复制
-    const shops = this.data.originalShops.map(shop => ({
+    const shops = (this.data.originalShops || []).map(shop => ({
       ...shop,
       stars: shop.stars ? [...shop.stars] : []
     }));
@@ -643,6 +673,29 @@ Page({
     this.loadProducts(undefined, false, key);
   },
 
+  // 校区切换事件
+  onCampusChange(e) {
+    const campus = e.currentTarget.dataset.campus;
+    if (campus === this.data.currentCampus) return;
+
+    try {
+      wx.setStorageSync('homeCurrentCampus', campus);
+    } catch (err) {}
+    
+    this.setData({
+      currentCampus: campus,
+      productPage: 1,
+      originalProducts: [],
+      displayProductsLeft: [],
+      displayProductsRight: [],
+      hasMoreProducts: true
+    });
+    
+    // 重新加载轮播与今日推荐（避免沿用上学校区的缓存数据）
+    this.loadBanners();
+    this.loadProducts(undefined, false, this.data.activeCategoryKey);
+  },
+
   // 加载商品列表（优化版本：添加缓存和并行请求）
   async loadProducts(keyword, isLoadMore = false, catKey = 'all') {
     // 防止重复请求
@@ -688,7 +741,8 @@ Page({
           data: {
             page: 1,
             pageSize: catKey === '盖饭套餐' ? 8 : 5,
-            storeCategory: catKey === '盖饭套餐' ? '学校食堂' : undefined
+            storeCategory: catKey === '盖饭套餐' ? '学校食堂' : undefined,
+            campus: this.data.currentCampus // 添加校区信息
           }
         }, 12000) : Promise.resolve({ result: { code: 200, data: { list: [] } } }),
         callFunctionWithTimeout({
@@ -697,7 +751,8 @@ Page({
             page,
             pageSize,
             keyword: keyword || undefined,
-            categoryName: catKey && catKey !== 'all' ? catKey : undefined
+            categoryName: catKey && catKey !== 'all' ? catKey : undefined,
+            campus: this.data.currentCampus // 添加校区信息
           }
         }, 15000)
       ]);
@@ -762,7 +817,7 @@ Page({
         // 缓存到全局缓存
         if (!keyword) {
           wx.setStorage({
-            key: CACHE_KEY_PRODUCTS,
+            key: cacheKeyProducts(this.data.currentCampus),
             data: {
               left: payload.left,
               right: payload.right,
@@ -803,7 +858,8 @@ Page({
           data: {
             page: 1,
             pageSize: catKey === '盖饭套餐' ? 8 : 5,
-            storeCategory: catKey === '盖饭套餐' ? '学校食堂' : undefined
+            storeCategory: catKey === '盖饭套餐' ? '学校食堂' : undefined,
+            campus: this.data.currentCampus // 添加校区信息
           }
         }, 10000) : Promise.resolve({ result: { code: 200, data: { list: [] } } }),
         callFunctionWithTimeout({
@@ -811,7 +867,8 @@ Page({
           data: {
             page,
             pageSize,
-            categoryName: catKey && catKey !== 'all' ? catKey : undefined
+            categoryName: catKey && catKey !== 'all' ? catKey : undefined,
+            campus: this.data.currentCampus // 添加校区信息
           }
         }, 10000)
       ]);
@@ -860,7 +917,7 @@ Page({
       const payload = this.applyProductSort(this.data.activeFilter, allItems);
       if (payload) {
         wx.setStorage({
-          key: CACHE_KEY_PRODUCTS,
+          key: cacheKeyProducts(this.data.currentCampus),
           data: {
             left: payload.left,
             right: payload.right,
@@ -928,7 +985,7 @@ Page({
   // 获取分类缓存
   getCategoryCache(catKey) {
     try {
-      const cache = wx.getStorageSync(`category_cache_${catKey}`);
+      const cache = wx.getStorageSync(categoryCacheKey(this.data.currentCampus, catKey));
       if (cache && (Date.now() - cache.timestamp) < 5 * 60 * 1000) { // 5分钟缓存
         return cache.data;
       }
@@ -941,8 +998,8 @@ Page({
   // 设置分类缓存
   setCategoryCache(catKey, data) {
     try {
-      // 限制缓存大小，避免内存占用过大
-      const cacheKey = `category_cache_${catKey}`;
+      // 限制缓存大小，避免内存占用过大（按校区隔离，避免切换后串数据）
+      const cacheKey = categoryCacheKey(this.data.currentCampus, catKey);
       wx.setStorageSync(cacheKey, {
         data,
         timestamp: Date.now()
@@ -959,13 +1016,25 @@ Page({
   cleanupOldCache() {
     try {
       const categoryKeys = ['all', '盖饭套餐', '面食', '饮品', '小食'];
-      categoryKeys.forEach(key => {
-        const cacheKey = `category_cache_${key}`;
-        const cache = wx.getStorageSync(cacheKey);
-        if (cache && (Date.now() - cache.timestamp) > 30 * 60 * 1000) { // 30分钟过期
-          wx.removeStorageSync(cacheKey);
-        }
+      const campuses = [CAMPUS_BAISHA, CAMPUS_JINSHUI];
+      campuses.forEach((c) => {
+        categoryKeys.forEach((key) => {
+          const cacheKey = categoryCacheKey(c, key);
+          const cache = wx.getStorageSync(cacheKey);
+          if (cache && (Date.now() - cache.timestamp) > 30 * 60 * 1000) {
+            wx.removeStorageSync(cacheKey);
+          }
+        });
       });
+      categoryKeys.forEach((key) => {
+        try {
+          wx.removeStorageSync(`category_cache_${key}`);
+        } catch (e) {}
+      });
+      try {
+        wx.removeStorageSync('home_products_cache');
+        wx.removeStorageSync('home_banners_cache');
+      } catch (e) {}
     } catch (e) {
       log.error('清理缓存失败:', e);
     }

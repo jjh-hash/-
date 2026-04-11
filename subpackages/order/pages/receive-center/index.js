@@ -38,11 +38,25 @@ Page({
   },
 
   onLoad() {
+    let c = '';
+    try {
+      c = wx.getStorageSync('homeCurrentCampus');
+    } catch (e) {}
+    if (c !== '金水校区' && c !== '白沙校区') {
+      const u = wx.getStorageSync('userInfo') || {};
+      if (u.campus === '金水校区' || u.campus === '白沙校区') c = u.campus;
+      else c = '白沙校区';
+    }
+    this._receiveOrderCampus = c;
     this.loadCampusPartnerStatus();
     this.loadTaskOrders();
   },
 
   onShow() {
+    try {
+      const c = wx.getStorageSync('homeCurrentCampus');
+      if (c === '金水校区' || c === '白沙校区') this._receiveOrderCampus = c;
+    } catch (e) {}
     this.loadCampusPartnerStatus();
     if (this.data.mainTab === 'task') {
       if (!this._taskLoadedAt || Date.now() - this._taskLoadedAt > 30000) this.loadTaskOrders();
@@ -287,7 +301,12 @@ Page({
         name: 'orderManage',
         data: {
           action: 'getReceiveOrders',
-          data: { status: 'pending', page, pageSize: this.data.taskPageSize }
+          data: {
+            status: 'pending',
+            page,
+            pageSize: this.data.taskPageSize,
+            campus: this._receiveOrderCampus || '白沙校区'
+          }
         }
       });
       if (res.result && res.result.code === 200) {

@@ -13,6 +13,15 @@ const {
   getRiderIncomeFenFromOrder
 } = require('./pricingRules');
 
+/** 与 users / 首页一致：白沙校区、金水校区；兼容 baisha、jinshui */
+function normalizeCampusValue(campus) {
+  if (campus == null || campus === '') return '';
+  const s = String(campus).trim();
+  if (s === 'baisha') return '白沙校区';
+  if (s === 'jinshui') return '金水校区';
+  return s;
+}
+
 /** 订阅消息：订单状态通知模板的文案（thing 类最多 20 字） */
 const SUBSCRIBE_EVENT_TEXT = {
   paid: '支付成功',
@@ -2896,6 +2905,11 @@ async function createExpressOrder(openid, data) {
       createdAt: db.serverDate(),
       updatedAt: db.serverDate()
     };
+
+    const campusNorm = normalizeCampusValue(data.campus);
+    if (campusNorm === '白沙校区' || campusNorm === '金水校区') {
+      orderData.campus = campusNorm;
+    }
     
     console.log('【创建代拿快递订单】订单数据:', orderData);
     
@@ -3061,6 +3075,11 @@ async function createGamingOrder(openid, data) {
       createdAt: db.serverDate(),
       updatedAt: db.serverDate()
     };
+
+    const campusGaming = normalizeCampusValue(data.campus);
+    if (campusGaming === '白沙校区' || campusGaming === '金水校区') {
+      orderData.campus = campusGaming;
+    }
     
     console.log('【创建游戏陪玩订单】订单数据:', orderData);
     
@@ -3224,6 +3243,11 @@ async function createRewardOrder(openid, data) {
       createdAt: db.serverDate(),
       updatedAt: db.serverDate()
     };
+
+    const campusReward = normalizeCampusValue(data.campus);
+    if (campusReward === '白沙校区' || campusReward === '金水校区') {
+      orderData.campus = campusReward;
+    }
     
     console.log('【创建悬赏订单】订单数据:', orderData);
     
@@ -3259,22 +3283,45 @@ async function createRewardOrder(openid, data) {
  */
 async function getReceiveOrders(openid, data) {
   try {
-    const { status, page = 1, pageSize = 50 } = data;
+    const { status, page = 1, pageSize = 50, campus: rawCampus } = data || {};
+    const campus = normalizeCampusValue(rawCampus);
     
-    console.log('【获取接单订单列表】参数:', { status, page, pageSize });
+    console.log('【获取接单订单列表】参数:', { status, page, pageSize, campus });
     
     // 构建查询条件：只查询游戏陪玩、悬赏、代拿快递订单
-    const whereCondition = {
+    const typeCond = {
       orderType: db.command.in(['gaming', 'reward', 'express'])
     };
     
     // 根据状态筛选（如果不传status，默认查询所有进行中的订单状态）
+    let statusCond = {};
     if (status) {
-      whereCondition.orderStatus = status;
+      statusCond = { orderStatus: status };
     } else {
       // 默认查询所有进行中的订单状态，让订单一直显示在接单大厅，只是状态会变化
       // pending: 待接单, received: 已接单, confirmed_by_receiver: 进行中, waiting_user_confirm: 等待用户确认
-      whereCondition.orderStatus = db.command.in(['pending', 'received', 'confirmed_by_receiver', 'waiting_user_confirm']);
+      statusCond = {
+        orderStatus: db.command.in(['pending', 'received', 'confirmed_by_receiver', 'waiting_user_confirm'])
+      };
+    }
+
+    /** 校区隔离：金水仅看本校订单；白沙含「白沙校区」及历史无 campus 字段的订单 */
+    let whereCondition;
+    if (campus === '金水校区') {
+      whereCondition = Object.assign({}, typeCond, statusCond, { campus: '金水校区' });
+    } else if (!campus || campus === '白沙校区') {
+      whereCondition = db.command.and([
+        typeCond,
+        statusCond,
+        db.command.or([
+          { campus: '白沙校区' },
+          { campus: db.command.exists(false) },
+          { campus: '' },
+          { campus: null }
+        ])
+      ]);
+    } else {
+      whereCondition = Object.assign({}, typeCond, statusCond);
     }
     
     // 查询订单

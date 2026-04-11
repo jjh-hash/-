@@ -1,6 +1,25 @@
 // pages/secondhand-publish/index.js
+function resolveCampusFromEntry(options) {
+  let campus = '';
+  if (options && options.campus) {
+    try {
+      campus = decodeURIComponent(options.campus);
+    } catch (e) {
+      campus = options.campus;
+    }
+  }
+  if (campus !== '金水校区' && campus !== '白沙校区') {
+    campus = wx.getStorageSync('homeCurrentCampus');
+  }
+  if (campus !== '金水校区' && campus !== '白沙校区') {
+    campus = '白沙校区';
+  }
+  return campus;
+}
+
 Page({
   data: {
+    campus: '白沙校区',
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     title: '',
     description: '',
@@ -21,7 +40,9 @@ Page({
     realAvatarUrl: '' // 用户真实头像
   },
 
-  onLoad() {
+  onLoad(options) {
+    const campus = resolveCampusFromEntry(options || {});
+    this.setData({ campus });
     // 获取用户信息
     this.getUserInfo();
   },
@@ -285,7 +306,8 @@ Page({
         images: this.data.images,
         sellerId: openid,
         sellerName: sellerName,
-        sellerAvatar: sellerAvatar
+        sellerAvatar: sellerAvatar,
+        campus: this.data.campus || '白沙校区'
       };
 
       console.log('【发布闲置商品】提交数据:', publishData);

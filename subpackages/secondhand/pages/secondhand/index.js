@@ -1,5 +1,24 @@
+function resolveCampusFromEntry(options) {
+  let campus = '';
+  if (options && options.campus) {
+    try {
+      campus = decodeURIComponent(options.campus);
+    } catch (e) {
+      campus = options.campus;
+    }
+  }
+  if (campus !== '金水校区' && campus !== '白沙校区') {
+    campus = wx.getStorageSync('homeCurrentCampus');
+  }
+  if (campus !== '金水校区' && campus !== '白沙校区') {
+    campus = '白沙校区';
+  }
+  return campus;
+}
+
 Page({
   data: {
+    campus: '白沙校区',
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     searchValue: '',
     activeCategory: 0,
@@ -15,7 +34,12 @@ Page({
     loadingProducts: false
   },
 
-  onLoad() {
+  onLoad(options) {
+    const campus = resolveCampusFromEntry(options || {});
+    this.setData({ campus });
+    try {
+      wx.setStorageSync('homeCurrentCampus', campus);
+    } catch (e) {}
     this.loadProducts();
   },
 
@@ -79,7 +103,8 @@ Page({
             pageSize: this.data.pageSize,
             category: category,
             keyword: this.data.searchValue || undefined,
-            sort: sort
+            sort: sort,
+            campus: this.data.campus || '白沙校区'
           }
         }
       });
@@ -175,8 +200,9 @@ Page({
 
   // 发布商品
   onPublishTap() {
+    const c = encodeURIComponent(this.data.campus || '白沙校区');
     wx.navigateTo({
-      url: '/subpackages/secondhand/pages/secondhand-publish/index'
+      url: `/subpackages/secondhand/pages/secondhand-publish/index?campus=${c}`
     });
   },
 

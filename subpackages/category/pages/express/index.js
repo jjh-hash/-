@@ -1,5 +1,24 @@
+function resolveCampusFromEntry(options) {
+  let campus = '';
+  if (options && options.campus) {
+    try {
+      campus = decodeURIComponent(options.campus);
+    } catch (e) {
+      campus = options.campus;
+    }
+  }
+  if (campus !== '金水校区' && campus !== '白沙校区') {
+    campus = wx.getStorageSync('homeCurrentCampus');
+  }
+  if (campus !== '金水校区' && campus !== '白沙校区') {
+    campus = '白沙校区';
+  }
+  return campus;
+}
+
 Page({
   data: {
+    campus: '白沙校区',
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     pickupLocation: '',
     deliveryLocation: '',
@@ -45,7 +64,12 @@ Page({
     orderExpiredAtDisplay: '' // 订单截止时间显示文本（自动计算）
   },
 
-  onLoad() {
+  onLoad(options) {
+    const campus = resolveCampusFromEntry(options || {});
+    this.setData({ campus });
+    try {
+      wx.setStorageSync('homeCurrentCampus', campus);
+    } catch (e) {}
     // 页面加载时加载用户联系信息
     this.loadContactInfo();
     // 计算并显示截止时间
@@ -437,6 +461,7 @@ Page({
       
       const orderData = {
         orderType: 'express', // 订单类型：代拿快递
+        campus: this.data.campus || '白沙校区',
         pickupLocation: this.data.pickupLocation,
         deliveryLocation: this.data.deliveryLocation,
         dormitoryNumber: this.data.deliveryLocation === '宿舍楼' ? this.data.dormitoryNumber.trim() : '', // 寝室号（仅当送达位置为宿舍楼时）

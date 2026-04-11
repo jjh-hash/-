@@ -7,6 +7,14 @@ cloud.init({
 
 const db = cloud.database();
 
+function normalizeCampus(campus) {
+  if (campus == null || campus === '') return '';
+  const s = String(campus).trim();
+  if (s === 'baisha') return '白沙校区';
+  if (s === 'jinshui') return '金水校区';
+  return s;
+}
+
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   const { action, data } = event;
@@ -57,7 +65,8 @@ async function publishProduct(openid, data) {
     images,
     sellerId,
     sellerName,
-    sellerAvatar
+    sellerAvatar,
+    campus: campusRaw
   } = data;
 
   console.log('【发布闲置商品】接收到的数据:', {
@@ -97,6 +106,11 @@ async function publishProduct(openid, data) {
       createdAt: db.serverDate(),
       updatedAt: db.serverDate()
     };
+
+    const campusNorm = normalizeCampus(campusRaw);
+    if (campusNorm === '白沙校区' || campusNorm === '金水校区') {
+      productData.campus = campusNorm;
+    }
 
     console.log('【发布闲置商品】准备保存的数据:', Object.assign({}, productData, {
       images: images.length + '张图片',
@@ -140,31 +154,58 @@ async function getProductList(openid, data) {
     category,
     keyword,
     sort = 'time', // time: 时间, price: 价格, distance: 距离
-    sellerId
+    sellerId,
+    campus: rawCampus
   } = data;
 
+  const campus = normalizeCampus(rawCampus);
+
   try {
-    // 构建查询条件
-    const whereCondition = {
-      status: 'active' // 只查询在售的商品
-    };
+    // 构建查询条件（校区：金水仅本校；白沙含历史无 campus 的条目）
+    let whereCondition;
+    if (campus === '金水校区') {
+      whereCondition = { status: 'active', campus: '金水校区' };
+    } else {
+      whereCondition = db.command.and([
+        { status: 'active' },
+        db.command.or([
+          { campus: '白沙校区' },
+          { campus: db.command.exists(false) },
+          { campus: '' },
+          { campus: null }
+        ])
+      ]);
+    }
 
     if (category && category !== '全部') {
-      whereCondition.category = category;
+      if (campus === '金水校区') {
+        whereCondition.category = category;
+      } else {
+        whereCondition = db.command.and([
+          whereCondition,
+          { category }
+        ]);
+      }
     }
 
     if (keyword) {
-      whereCondition.title = db.RegExp({
-        regexp: keyword,
-        options: 'i'
-      });
+      const titleRe = db.RegExp({ regexp: keyword, options: 'i' });
+      if (campus === '金水校区') {
+        whereCondition.title = titleRe;
+      } else {
+        whereCondition = db.command.and([whereCondition, { title: titleRe }]);
+      }
     }
 
     if (sellerId) {
-      whereCondition.sellerId = sellerId;
+      if (campus === '金水校区') {
+        whereCondition.sellerId = sellerId;
+      } else {
+        whereCondition = db.command.and([whereCondition, { sellerId }]);
+      }
     }
 
-    console.log('【获取商品列表】查询条件:', whereCondition);
+    console.log('【获取商品列表】查询条件:', campus, category, !!keyword, !!sellerId);
 
     // 构建排序
     let orderBy = 'createdAt';

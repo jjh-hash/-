@@ -7,6 +7,22 @@ cloud.init({
 
 const db = cloud.database();
 
+/** 与 stores 文档一致：白沙校区、金水校区；兼容 baisha、jinshui */
+function normalizeCampus(campus) {
+  if (campus == null || campus === '') return '';
+  const s = String(campus).trim();
+  if (s === 'baisha') return '白沙校区';
+  if (s === 'jinshui') return '金水校区';
+  return s;
+}
+
+const CAMPUS_ALLOWED = ['白沙校区', '金水校区'];
+
+function resolveCampusStrict(raw) {
+  const n = normalizeCampus(raw);
+  return CAMPUS_ALLOWED.includes(n) ? n : null;
+}
+
 const isDev = process.env.NODE_ENV !== 'production';
 const log = {
   log: isDev ? (...a) => console.log(...a) : () => {},
@@ -15,11 +31,20 @@ const log = {
 };
 
 exports.main = async (event, context) => {
-  const { page = 1, pageSize = 20, keyword, categoryName } = event;
+  const { page = 1, pageSize = 20, keyword, categoryName, campus: rawCampus } = event;
+  const campus = resolveCampusStrict(rawCampus);
 
-  log.log('【首页菜品流】参数:', { page, pageSize, keyword, categoryName });
+  log.log('【首页菜品流】参数:', { page, pageSize, keyword, categoryName, campus: campus || '(无效或未传)' });
 
   try {
+    if (!campus) {
+      return {
+        code: 200,
+        message: 'ok',
+        data: { list: [], total: 0, page, pageSize }
+      };
+    }
+
     // 1. 获取已审核且营业中的店铺 ID 列表
     const merchantsResult = await db.collection('merchants')
       .where({ status: 'active' })
@@ -38,13 +63,41 @@ exports.main = async (event, context) => {
       };
     }
 
+    // 构建店铺查询条件
+    const cmd = db.command;
+    let storeWhere = {
+      _id: cmd.in(storeIds),
+      businessStatus: 'open'
+    };
+
+    // 金水：仅 campus===金水校区；白沙：白沙标注 + 历史无 campus 字段（与 getStoreList 一致）
+    if (campus === '金水校区') {
+      storeWhere.campus = '金水校区';
+    } else {
+      storeWhere = cmd.and([
+        storeWhere,
+        cmd.or([
+          { campus: '白沙校区' },
+          { campus: cmd.exists(false) },
+          { campus: '' },
+          { campus: null }
+        ])
+      ]);
+    }
+    log.log('【首页菜品流】应用校区过滤:', campus);
+
     const storesResult = await db.collection('stores')
-      .where({
-        _id: db.command.in(storeIds),
-        businessStatus: 'open'
-      })
-      .field({ _id: true, name: true, logoUrl: true, avatar: true })
+      .where(storeWhere)
+      .field({ _id: true, name: true, logoUrl: true, avatar: true, campus: true })
       .get();
+
+    log.log('【首页菜品流】查询到的店铺数量:', storesResult.data.length);
+    log.log('【首页菜品流】查询到的店铺:', storesResult.data);
+
+    // 验证店铺的校区信息
+    storesResult.data.forEach(store => {
+      log.log('【首页菜品流】店铺:', store.name, '校区:', store.campus);
+    });
 
     const openStoreIds = (storesResult.data || []).map(s => s._id);
     const storeMap = new Map((storesResult.data || []).map(s => [

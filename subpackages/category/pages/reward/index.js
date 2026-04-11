@@ -1,5 +1,24 @@
+function resolveCampusFromEntry(options) {
+  let campus = '';
+  if (options && options.campus) {
+    try {
+      campus = decodeURIComponent(options.campus);
+    } catch (e) {
+      campus = options.campus;
+    }
+  }
+  if (campus !== '金水校区' && campus !== '白沙校区') {
+    campus = wx.getStorageSync('homeCurrentCampus');
+  }
+  if (campus !== '金水校区' && campus !== '白沙校区') {
+    campus = '白沙校区';
+  }
+  return campus;
+}
+
 Page({
   data: {
+    campus: '白沙校区',
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     helpLocation: '',
     helpContent: '',
@@ -25,7 +44,12 @@ Page({
     orderExpiredAtDisplay: '' // 订单截止时间显示文本（自动计算）
   },
 
-  onLoad() {
+  onLoad(options) {
+    const campus = resolveCampusFromEntry(options || {});
+    this.setData({ campus });
+    try {
+      wx.setStorageSync('homeCurrentCampus', campus);
+    } catch (e) {}
     // 页面加载时加载用户联系信息
     this.loadContactInfo();
     // 初始化总价
@@ -357,6 +381,7 @@ Page({
       // 准备订单数据
       const orderData = {
         orderType: 'reward', // 订单类型：悬赏
+        campus: this.data.campus || '白沙校区',
         helpLocation: this.data.helpLocation,
         helpContent: this.data.helpContent.trim(),
         category: this.data.selectedCategory,

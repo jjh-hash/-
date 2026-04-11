@@ -7,6 +7,23 @@ cloud.init({
 
 const db = cloud.database();
 
+/** 与 users / stores 文档一致：白沙校区、金水校区；兼容历史入参 baisha、jinshui */
+function normalizeCampus(campus) {
+  if (campus == null || campus === '') return '';
+  const s = String(campus).trim();
+  if (s === 'baisha') return '白沙校区';
+  if (s === 'jinshui') return '金水校区';
+  return s;
+}
+
+const CAMPUS_ALLOWED = ['白沙校区', '金水校区'];
+
+/** 未识别或非白名单校区时返回 null，禁止退化为「不按校区查全量店铺」 */
+function resolveCampusStrict(raw) {
+  const n = normalizeCampus(raw);
+  return CAMPUS_ALLOWED.includes(n) ? n : null;
+}
+
 // 生产环境不输出 log/warn，减少占用；error 保留便于排查
 const isDev = process.env.NODE_ENV !== 'production';
 const log = {
@@ -17,11 +34,20 @@ const log = {
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
-  const { page = 1, pageSize = 20, keyword, storeCategory } = event;
+  const { page = 1, pageSize = 20, keyword, storeCategory, campus: rawCampus } = event;
+  const campus = resolveCampusStrict(rawCampus);
 
-  log.log('【获取商家列表】参数:', { page, pageSize, keyword, storeCategory });
+  log.log('【获取商家列表】参数:', { page, pageSize, keyword, storeCategory, campus: campus || '(无效或未传，返回空)' });
   
   try {
+    if (!campus) {
+      return {
+        code: 200,
+        message: 'ok',
+        data: { list: [], total: 0, page, pageSize }
+      };
+    }
+
     // 1. 先查询已审核的商家（merchants集合）
     const merchantsResult = await db.collection('merchants')
       .where({
@@ -82,8 +108,26 @@ exports.main = async (event, context) => {
     if (keyword) {
       storeWhereCondition.name = db.RegExp({ regexp: keyword, options: 'i' });
     }
+
+    /**
+     * 校区：金水仅显式 campus===金水校区；白沙含「白沙校区」及历史无 campus/空串（库里常无此字段）
+     */
+    const cmd = db.command;
+    if (campus === '金水校区') {
+      storeWhereCondition.campus = '金水校区';
+    } else {
+      storeWhereCondition = cmd.and([
+        storeWhereCondition,
+        cmd.or([
+          { campus: '白沙校区' },
+          { campus: cmd.exists(false) },
+          { campus: '' },
+          { campus: null }
+        ])
+      ]);
+    }
     
-    log.log('【获取商家列表】店铺查询条件:', JSON.stringify(storeWhereCondition));
+    log.log('【获取商家列表】店铺查询条件 campus:', campus);
     log.log('【获取商家列表】筛选分类:', storeCategory);
     
     // 4. 查询店铺列表（只返回必要字段，减少数据传输）

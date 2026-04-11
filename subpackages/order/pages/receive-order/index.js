@@ -34,6 +34,16 @@ Page({
 
   onLoad(options) {
     this._pendingOrderId = options.orderId || null;
+    let c = '';
+    try {
+      c = wx.getStorageSync('homeCurrentCampus');
+    } catch (e) {}
+    if (c !== '金水校区' && c !== '白沙校区') {
+      const u = wx.getStorageSync('userInfo') || {};
+      if (u.campus === '金水校区' || u.campus === '白沙校区') c = u.campus;
+      else c = '白沙校区';
+    }
+    this._receiveOrderCampus = c;
     this.getCurrentUserOpenid();
     this.loadOrders();
   },
@@ -83,6 +93,10 @@ Page({
   },
 
   onShow() {
+    try {
+      const c = wx.getStorageSync('homeCurrentCampus');
+      if (c === '金水校区' || c === '白沙校区') this._receiveOrderCampus = c;
+    } catch (e) {}
     this.getCurrentUserOpenid();
     this.updateCurrentTime();
     this.checkAndCancelExpiredOrders();
@@ -193,7 +207,8 @@ Page({
           action: 'getReceiveOrders',
           data: {
             page: page,
-            pageSize: pageSize
+            pageSize: pageSize,
+            campus: this._receiveOrderCampus || '白沙校区'
           }
         }
       });

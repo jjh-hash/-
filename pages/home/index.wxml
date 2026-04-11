@@ -58,11 +58,32 @@
       </view>
     </view>
 
-    <!-- 常用服务（卡片式布局） -->
+    <!-- 常用服务（卡片式布局）：标题与校区切换同一行，校区右对齐 -->
     <view class="section service-section">
-      <view class="section-title">
-        <text class="section-dot section-dot-red"></text>
-        <text>常用服务</text>
+      <view class="service-section-header">
+        <view class="section-title service-section-title">
+          <text class="section-dot section-dot-red"></text>
+          <text>常用服务</text>
+        </view>
+        <view class="campus-switch">
+          <view class="campus-switch-label">校区</view>
+          <view class="campus-switch-buttons">
+            <view 
+              class="campus-switch-btn {{currentCampus === '白沙校区' ? 'active' : ''}}" 
+              bindtap="onCampusChange" 
+              data-campus="白沙校区"
+            >
+              白沙校区
+            </view>
+            <view 
+              class="campus-switch-btn {{currentCampus === '金水校区' ? 'active' : ''}}" 
+              bindtap="onCampusChange" 
+              data-campus="金水校区"
+            >
+              金水校区
+            </view>
+          </view>
+        </view>
       </view>
       <view class="service-cards">
         <view class="service-row">
