@@ -1,3 +1,5 @@
+const { shouldIgnoreChooseAvatarDetail } = require('../../../../utils/chooseAvatarGuard');
+
 Page({
   data: {
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -67,10 +69,9 @@ Page({
    * 选择头像（头像昵称填写能力）
    */
   onChooseAvatar(e) {
+    if (shouldIgnoreChooseAvatarDetail(e.detail)) return;
     const { avatarUrl } = e.detail;
     console.log('选择微信头像:', avatarUrl);
-    
-    // 下载微信头像并上传到云存储
     this.downloadAndUploadAvatar(avatarUrl);
   },
 
@@ -136,14 +137,7 @@ Page({
     
     console.log('开始处理头像URL:', url);
     
-    // 检查URL格式
-    if (!url || url.trim() === '') {
-      wx.showToast({
-        title: '头像URL无效',
-        icon: 'none'
-      });
-      return;
-    }
+    if (!url || (typeof url === 'string' && url.trim() === '')) return;
 
     // 如果已经是临时文件路径，直接上传
     if (url.startsWith('http://tmp/') || url.startsWith('wxfile://')) {
