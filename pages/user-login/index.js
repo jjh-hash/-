@@ -1,4 +1,5 @@
 const { runLoginAndCampus } = require('../../utils/studentLoginFlow');
+const { navigateAfterStudentLogin } = require('../../utils/afterStudentLoginNavigate');
 
 Page({
   data: {
@@ -47,7 +48,7 @@ Page({
     this.setData({ logging: false });
     if (result.ok && result.userInfo) {
       this._leaveWithoutProfileGate = true;
-      wx.switchTab({ url: '/pages/home/index' });
+      navigateAfterStudentLogin(result);
       return;
     }
     if (result.code === 'needCampus' && result.userInfo) {

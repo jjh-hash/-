@@ -151,11 +151,35 @@ exports.main = async (event, context) => {
       log.warn('登录日志记录失败:', error);
     }
 
+    /** 同一微信：是否可进商家端 / 骑手端（供登录后选择入口） */
+    let hasMerchantPortal = false;
+    let hasRiderPortal = false;
+    try {
+      const [mDoc, rDoc] = await Promise.all([
+        db.collection('merchants').where({ openid: OPENID }).limit(1).get(),
+        db.collection('riders').where({ openid: OPENID }).limit(1).get()
+      ]);
+      hasMerchantPortal = !!(mDoc.data && mDoc.data.length > 0);
+      hasRiderPortal = !!(rDoc.data && rDoc.data.length > 0);
+    } catch (e) {
+      log.warn('portal 检测 merchants/riders 失败', e);
+    }
+    if (!hasRiderPortal) {
+      try {
+        const ord = await db.collection('orders').where({ riderOpenid: OPENID }).limit(1).get();
+        hasRiderPortal = !!(ord.data && ord.data.length > 0);
+      } catch (e) {
+        log.warn('portal 检测 rider 订单失败', e);
+      }
+    }
+
     // 7. 返回登录结果
     return {
       code: 0,
       message: '登录成功',
       data: {
+        hasMerchantPortal,
+        hasRiderPortal,
         userInfo: {
           _id: userInfo._id,
           openid: userInfo.openid,
