@@ -25,6 +25,8 @@ function categoryCacheKey(campus, catKey) {
   return `category_cache_${campus || CAMPUS_BAISHA}_${catKey}`;
 }
 const FIRST_SCREEN_ITEMS_PER_COL = 4;
+/** 曾为底部固定校区条预留的像素；校区已回到「常用服务」行后恒为 0。保留常量可避免旧合并/缓存仍引用时出现 ReferenceError。 */
+const CAMPUS_DOCK_LAYOUT_PX = 0;
 
 // 带超时的云函数调用
 function callFunctionWithTimeout(options, timeout = 10000) {
@@ -109,7 +111,7 @@ Page({
       const raw = res && res.size && res.size.windowHeight;
       const h = Number(raw);
       if (Number.isFinite(h) && h >= 360) {
-        this.setData({ scrollViewHeight: h });
+        this.setData({ scrollViewHeight: Math.max(360, h - CAMPUS_DOCK_LAYOUT_PX) });
       }
     };
     try {
@@ -194,7 +196,7 @@ Page({
     }
     this.setData({
       statusBarHeight: bar,
-      scrollViewHeight: Math.max(MIN_H, h)
+      scrollViewHeight: Math.max(MIN_H, h - CAMPUS_DOCK_LAYOUT_PX)
     });
   },
 
