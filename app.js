@@ -276,7 +276,7 @@ App({
   async promptCampusAfterLoginIfMissing(userInfo) {
     const { normalizeHomeCampus, writeHomeCurrentCampus, CAMPUS_BAISHA, CAMPUS_JINSHUI } = require('./utils/homeCampusStorage');
     let current = userInfo;
-    while (true) {
+    for (let loopGuard = 0; loopGuard < 32; loopGuard++) {
       if (normalizeHomeCampus(current && current.campus)) {
         writeHomeCurrentCampus(current.campus);
         return current;
@@ -304,6 +304,8 @@ App({
         current = this.globalData.userInfo || current;
         continue;
       }
+      // iOS 等机型：ActionSheet 关闭后立即 showModal 可能不弹出，短暂延迟
+      await new Promise((resolve) => setTimeout(resolve, 300));
       const retry = await new Promise((resolve) => {
         wx.showModal({
           title: '完善校区信息',
@@ -319,6 +321,8 @@ App({
         return current;
       }
     }
+    wx.showToast({ title: '请稍后在「我的」页补选校区', icon: 'none' });
+    return current;
   },
 
   /**

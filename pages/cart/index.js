@@ -97,7 +97,7 @@ Page({
     if (!getApp().ensureLogin('请先登录后再下单')) return;
     const tradeGate = campusTradeGuard.canTransactInCurrentBrowseCampus();
     if (!tradeGate.ok) {
-      wx.showToast({ title: tradeGate.message, icon: 'none' });
+      campusTradeGuard.showTransactBlockedToast(tradeGate);
       return;
     }
     wx.setStorageSync('unifiedCheckoutCart', this.data.storeList);
@@ -202,7 +202,7 @@ Page({
     if (!getApp().ensureLogin('请先登录后再下单')) return;
     const tradeGate = campusTradeGuard.canTransactInCurrentBrowseCampus();
     if (!tradeGate.ok) {
-      wx.showToast({ title: tradeGate.message, icon: 'none' });
+      campusTradeGuard.showTransactBlockedToast(tradeGate);
       return;
     }
 

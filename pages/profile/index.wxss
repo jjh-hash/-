@@ -2,7 +2,10 @@
 .profile-page {
   background: linear-gradient(180deg, var(--color-primary) 0%, #E5A500 100%);
   min-height: 100vh;
+  /* 兼容刘海屏/手势条：先保底 100px，再叠加安全区（不支持 calc 的机型仍保留保底） */
   padding-bottom: 100px;
+  padding-bottom: calc(100px + constant(safe-area-inset-bottom));
+  padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
   max-width: 100%;
   overflow-x: hidden;
@@ -43,6 +46,8 @@
   color: #fff;
   font-size: 13px;
   line-height: 1.45;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .avatar { margin-right: 18px; flex-shrink: 0; }
 .avatar-img {

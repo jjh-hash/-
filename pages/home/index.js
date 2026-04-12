@@ -13,6 +13,7 @@ const {
   writeHomeCurrentCampus,
   STORAGE_KEY
 } = require('../../utils/homeCampusStorage');
+const campusTradeGuard = require('../../utils/campusTradeGuard');
 
 function cacheKeyProducts(campus) {
   return `home_products_cache_${campus || CAMPUS_BAISHA}`;
@@ -763,15 +764,17 @@ Page({
     if (campus === this.data.currentCampus) return;
 
     try {
-      const u = wx.getStorageSync('userInfo');
-      const bound = normalizeHomeCampus(u && u.campus);
+      const bound = campusTradeGuard.getUserBoundCampus();
       if (bound && campus !== bound) {
-        wx.showModal({
-          title: '温馨提示',
-          content: '请在您所对应的校区购买商品。您可以浏览其他校区，但需在本人所属校区下单。',
-          showCancel: false,
-          confirmText: '知道了'
-        });
+        // 延后一帧再弹窗，减少部分 Android 上与点击/渲染抢焦点导致的弹窗异常
+        setTimeout(() => {
+          wx.showModal({
+            title: '温馨提示',
+            content: '请在您所对应的校区购买商品。您可以浏览其他校区，但需在本人所属校区下单。',
+            showCancel: false,
+            confirmText: '知道了'
+          });
+        }, 120);
       }
     } catch (err) {
       log.warn('【首页】校区提示', err);

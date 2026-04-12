@@ -1322,7 +1322,7 @@ this.calculateCartTotal();
 
     const tradeGate = campusTradeGuard.canTransactInCurrentBrowseCampus();
     if (!tradeGate.ok) {
-      wx.showToast({ title: tradeGate.message, icon: 'none' });
+      campusTradeGuard.showTransactBlockedToast(tradeGate);
       return;
     }
 
