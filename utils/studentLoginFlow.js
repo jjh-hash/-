@@ -20,6 +20,13 @@ function pickCampusActionSheet() {
   });
 }
 
+function portalsFrom(loginRes) {
+  return {
+    hasMerchantPortal: !!(loginRes && loginRes.hasMerchantPortal),
+    hasRiderPortal: !!(loginRes && loginRes.hasRiderPortal)
+  };
+}
+
 /** @param {any} app getApp() */
 async function runLoginAndCampus(app) {
   wx.showLoading({ title: '登录中...', mask: true });
@@ -33,24 +40,26 @@ async function runLoginAndCampus(app) {
         message: (res && res.error) || '登录失败，请重试'
       };
     }
+    let portalMeta = portalsFrom(res);
     let userInfo = res.userInfo;
     const existing = normalizeHomeCampus(userInfo.campus);
     if (!existing) {
       const picked = await pickCampusActionSheet();
       if (!picked) {
-        return { ok: false, code: 'needCampus', userInfo };
+        return Object.assign({ ok: false, code: 'needCampus', userInfo }, portalMeta);
       }
       wx.showLoading({ title: '保存校区...', mask: true });
       try {
         const r2 = await app.loginUser({ campus: picked });
         wx.hideLoading();
         if (!r2 || !r2.success || !r2.userInfo) {
-          return { ok: false, code: 'campusSave', userInfo };
+          return Object.assign({ ok: false, code: 'campusSave', userInfo }, portalMeta);
         }
         userInfo = r2.userInfo;
+        portalMeta = portalsFrom(r2);
       } catch (e) {
         wx.hideLoading();
-        return { ok: false, code: 'campusSave', userInfo };
+        return Object.assign({ ok: false, code: 'campusSave', userInfo }, portalMeta);
       }
     } else {
       await new Promise((r) => setTimeout(r, 200));
@@ -67,29 +76,30 @@ async function runLoginAndCampus(app) {
       });
       if (!wantChange) {
         writeHomeCurrentCampus(existing);
-        return { ok: true, userInfo };
+        return Object.assign({ ok: true, userInfo }, portalMeta);
       }
       const picked = await pickCampusActionSheet();
       if (!picked) {
         writeHomeCurrentCampus(existing);
-        return { ok: true, userInfo };
+        return Object.assign({ ok: true, userInfo }, portalMeta);
       }
       wx.showLoading({ title: '保存校区...', mask: true });
       try {
         const r2 = await app.loginUser({ campus: picked });
         wx.hideLoading();
         if (!r2 || !r2.success || !r2.userInfo) {
-          return { ok: false, code: 'campusSave', userInfo };
+          return Object.assign({ ok: false, code: 'campusSave', userInfo }, portalMeta);
         }
         userInfo = r2.userInfo;
+        portalMeta = portalsFrom(r2);
       } catch (e) {
         wx.hideLoading();
-        return { ok: false, code: 'campusSave', userInfo };
+        return Object.assign({ ok: false, code: 'campusSave', userInfo }, portalMeta);
       }
     }
     const c = normalizeHomeCampus(userInfo.campus);
     if (c) writeHomeCurrentCampus(c);
-    return { ok: true, userInfo };
+    return Object.assign({ ok: true, userInfo }, portalMeta);
   } catch (e) {
     wx.hideLoading();
     return { ok: false, code: 'exception', message: '登录失败，请重试' };

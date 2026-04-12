@@ -155,7 +155,13 @@ App({
         console.log('云函数返回结果:', result.result);
         
         if (result.result.code === 0) {
-          const { userInfo, token, isNewUser } = result.result.data;
+          const {
+            userInfo,
+            token,
+            isNewUser,
+            hasMerchantPortal = false,
+            hasRiderPortal = false
+          } = result.result.data;
           
           // 3. 保存用户信息到本地存储
           wx.setStorageSync('userInfo', userInfo);
@@ -181,7 +187,9 @@ App({
           return {
             success: true,
             userInfo: userInfo,
-            isNewUser: isNewUser
+            isNewUser: isNewUser,
+            hasMerchantPortal: !!hasMerchantPortal,
+            hasRiderPortal: !!hasRiderPortal
           };
         } else {
           console.error('云函数返回错误:', result.result);

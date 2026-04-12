@@ -10,6 +10,7 @@ const {
   writeHomeCurrentCampus
 } = require('../../utils/homeCampusStorage');
 const studentLoginFlow = require('../../utils/studentLoginFlow');
+const { navigateAfterStudentLogin } = require('../../utils/afterStudentLoginNavigate');
 
 Page({
   data: {
@@ -332,7 +333,7 @@ Page({
             userInfo: result.userInfo,
             needsCampusSetup: false
           });
-          wx.switchTab({ url: '/pages/home/index' });
+          navigateAfterStudentLogin(result);
           return;
         }
         if (result.code === 'needCampus' && result.userInfo) {

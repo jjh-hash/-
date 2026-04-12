@@ -2,7 +2,7 @@
   <view class="status-bar-spacer" style="height: {{statusBarHeight}}px;"></view>
   <view class="hero">
     <text class="title">校园外卖</text>
-    <text class="sub">登录后可下单、查看订单与个人中心；登记校区后仍可在首页自由切换浏览各校区</text>
+    <text class="sub">登录后可下单、查看订单与个人中心；登记校区后仍可在首页自由切换浏览各校区。若同时注册商家或骑手，登录成功后将选择进入用户端、商家端或骑手端</text>
   </view>
   <view class="actions">
     <button class="btn-primary" type="default" loading="{{logging}}" disabled="{{logging}}" bindtap="onTapWeixinLogin">微信一键登录</button>
