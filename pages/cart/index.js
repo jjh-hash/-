@@ -7,7 +7,37 @@ const {
   STORAGE_KEY
 } = require('../../utils/homeCampusStorage');
 
-const TAB_BAR_HEIGHT = 50; // 底部 tabBar 高度（px）
+const MIN_SCROLL_H = 200;
+
+/**
+ * 购物车 tab 页可视高度：优先 wx.getWindowInfo（新 API，分屏/折叠更准），
+ * 带原生 tabBar 时 windowHeight 一般已不含底部 tab，只减本页 status-bar 占位，避免再减 50 导致双扣。
+ */
+function computeCartPageMetrics() {
+  let bar = 20;
+  let windowH = 0;
+  try {
+    const win = wx.getWindowInfo && wx.getWindowInfo();
+    if (win) {
+      bar = Number(win.statusBarHeight) || 20;
+      windowH = Number(win.windowHeight) || 0;
+    }
+  } catch (e) {}
+  if (windowH < MIN_SCROLL_H) {
+    try {
+      const sys = wx.getSystemInfoSync();
+      bar = Number(sys.statusBarHeight) || bar;
+      windowH = Number(sys.windowHeight) || Number(sys.screenHeight) || 0;
+    } catch (e2) {
+      windowH = 0;
+    }
+  }
+  if (windowH < MIN_SCROLL_H) {
+    windowH = 667;
+  }
+  const scrollHeight = Math.max(MIN_SCROLL_H, Math.floor(windowH - bar));
+  return { statusBarHeight: bar, scrollHeight };
+}
 
 /** 与首页一致：仅白沙 / 金水，缺省白沙 */
 function readCurrentCampus() {
@@ -47,16 +77,37 @@ Page({
 
   onLoad() {
     const campus = readCurrentCampus();
-    const sys = wx.getSystemInfoSync();
-    const statusBar = (wx.getWindowInfo && wx.getWindowInfo().statusBarHeight) || sys.statusBarHeight || 20;
-    const winH = sys.windowHeight || 500;
-    const scrollH = Math.max(200, winH - statusBar - TAB_BAR_HEIGHT);
-    this.setData({ scrollHeight: scrollH, currentCampus: campus });
+    const m = computeCartPageMetrics();
+    this.setData({
+      scrollHeight: m.scrollHeight,
+      statusBarHeight: m.statusBarHeight,
+      currentCampus: campus
+    });
+    this._onCartWindowResize = () => {
+      const next = computeCartPageMetrics();
+      this.setData({ scrollHeight: next.scrollHeight, statusBarHeight: next.statusBarHeight });
+    };
+    try {
+      if (wx.onWindowResize) wx.onWindowResize(this._onCartWindowResize);
+    } catch (e) {}
   },
 
   onShow() {
-    this.setData({ currentCampus: readCurrentCampus() });
+    const m = computeCartPageMetrics();
+    this.setData({
+      currentCampus: readCurrentCampus(),
+      scrollHeight: m.scrollHeight,
+      statusBarHeight: m.statusBarHeight
+    });
     this.loadCart();
+  },
+
+  onUnload() {
+    try {
+      if (wx.offWindowResize && this._onCartWindowResize) {
+        wx.offWindowResize(this._onCartWindowResize);
+      }
+    } catch (e) {}
   },
 
   /** 从本地全局购物车读取并按店组装列表 */

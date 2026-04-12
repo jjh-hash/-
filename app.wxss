@@ -41,6 +41,7 @@ page {
   text-overflow: ellipsis;
 }
 .safe-area-bottom {
+  height: calc(60px + constant(safe-area-inset-bottom));
   height: calc(60px + env(safe-area-inset-bottom));
 }
 

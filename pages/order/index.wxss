@@ -23,8 +23,9 @@
   box-sizing: border-box;
 }
 
-/* 胶囊行 + 与 app 一致的 tab 占位 */
+/* 胶囊行 + 与 app 一致的 tab 占位；constant 兼容旧 iOS */
 .order-scroll-bottom-spacer {
+  height: calc(36px + 60px + constant(safe-area-inset-bottom));
   height: calc(36px + 60px + env(safe-area-inset-bottom));
 }
 
@@ -32,6 +33,7 @@
   position: fixed;
   left: 0;
   right: 0;
+  bottom: calc(42px + constant(safe-area-inset-bottom));
   bottom: calc(42px + env(safe-area-inset-bottom));
   transform: translateY(24px);
   z-index: 99;

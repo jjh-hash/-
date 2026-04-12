@@ -245,7 +245,9 @@ scroll-view.content {
   opacity: 0.9;
 }
 
+/* iOS 11 等需 constant()，新系统用 env() */
 .safe-bottom {
+  height: calc(16px + constant(safe-area-inset-bottom));
   height: calc(16px + env(safe-area-inset-bottom));
 }
 
