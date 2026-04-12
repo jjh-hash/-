@@ -105,7 +105,9 @@ App({
     userToken: null,
     lastAnnouncementShowTime: 0, // 上次显示公告的时间
     isLoggedIn: false,
-    prefetchedStoreDetail: {} // { storeId: Promise<result> } 供店铺详情页提前请求使用
+    prefetchedStoreDetail: {}, // { storeId: Promise<result> } 供店铺详情页提前请求使用
+    /** 从登录页返回未登录时，避免「我的」onShow 反复 navigateTo 登录页 */
+    _fromUserLoginPageBack: false
   },
 
   /**

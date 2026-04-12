@@ -7,10 +7,9 @@ try {
 
 const {
   normalizeHomeCampus,
-  writeHomeCurrentCampus,
-  CAMPUS_BAISHA,
-  CAMPUS_JINSHUI
+  writeHomeCurrentCampus
 } = require('../../utils/homeCampusStorage');
+const studentLoginFlow = require('../../utils/studentLoginFlow');
 
 Page({
   data: {
@@ -36,6 +35,30 @@ Page({
   },
 
   onShow() {
+    const app = getApp();
+    const logged = (() => {
+      try {
+        const t = wx.getStorageSync('userToken');
+        if (!t) return false;
+        const u = wx.getStorageSync('userInfo');
+        return !!(u && u.openid);
+      } catch (e) {
+        return false;
+      }
+    })();
+    if (!logged) {
+      if (app.globalData._fromUserLoginPageBack) {
+        app.globalData._fromUserLoginPageBack = false;
+      } else {
+        wx.navigateTo({
+          url: '/pages/user-login/index',
+          fail: (err) => {
+            console.error('跳转登录页失败:', err);
+          }
+        });
+        return;
+      }
+    }
     this.buildMenuSections();
     this.loadUserInfo();
   },
@@ -236,13 +259,17 @@ Page({
               app.globalData.userToken = null;
               app.globalData.isLoggedIn = false;
               app.globalData.openid = null;
+              app.globalData._fromUserLoginPageBack = false;
               wx.showToast({
                 title: '已退出登录',
                 icon: 'success',
                 duration: 2000
               });
-              // 刷新页面，显示默认用户信息
               this.loadUserInfo();
+              wx.navigateTo({
+                url: '/pages/user-login/index',
+                fail: () => {}
+              });
             }
           }
         });
@@ -261,13 +288,7 @@ Page({
   },
 
   _pickCampusActionSheet() {
-    return new Promise((resolve) => {
-      wx.showActionSheet({
-        itemList: [CAMPUS_BAISHA, CAMPUS_JINSHUI],
-        success: (r) => resolve(r.tapIndex === 0 ? CAMPUS_BAISHA : CAMPUS_JINSHUI),
-        fail: () => resolve('')
-      });
-    });
+    return studentLoginFlow.pickCampusActionSheet();
   },
 
   /** 已登录但未登记校区：点击提示条补选 */
@@ -303,49 +324,41 @@ Page({
   async editUserInfo() {
     if (!this.data.isLoggedIn) {
       const app = getApp();
-      wx.showLoading({
-        title: '登录中...',
-        mask: true
-      });
       try {
-        const res = await app.loginUser();
-        wx.hideLoading();
-        if (!res || !res.success || !res.userInfo) {
-          wx.showToast({
-            title: (res && res.error) || '登录失败，请重试',
-            icon: 'none'
+        const result = await studentLoginFlow.runLoginAndCampus(app);
+        if (result.ok && result.userInfo) {
+          this.setData({
+            isLoggedIn: true,
+            userInfo: result.userInfo,
+            needsCampusSetup: false
+          });
+          wx.switchTab({ url: '/pages/home/index' });
+          return;
+        }
+        if (result.code === 'needCampus' && result.userInfo) {
+          wx.showToast({ title: '请选择所属校区后再进入首页', icon: 'none' });
+          this.setData({
+            isLoggedIn: true,
+            userInfo: result.userInfo,
+            needsCampusSetup: true
           });
           return;
         }
-        let userInfo = res.userInfo;
-        if (!normalizeHomeCampus(userInfo.campus)) {
-          const picked = await this._pickCampusActionSheet();
-          if (!picked) {
-            wx.showToast({ title: '请选择所属校区后再进入首页', icon: 'none' });
-            this.setData({ isLoggedIn: true, userInfo, needsCampusSetup: true });
-            return;
-          }
-          wx.showLoading({ title: '保存校区...', mask: true });
-          const r2 = await app.loginUser({ campus: picked });
-          wx.hideLoading();
-          if (!r2 || !r2.success || !r2.userInfo) {
-            wx.showToast({ title: '保存校区失败，请重试', icon: 'none' });
-            this.setData({ isLoggedIn: true, userInfo, needsCampusSetup: true });
-            return;
-          }
-          userInfo = r2.userInfo;
+        if (result.code === 'campusSave' && result.userInfo) {
+          wx.showToast({ title: '保存校区失败，请重试', icon: 'none' });
+          this.setData({
+            isLoggedIn: true,
+            userInfo: result.userInfo,
+            needsCampusSetup: true
+          });
+          return;
         }
-        const c = normalizeHomeCampus(userInfo.campus);
-        if (c) writeHomeCurrentCampus(c);
-        this.setData({ isLoggedIn: true, userInfo, needsCampusSetup: false });
-        wx.switchTab({ url: '/pages/home/index' });
+        if (result.message) {
+          wx.showToast({ title: result.message, icon: 'none' });
+        }
       } catch (e) {
-        wx.hideLoading();
         console.error('我的页登录失败:', e);
-        wx.showToast({
-          title: '登录失败，请重试',
-          icon: 'none'
-        });
+        wx.showToast({ title: '登录失败，请重试', icon: 'none' });
       }
       return;
     }
