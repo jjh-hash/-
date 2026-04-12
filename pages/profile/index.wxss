@@ -24,7 +24,25 @@
   padding: 20px var(--space-page) 28px;
   padding-top: 24px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+}
+.profile-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+.campus-tip {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.campus-tip-text {
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.45;
 }
 .avatar { margin-right: 18px; flex-shrink: 0; }
 .avatar-img {

@@ -1,11 +1,42 @@
+const { normalizeHomeCampus, STORAGE_KEY, CAMPUS_BAISHA } = require('../../../../utils/homeCampusStorage');
+
 Page({
   data:{
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
+    registerCampus: CAMPUS_BAISHA,
     shopName: '',
     inviteCode: '',
     account: '',
     password: '',
     confirmPassword: ''
+  },
+
+  onLoad(options) {
+    this.applyRegisterCampusFromOptions(options);
+  },
+
+  onShow() {
+    if (this._campusLockedFromUrl) return;
+    this.applyRegisterCampusFromOptions({});
+  },
+
+  applyRegisterCampusFromOptions(options) {
+    let c = '';
+    if (options && options.campus) {
+      try {
+        c = decodeURIComponent(options.campus);
+      } catch (e) {
+        c = options.campus;
+      }
+    }
+    const fromUrl = normalizeHomeCampus(c);
+    const fromStorage = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
+    const campus = fromUrl || fromStorage || CAMPUS_BAISHA;
+    if (fromUrl) {
+      this._campusLockedFromUrl = true;
+    }
+    this._registerCampus = campus;
+    this.setData({ registerCampus: campus });
   },
   
   onNameInput(e){ 
@@ -218,13 +249,15 @@ Page({
     wx.showLoading({ title: '注册中...' });
     
     try {
+      const campus = this._registerCampus || normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY)) || CAMPUS_BAISHA;
       const res = await wx.cloud.callFunction({
         name: 'merchantRegister',
         data: {
           shopName: this.data.shopName.trim(),
           inviteCode: this.data.inviteCode.trim(),
           account: this.data.account.trim(),
-          password: this.data.password.trim()
+          password: this.data.password.trim(),
+          campus
         }
       });
       

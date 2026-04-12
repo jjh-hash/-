@@ -1,5 +1,6 @@
 // 主包购物车 Tab 页：读取全局购物车，按店展示，支持改数量、删除、去结算、去店铺
 const cartUtil = require('../../utils/cart.js');
+const campusTradeGuard = require('../../utils/campusTradeGuard');
 
 const TAB_BAR_HEIGHT = 50; // 底部 tabBar 高度（px）
 
@@ -94,6 +95,11 @@ Page({
   onUnifiedPay() {
     if (this.data.isEmpty) return;
     if (!getApp().ensureLogin('请先登录后再下单')) return;
+    const tradeGate = campusTradeGuard.canTransactInCurrentBrowseCampus();
+    if (!tradeGate.ok) {
+      wx.showToast({ title: tradeGate.message, icon: 'none' });
+      return;
+    }
     wx.setStorageSync('unifiedCheckoutCart', this.data.storeList);
     wx.navigateTo({
       url: '/subpackages/store/pages/unified-checkout/index'
@@ -194,6 +200,11 @@ Page({
 
     const storeId = store.storeId || (store.storeInfo && (store.storeInfo._id || store.storeInfo.storeId));
     if (!getApp().ensureLogin('请先登录后再下单')) return;
+    const tradeGate = campusTradeGuard.canTransactInCurrentBrowseCampus();
+    if (!tradeGate.ok) {
+      wx.showToast({ title: tradeGate.message, icon: 'none' });
+      return;
+    }
 
     const cartData = {
       cartItems: store.items,

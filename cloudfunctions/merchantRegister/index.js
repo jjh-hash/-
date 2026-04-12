@@ -8,11 +8,28 @@ cloud.init({
 
 const db = cloud.database();
 
+const CAMPUS_BAISHA = '白沙校区';
+const CAMPUS_JINSHUI = '金水校区';
+
+/** 注册时写入 merchants / users / 后续 stores；与首页 homeCurrentCampus 一致 */
+function normalizeRegisterCampus(raw) {
+  if (raw == null || raw === '') return '';
+  const s = String(raw).trim();
+  if (s === 'baisha') return CAMPUS_BAISHA;
+  if (s === 'jinshui') return CAMPUS_JINSHUI;
+  if (s === CAMPUS_BAISHA || s === CAMPUS_JINSHUI) return s;
+  return '';
+}
+
 exports.main = async (event, context) => {
   console.log('商家注册请求:', event);
   
   try {
-    const { shopName, inviteCode, account, password } = event;
+    const { shopName, inviteCode, account, password, campus: rawCampus } = event;
+    let campusNorm = normalizeRegisterCampus(rawCampus);
+    if (!campusNorm) {
+      campusNorm = CAMPUS_BAISHA;
+    }
     
     // 1. 基础验证
     if (!shopName || !shopName.trim()) {
@@ -141,6 +158,7 @@ exports.main = async (event, context) => {
         data: {
           role: 'merchant',
           merchantName: shopName.trim(),
+          campus: campusNorm,
           updatedAt: db.serverDate()
         }
       });
@@ -155,7 +173,7 @@ exports.main = async (event, context) => {
           avatar: '',
           phone: '',
           email: '',
-          campus: '',
+          campus: campusNorm,
           role: 'merchant',
           merchantName: shopName.trim(),
           status: 'active',
@@ -179,6 +197,7 @@ exports.main = async (event, context) => {
         account: account.trim(),
         password: passwordHash, // 存储加密后的密码
         contactPhone: '',
+        campus: campusNorm,
         role: 'owner',
         status: 'pending',
         inviteCodeId: inviteCodeData._id,

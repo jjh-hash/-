@@ -7,6 +7,18 @@ cloud.init({
 
 const db = cloud.database();
 
+const CAMPUS_BAISHA = '白沙校区';
+const CAMPUS_JINSHUI = '金水校区';
+
+function normalizeUserCampusInput(raw) {
+  if (raw === undefined || raw === null) return '';
+  const s = String(raw).trim();
+  if (s === CAMPUS_BAISHA || s === CAMPUS_JINSHUI) return s;
+  if (s === 'baisha') return CAMPUS_BAISHA;
+  if (s === 'jinshui') return CAMPUS_JINSHUI;
+  return '';
+}
+
 const isDev = process.env.NODE_ENV !== 'production';
 const log = {
   log: isDev ? (...a) => console.log(...a) : () => {},
@@ -18,7 +30,8 @@ exports.main = async (event, context) => {
   log.log('登录请求参数:', event);
   
   try {
-    const { code } = event;
+    const { code, campus: rawCampus } = event;
+    const campusToSave = normalizeUserCampusInput(rawCampus);
     
     // 1. 参数验证
     if (!code) {
@@ -67,11 +80,16 @@ exports.main = async (event, context) => {
         // 用户已存在，更新最后登录时间
         userInfo = userQuery.data[0];
         
+        const updateData = {
+          lastLoginAt: db.serverDate(),
+          updatedAt: db.serverDate()
+        };
+        if (campusToSave) {
+          updateData.campus = campusToSave;
+          userInfo.campus = campusToSave;
+        }
         await db.collection('users').doc(userInfo._id).update({
-          data: {
-            lastLoginAt: db.serverDate(),
-            updatedAt: db.serverDate()
-          }
+          data: updateData
         });
         
         log.log('用户已存在，更新登录时间:', userInfo.nickname);
@@ -86,7 +104,7 @@ exports.main = async (event, context) => {
           avatar: '/pages/小标/我的.png',
           phone: '',
           email: '',
-          campus: '',
+          campus: campusToSave || '',
           role: 'user',
           status: 'active',
           createdAt: db.serverDate(),

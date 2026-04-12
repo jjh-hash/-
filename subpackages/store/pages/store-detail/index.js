@@ -1,6 +1,7 @@
 const log = require('../../../../utils/logger.js');
 const cartUtil = require('../../../../utils/cart.js');
 const cloudImages = require('../../../../config/cloudImages.js');
+const campusTradeGuard = require('../../../../utils/campusTradeGuard');
 
 Page({
   data: {
@@ -1318,6 +1319,12 @@ this.calculateCartTotal();
     }
     
     if (!getApp().ensureLogin('请先登录后再下单')) return;
+
+    const tradeGate = campusTradeGuard.canTransactInCurrentBrowseCampus();
+    if (!tradeGate.ok) {
+      wx.showToast({ title: tradeGate.message, icon: 'none' });
+      return;
+    }
 
     log.log('【店铺详情】准备跳转到结算页面');
     log.log('【店铺详情】当前storeInfo:', this.data.storeInfo);

@@ -7,6 +7,19 @@ cloud.init({
 
 const db = cloud.database();
 
+const CAMPUS_BAISHA = '白沙校区';
+const CAMPUS_JINSHUI = '金水校区';
+
+/** 新建店铺时写入 campus，与商家注册时 merchants.campus 一致（首页所选校区） */
+function campusForNewStore(merchantInfo) {
+  const c = merchantInfo && merchantInfo.campus;
+  if (c == null || c === '') return CAMPUS_BAISHA;
+  const s = String(c).trim();
+  if (s === 'jinshui' || s === CAMPUS_JINSHUI) return CAMPUS_JINSHUI;
+  if (s === 'baisha' || s === CAMPUS_BAISHA) return CAMPUS_BAISHA;
+  return CAMPUS_BAISHA;
+}
+
 /**
  * 获取平台统一配送费（元），与管理端设置一致
  */
@@ -179,6 +192,7 @@ async function getStoreInfo(openid, data) {
       const createResult = await db.collection('stores').add({
         data: {
           merchantId: merchantInfo._id,
+          campus: campusForNewStore(merchantInfo),
           name: merchantInfo.merchantName || '我的店铺',
           logoUrl: merchantInfo.avatar || '',
           avatar: merchantInfo.avatar || '', // 新增：兼容字段
@@ -341,6 +355,7 @@ async function updateStoreInfo(openid, data) {
       const createResult = await db.collection('stores').add({
         data: {
           merchantId: merchantInfo._id,
+          campus: campusForNewStore(merchantInfo),
           name: name || merchantName || '我的店铺',
           logoUrl: avatar || '',
           avatar: avatar || '',
@@ -633,6 +648,7 @@ async function updateBusinessHours(openid, data) {
       const createResult = await db.collection('stores').add({
         data: {
           merchantId: merchantInfo._id,
+          campus: campusForNewStore(merchantInfo),
           name: merchantInfo.merchantName || '我的店铺',
           logoUrl: merchantInfo.avatar || '',
           avatar: merchantInfo.avatar || '',
@@ -1245,6 +1261,7 @@ async function updateStoreAnnouncement(openid, data) {
       const createResult = await db.collection('stores').add({
         data: {
           merchantId: merchantInfo._id,
+          campus: campusForNewStore(merchantInfo),
           name: merchantInfo.merchantName || '我的店铺',
           logoUrl: merchantInfo.avatar || '',
           avatar: merchantInfo.avatar || '',

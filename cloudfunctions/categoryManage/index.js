@@ -67,12 +67,16 @@ async function addCategory(openid, data) {
   if (merchantId) {
     console.log('【添加分类】使用提供的 merchantId:', merchantId);
     const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
+    if (!merchant.data) {
+      return {
+        code: 403,
+        message: '商家不存在'
+      };
     }
+    merchantInfo = merchant.data;
   }
   
-  // 如果没有提供 merchantId 或查询失败，使用 openid 查询（微信登录场景）
+  // 如果没有提供 merchantId，使用 openid 查询（微信登录场景）
   if (!merchantInfo) {
     console.log('【添加分类】使用 openid 查询商家:', openid);
     const merchant = await db.collection('merchants')
@@ -87,6 +91,12 @@ async function addCategory(openid, data) {
     }
     
     merchantInfo = merchant.data[0];
+  }
+  if (merchantInfo.openid !== openid) {
+    return {
+      code: 403,
+      message: '无权操作该商家账号'
+    };
   }
   
   let storeId = merchantInfo.storeId;
@@ -162,44 +172,44 @@ async function getCategories(openid, data) {
   
   console.log('【获取分类】解析后的参数:', { storeId, merchantId });
   
-  // 如果指定了storeId，直接使用
-  let targetStoreId = storeId;
-  
-  // 如果没有提供 storeId，通过 merchantId 或 openid 查询商家的店铺ID
-  if (!targetStoreId) {
-    let merchantInfo = null;
+  let merchantInfo = null;
+  if (merchantId) {
+    console.log('【获取分类】使用提供的 merchantId:', merchantId);
+    const merchant = await db.collection('merchants').doc(merchantId).get();
+    if (!merchant.data || merchant.data.openid !== openid) {
+      return {
+        code: 403,
+        message: '无权操作该商家账号'
+      };
+    }
+    merchantInfo = merchant.data;
+  } else {
+    console.log('【获取分类】使用 openid 查询商家:', openid);
+    const merchant = await db.collection('merchants')
+      .where({ openid })
+      .get();
     
-    // 如果提供了 merchantId，优先使用 merchantId 查询
-    if (merchantId) {
-      console.log('【获取分类】使用提供的 merchantId:', merchantId);
-      const merchant = await db.collection('merchants').doc(merchantId).get();
-      if (merchant.data) {
-        merchantInfo = merchant.data;
-      }
+    if (!merchant.data.length) {
+      console.log('【获取分类】商家不存在，返回空列表');
+      return {
+        code: 200,
+        message: 'ok',
+        data: { categories: [] }
+      };
     }
     
-    // 如果没有提供 merchantId 或查询失败，使用 openid 查询（微信登录场景）
-    if (!merchantInfo) {
-      console.log('【获取分类】使用 openid 查询商家:', openid);
-      const merchant = await db.collection('merchants')
-        .where({ openid })
-        .get();
-      
-      if (!merchant.data.length) {
-        console.log('【获取分类】商家不存在，返回空列表');
-        return {
-          code: 200,
-          message: 'ok',
-          data: { categories: [] }
-        };
-      }
-      
-      merchantInfo = merchant.data[0];
-    }
-    
-    targetStoreId = merchantInfo.storeId || merchantInfo._id;
-    console.log('【获取分类】使用店铺ID:', targetStoreId);
+    merchantInfo = merchant.data[0];
   }
+  
+  const allowedStoreId = merchantInfo.storeId || merchantInfo._id;
+  if (storeId && storeId !== allowedStoreId) {
+    return {
+      code: 403,
+      message: '店铺信息与当前账号不符'
+    };
+  }
+  const targetStoreId = storeId || allowedStoreId;
+  console.log('【获取分类】使用店铺ID:', targetStoreId);
   
   // 查询分类列表
   console.log('【获取分类】查询条件:', { storeId: targetStoreId, status: 'active' });

@@ -1,6 +1,7 @@
 // 统一结算页：多店一次付款，平台统一收款，每笔订单归属商户清晰
 const cartUtil = require('../../../../utils/cart.js');
 const subscribeMessage = require('../../../../utils/subscribeMessage.js');
+const campusTradeGuard = require('../../../../utils/campusTradeGuard');
 
 Page({
   data: {
@@ -137,6 +138,12 @@ Page({
         wx.showToast({ title: `「${(s.storeInfo && s.storeInfo.name) || '店铺'}」休息中`, icon: 'none' });
         return;
       }
+    }
+
+    const tradeGate = campusTradeGuard.canTransactInCurrentBrowseCampus();
+    if (!tradeGate.ok) {
+      wx.showToast({ title: tradeGate.message, icon: 'none' });
+      return;
     }
 
     const tmplIds = subscribeMessage.getCheckoutTemplateIds();

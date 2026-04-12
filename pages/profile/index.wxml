@@ -10,7 +10,12 @@
       </view>
       <view class="avatar-empty" wx:else></view>
     </view>
-    <text class="nickname">{{isLoggedIn ? (userInfo.nickname || '微信用户') : '未登录'}}</text>
+    <view class="profile-meta">
+      <text class="nickname">{{isLoggedIn ? (userInfo.nickname || '微信用户') : '未登录'}}</text>
+      <view wx:if="{{isLoggedIn && needsCampusSetup}}" class="campus-tip" catchtap="onTapCompleteCampus">
+        <text class="campus-tip-text">未登记所在校区：点击此处补选（登记后跨校区仅可浏览、不可下单）</text>
+      </view>
+    </view>
   </view>
 
   <user-info-modal

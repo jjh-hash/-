@@ -137,17 +137,17 @@ App({
   /**
    * 用户微信登录
    */
-  async loginUser() {
+  async loginUser(options = {}) {
     try {
       // 1. 获取微信登录凭证
       const loginRes = await wx.login();
       if (loginRes.code) {
-        // 2. 调用云函数进行登录
+        // 2. 调用云函数进行登录（可选 campus：白沙校区 / 金水校区，写入 users.campus）
+        const payload = { code: loginRes.code };
+        if (options.campus) payload.campus = options.campus;
         const result = await wx.cloud.callFunction({
           name: 'loginUser',
-          data: {
-            code: loginRes.code
-          }
+          data: payload
         });
 
         console.log('云函数返回结果:', result.result);
@@ -271,6 +271,57 @@ App({
   },
 
   /**
+   * 登录后若未登记校区，引导选择并二次调用 loginUser 写入云端
+   */
+  async promptCampusAfterLoginIfMissing(userInfo) {
+    const { normalizeHomeCampus, writeHomeCurrentCampus, CAMPUS_BAISHA, CAMPUS_JINSHUI } = require('./utils/homeCampusStorage');
+    let current = userInfo;
+    while (true) {
+      if (normalizeHomeCampus(current && current.campus)) {
+        writeHomeCurrentCampus(current.campus);
+        return current;
+      }
+      const picked = await new Promise((resolve) => {
+        wx.showActionSheet({
+          itemList: [CAMPUS_BAISHA, CAMPUS_JINSHUI],
+          success: (r) => resolve(r.tapIndex === 0 ? CAMPUS_BAISHA : CAMPUS_JINSHUI),
+          fail: () => resolve('')
+        });
+      });
+      if (picked) {
+        wx.showLoading({ title: '保存校区...', mask: true });
+        try {
+          const r2 = await this.loginUser({ campus: picked });
+          wx.hideLoading();
+          if (r2 && r2.success && r2.userInfo) {
+            writeHomeCurrentCampus(r2.userInfo.campus);
+            return r2.userInfo;
+          }
+        } catch (e) {
+          wx.hideLoading();
+        }
+        wx.showToast({ title: '保存校区失败，请重试', icon: 'none' });
+        current = this.globalData.userInfo || current;
+        continue;
+      }
+      const retry = await new Promise((resolve) => {
+        wx.showModal({
+          title: '完善校区信息',
+          content: '建议在「我的」页点头像或此处补选校区；登记所在校区后，在其他校区仅可浏览、不可下单。',
+          confirmText: '重新选择',
+          cancelText: '稍后',
+          success: (m) => resolve(!!m.confirm),
+          fail: () => resolve(false)
+        });
+      });
+      if (!retry) {
+        wx.showToast({ title: '可在「我的」页随时补选校区', icon: 'none', duration: 2200 });
+        return current;
+      }
+    }
+  },
+
+  /**
    * 从弹窗触发的登录
    */
   async handleLoginFromModal() {
@@ -287,6 +338,8 @@ App({
       if (result.success) {
         // 登录成功，清除弹窗记录
         wx.removeStorageSync('lastLoginModalTime');
+
+        const finalUser = await this.promptCampusAfterLoginIfMissing(result.userInfo);
         
         wx.showToast({
           title: '登录成功',
@@ -295,7 +348,7 @@ App({
         });
 
         // 触发登录成功事件
-        this.onLoginSuccess(result.userInfo, result.isNewUser);
+        this.onLoginSuccess(finalUser, result.isNewUser);
       } else {
         // 登录失败，重新显示弹窗
         setTimeout(() => {

@@ -1,3 +1,5 @@
+const { normalizeHomeCampus, STORAGE_KEY, CAMPUS_BAISHA } = require('../../../../utils/homeCampusStorage');
+
 Page({
   data: {
     statusBarHeight: 20
@@ -33,8 +35,9 @@ Page({
   },
 
   onGoRegister() {
+    const c = encodeURIComponent(normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY)) || CAMPUS_BAISHA);
     wx.navigateTo({ 
-      url: '/subpackages/merchant/pages/merchant-register/index',
+      url: `/subpackages/merchant/pages/merchant-register/index?campus=${c}`,
       fail: (err) => {
         console.error('跳转到注册页面失败:', err);
         wx.showToast({

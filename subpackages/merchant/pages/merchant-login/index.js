@@ -1,3 +1,5 @@
+const { normalizeHomeCampus, STORAGE_KEY, CAMPUS_BAISHA } = require('../../../../utils/homeCampusStorage');
+
 Page({
   data:{ 
     statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
@@ -176,8 +178,9 @@ Page({
           cancelText: '取消',
           success: (modalRes) => {
             if (modalRes.confirm) {
+              const c = encodeURIComponent(normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY)) || CAMPUS_BAISHA);
               wx.navigateTo({
-                url: '/subpackages/merchant/pages/merchant-register/index'
+                url: `/subpackages/merchant/pages/merchant-register/index?campus=${c}`
               });
             }
           }

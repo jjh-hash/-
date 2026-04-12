@@ -22,6 +22,38 @@ cloud.init({
 
 const db = cloud.database();
 
+/**
+ * 解析当前登录用户可操作的店铺 ID（商品归属店铺即校区载体）。
+ * 禁止仅凭他人 merchantId / storeId 读写商品。
+ */
+async function resolveAuthorizedMerchantStore(openid, merchantId, providedStoreId) {
+  if (!openid) {
+    return { error: { code: 403, message: '未登录' } };
+  }
+  let merchantInfo = null;
+  if (merchantId) {
+    const doc = await db.collection('merchants').doc(merchantId).get();
+    if (!doc.data) {
+      return { error: { code: 403, message: '商家不存在' } };
+    }
+    if (doc.data.openid !== openid) {
+      return { error: { code: 403, message: '无权操作该商家账号' } };
+    }
+    merchantInfo = doc.data;
+  } else {
+    const list = await db.collection('merchants').where({ openid }).limit(1).get();
+    if (!list.data.length) {
+      return { error: { code: 403, message: '商家不存在' } };
+    }
+    merchantInfo = list.data[0];
+  }
+  const storeId = merchantInfo.storeId || merchantInfo._id;
+  if (providedStoreId && providedStoreId !== storeId) {
+    return { error: { code: 403, message: '店铺信息与当前账号不符' } };
+  }
+  return { merchantInfo, storeId };
+}
+
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   const { action, data } = event;
@@ -101,11 +133,14 @@ async function addProduct(openid, data) {
   let merchantInfo = null;
   if (clientMerchantId) {
     const merchantDoc = await db.collection('merchants').doc(clientMerchantId).get();
-    if (merchantDoc.data) {
-      merchantInfo = merchantDoc.data;
+    if (!merchantDoc.data) {
+      return {
+        code: 403,
+        message: '商家不存在'
+      };
     }
-  }
-  if (!merchantInfo) {
+    merchantInfo = merchantDoc.data;
+  } else {
     const merchantList = await db.collection('merchants').where({ openid }).get();
     if (merchantList.data && merchantList.data.length > 0) {
       merchantInfo = merchantList.data[0];
@@ -115,6 +150,12 @@ async function addProduct(openid, data) {
     return {
       code: 403,
       message: '商家不存在'
+    };
+  }
+  if (merchantInfo.openid !== openid) {
+    return {
+      code: 403,
+      message: '无权操作该商家账号'
     };
   }
   let storeId = merchantInfo.storeId;
@@ -131,6 +172,12 @@ async function addProduct(openid, data) {
     return {
       code: 400,
       message: '分类不存在或已删除'
+    };
+  }
+  if (category.data.storeId !== storeId) {
+    return {
+      code: 400,
+      message: '分类不属于当前店铺，无法使用该分类录入商品'
     };
   }
   
@@ -194,37 +241,18 @@ async function getProducts(openid, data) {
   
   const { categoryId, status, merchantId } = data || {};
   
-  // 查询商家信息
-  let merchantInfo = null;
-  
-  // 如果提供了 merchantId，优先使用 merchantId 查询
-  if (merchantId) {
-    console.log('【获取商品】使用提供的 merchantId:', merchantId);
-    const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
-    }
-  }
-  
-  // 如果没有提供 merchantId 或查询失败，使用 openid 查询（微信登录场景）
-  if (!merchantInfo) {
-    console.log('【获取商品】使用 openid 查询商家:', openid);
-    const merchant = await db.collection('merchants')
-      .where({ openid })
-      .get();
-    
-    if (!merchant.data.length) {
+  const auth = await resolveAuthorizedMerchantStore(openid, merchantId, undefined);
+  if (auth.error) {
+    if (auth.error.message === '商家不存在') {
       return {
         code: 200,
         message: 'ok',
         data: { products: [] }
       };
     }
-    
-    merchantInfo = merchant.data[0];
+    return auth.error;
   }
-  
-  let storeId = merchantInfo.storeId || merchantInfo._id;
+  const storeId = auth.storeId;
   
   console.log('【获取商品】使用店铺ID:', storeId);
   
@@ -308,43 +336,12 @@ async function getProductDetail(openid, data) {
   
   console.log('【获取商品详情】查询结果:', product.data);
   
-  // 3. 验证商家权限
-  let storeId = providedStoreId;
-  let merchantInfo = null;
-  
-  // 如果传入了 merchantId，优先使用 merchantId 查找商家
-  if (merchantId) {
-    const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
-      storeId = storeId || merchantInfo.storeId || merchantInfo._id;
-    }
+  // 3. 验证商家权限（禁止仅凭他人 storeId 查看商品）
+  const auth = await resolveAuthorizedMerchantStore(openid, merchantId, providedStoreId);
+  if (auth.error) {
+    return auth.error;
   }
-  
-  // 如果传入了 storeId，直接使用
-  if (!storeId && !merchantInfo) {
-    // 如果没有传入 merchantId 或 storeId，则通过 openid 查找商家
-    const merchant = await db.collection('merchants')
-      .where({ openid })
-      .get();
-    
-    if (!merchant.data.length) {
-      return {
-        code: 403,
-        message: '商家不存在'
-      };
-    }
-    
-    merchantInfo = merchant.data[0];
-    storeId = merchantInfo.storeId || merchantInfo._id;
-  }
-  
-  if (!storeId) {
-    return {
-      code: 403,
-      message: '无法确定商家身份'
-    };
-  }
+  const { storeId } = auth;
   
   // 检查商品是否属于该商家
   if (product.data.storeId !== storeId) {
@@ -424,42 +421,11 @@ async function updateProduct(openid, data) {
   }
   
   // 3. 验证商家权限
-  let storeId = providedStoreId;
-  let merchantInfo = null;
-  
-  // 如果传入了 merchantId，优先使用 merchantId 查找商家
-  if (merchantId) {
-    const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
-      storeId = storeId || merchantInfo.storeId || merchantInfo._id;
-    }
+  const authUp = await resolveAuthorizedMerchantStore(openid, merchantId, providedStoreId);
+  if (authUp.error) {
+    return authUp.error;
   }
-  
-  // 如果传入了 storeId，直接使用
-  if (!storeId && !merchantInfo) {
-    // 如果没有传入 merchantId 或 storeId，则通过 openid 查找商家
-    const merchant = await db.collection('merchants')
-      .where({ openid })
-      .get();
-    
-    if (!merchant.data.length) {
-      return {
-        code: 403,
-        message: '商家不存在'
-      };
-    }
-    
-    merchantInfo = merchant.data[0];
-    storeId = merchantInfo.storeId || merchantInfo._id;
-  }
-  
-  if (!storeId) {
-    return {
-      code: 403,
-      message: '无法确定商家身份'
-    };
-  }
+  const { storeId } = authUp;
   
   // 检查商品是否属于该商家（通过storeId）
   if (product.data.storeId !== storeId) {
@@ -467,6 +433,17 @@ async function updateProduct(openid, data) {
       code: 403,
       message: '无权操作'
     };
+  }
+  
+  // 若更换分类，须属于本店（防止跨校区/跨店挂分类）
+  if (categoryId !== undefined && categoryId !== product.data.categoryId) {
+    const cat = await db.collection('categories').doc(categoryId).get();
+    if (!cat.data || cat.data.status !== 'active') {
+      return { code: 400, message: '分类不存在或已删除' };
+    }
+    if (cat.data.storeId !== storeId) {
+      return { code: 400, message: '分类不属于当前店铺' };
+    }
   }
   
   // 4. 更新商品信息
@@ -619,42 +596,11 @@ async function setProductStatus(openid, data) {
   }
   
   // 验证商家权限
-  let storeId = providedStoreId;
-  let merchantInfo = null;
-  
-  // 如果传入了 merchantId，优先使用 merchantId 查找商家
-  if (merchantId) {
-    const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
-      storeId = storeId || merchantInfo.storeId || merchantInfo._id;
-    }
+  const authSt = await resolveAuthorizedMerchantStore(openid, merchantId, providedStoreId);
+  if (authSt.error) {
+    return authSt.error;
   }
-  
-  // 如果传入了 storeId，直接使用
-  if (!storeId && !merchantInfo) {
-    // 如果没有传入 merchantId 或 storeId，则通过 openid 查找商家
-    const merchant = await db.collection('merchants')
-      .where({ openid })
-      .get();
-    
-    if (!merchant.data.length) {
-      return {
-        code: 403,
-        message: '商家不存在'
-      };
-    }
-    
-    merchantInfo = merchant.data[0];
-    storeId = merchantInfo.storeId || merchantInfo._id;
-  }
-  
-  if (!storeId) {
-    return {
-      code: 403,
-      message: '无法确定商家身份'
-    };
-  }
+  const { storeId } = authSt;
   
   // 检查商品是否属于该商家（通过storeId）
   if (product.data.storeId !== storeId) {

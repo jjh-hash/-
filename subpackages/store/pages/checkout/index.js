@@ -1,5 +1,6 @@
 const log = require('../../../../utils/logger.js');
 const subscribeMessage = require('../../../../utils/subscribeMessage.js');
+const campusTradeGuard = require('../../../../utils/campusTradeGuard');
 
 Page({
   data: {
@@ -267,6 +268,12 @@ Page({
       return;
     }
 
+    const tradeGate = campusTradeGuard.canTransactInCurrentBrowseCampus();
+    if (!tradeGate.ok) {
+      wx.showToast({ title: tradeGate.message, icon: 'none' });
+      return;
+    }
+
     const tmplIds = subscribeMessage.getCheckoutTemplateIds();
     if (tmplIds.length === 0) {
       wx.showToast({ title: '加载中，请稍后再试', icon: 'none' });
@@ -284,6 +291,13 @@ Page({
   async createOrderAndPay() {
     if (!getApp().globalData.isLoggedIn) {
       getApp().showLoginModal();
+      this.setData({ submitting: false });
+      return;
+    }
+    const tradeGate = campusTradeGuard.canTransactInCurrentBrowseCampus();
+    if (!tradeGate.ok) {
+      this.setData({ submitting: false });
+      wx.showToast({ title: tradeGate.message, icon: 'none' });
       return;
     }
     wx.showLoading({

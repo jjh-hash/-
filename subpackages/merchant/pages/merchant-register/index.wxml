@@ -1,5 +1,6 @@
 <view class="page">
   <view class="content">
+    <view class="campus-bar">当前注册校区：{{registerCampus}}（与首页所选一致，店铺仅在该校区展示）</view>
     <view class="field">
       <text class="label">店铺名称</text>
       <input class="input" placeholder="请输入店铺名称" bindinput="onNameInput" />

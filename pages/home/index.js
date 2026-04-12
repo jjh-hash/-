@@ -762,6 +762,21 @@ Page({
     if (campus !== CAMPUS_BAISHA && campus !== CAMPUS_JINSHUI) return;
     if (campus === this.data.currentCampus) return;
 
+    try {
+      const u = wx.getStorageSync('userInfo');
+      const bound = normalizeHomeCampus(u && u.campus);
+      if (bound && campus !== bound) {
+        wx.showModal({
+          title: '温馨提示',
+          content: '请在您所对应的校区购买商品。您可以浏览其他校区，但需在本人所属校区下单。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+      }
+    } catch (err) {
+      log.warn('【首页】校区提示', err);
+    }
+
     writeHomeCurrentCampus(campus);
 
     this.applyCampusAndRefresh(campus);

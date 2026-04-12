@@ -22,6 +22,25 @@ function normalizeCampusValue(campus) {
   return s;
 }
 
+/** 外卖下单：须已登记白沙/金水；且店铺与用户校区规则一致（与 stores 校区规则一致） */
+function userCanBuyFromStoreForFood(userCampusNorm, storeCampusRaw) {
+  const u = normalizeCampusValue(userCampusNorm);
+  const s = normalizeCampusValue(storeCampusRaw);
+  if (u !== '白沙校区' && u !== '金水校区') {
+    return { ok: false, message: '请先完善所在校区后再下单，可在「我的」页补选' };
+  }
+  if (u === '金水校区') {
+    if (s !== '金水校区') {
+      return { ok: false, message: '请在您所对应的校区购买商品' };
+    }
+  } else if (u === '白沙校区') {
+    if (s === '金水校区') {
+      return { ok: false, message: '请在您所对应的校区购买商品' };
+    }
+  }
+  return { ok: true };
+}
+
 /**
  * 外卖配送单：订单校区是否与骑手所选校区一致（与 getReceiveOrders 校区隔离一致）
  * 金水：仅 campus 明确为金水；白沙：可看白沙、无 campus、历史空值，不可看金水单
@@ -473,6 +492,11 @@ async function createOrder(openid, data) {
         message: '店铺当前休息中，暂不接收订单'
       };
     }
+
+    const campusBuyCheck = userCanBuyFromStoreForFood(userInfo.campus, store.data && store.data.campus);
+    if (!campusBuyCheck.ok) {
+      return { code: 403, message: campusBuyCheck.message };
+    }
     
     // 统一逻辑：新订单初始即为 confirmed，支付成功后直接进骑手大厅，无需商家确认
     const initialOrderStatus = 'confirmed';
@@ -726,20 +750,6 @@ async function createUnifiedOrders(openid, data) {
     const validMinutes = !isNaN(orderTimeoutMinutes) && orderTimeoutMinutes >= 5 ? orderTimeoutMinutes : 20;
     const expiredAt = new Date(Date.now() + validMinutes * 60 * 1000);
 
-    const out_trade_no = 'U' + Date.now() + Math.random().toString(36).substr(2, 9).toUpperCase();
-    const unifiedRes = await db.collection('unified_payments').add({
-      data: {
-        out_trade_no,
-        userOpenid: openid,
-        orderIds: [],
-        totalFeeFen: 0,
-        status: 'pending',
-        createdAt: db.serverDate()
-      }
-    });
-    const unifiedPaymentId = unifiedRes._id;
-    const orderIds = [];
-    let totalFeeFen = 0;
     const addressObj = address ? {
       name: address.name || userInfo.nickname || '用户',
       phone: address.phone || userInfo.phone || '',
@@ -756,15 +766,44 @@ async function createUnifiedOrders(openid, data) {
       houseNumber: ''
     };
 
+    // 先校验全部店铺（营业状态、校区），再建统一支付单，避免部分下单后失败
+    for (const row of stores) {
+      const { storeId, cartItems } = row;
+      if (!storeId || !cartItems || cartItems.length === 0) continue;
+      const store = await db.collection('stores').doc(storeId).get();
+      if (!store.data) {
+        return { code: 404, message: '店铺不存在' };
+      }
+      if (store.data.businessStatus !== 'open') {
+        return { code: 403, message: `店铺「${store.data.name || storeId}」当前休息中，暂不接单` };
+      }
+      const campusBuyCheck = userCanBuyFromStoreForFood(userInfo.campus, store.data && store.data.campus);
+      if (!campusBuyCheck.ok) {
+        return { code: 403, message: campusBuyCheck.message };
+      }
+    }
+
+    const out_trade_no = 'U' + Date.now() + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const unifiedRes = await db.collection('unified_payments').add({
+      data: {
+        out_trade_no,
+        userOpenid: openid,
+        orderIds: [],
+        totalFeeFen: 0,
+        status: 'pending',
+        createdAt: db.serverDate()
+      }
+    });
+    const unifiedPaymentId = unifiedRes._id;
+    const orderIds = [];
+    let totalFeeFen = 0;
+
     for (const row of stores) {
       const { storeId, storeInfo, cartItems, cartTotal, deliveryType } = row;
       if (!storeId || !cartItems || cartItems.length === 0) continue;
 
       const store = await db.collection('stores').doc(storeId).get();
       if (!store.data) continue;
-      if (store.data.businessStatus !== 'open') {
-        return { code: 403, message: `店铺「${store.data.name || storeId}」当前休息中，暂不接单` };
-      }
 
       const amountGoodsFen = Math.round((Number(cartTotal) || 0) * 100);
       const platformFee = 0;

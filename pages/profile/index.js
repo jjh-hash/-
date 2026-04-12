@@ -5,6 +5,13 @@ try {
   console.error('加载云图片配置失败:', e);
 }
 
+const {
+  normalizeHomeCampus,
+  writeHomeCurrentCampus,
+  CAMPUS_BAISHA,
+  CAMPUS_JINSHUI
+} = require('../../utils/homeCampusStorage');
+
 Page({
   data: {
     statusBarHeight: 20,
@@ -14,6 +21,7 @@ Page({
       avatar: ""
     },
     showUserInfoModal: false,
+    needsCampusSetup: false,
     menuSections: []
   },
 
@@ -86,9 +94,11 @@ Page({
         app.globalData.isLoggedIn = false;
       }
     }
+    const logged = !!(userInfo && hasToken);
     this.setData({
-      isLoggedIn: !!(userInfo && hasToken),
-      userInfo: userInfo || { nickname: '', avatar: '' }
+      isLoggedIn: logged,
+      userInfo: userInfo || { nickname: '', avatar: '' },
+      needsCampusSetup: !!(logged && userInfo && !normalizeHomeCampus(userInfo.campus))
     });
     // 若当前显示为默认（微信用户/无头像）且本地有登录态，从服务器拉取最新用户信息并回写
     const isDefault = !userInfo || !userInfo.nickname || userInfo.nickname === '微信用户' || !userInfo.avatar;
@@ -100,7 +110,8 @@ Page({
           app.globalData.userInfo = res.userInfo;
           this.setData({
             userInfo: res.userInfo,
-            isLoggedIn: true
+            isLoggedIn: true,
+            needsCampusSetup: !normalizeHomeCampus(res.userInfo.campus)
           });
         }
       } catch (e) {
@@ -249,6 +260,43 @@ Page({
     }
   },
 
+  _pickCampusActionSheet() {
+    return new Promise((resolve) => {
+      wx.showActionSheet({
+        itemList: [CAMPUS_BAISHA, CAMPUS_JINSHUI],
+        success: (r) => resolve(r.tapIndex === 0 ? CAMPUS_BAISHA : CAMPUS_JINSHUI),
+        fail: () => resolve('')
+      });
+    });
+  },
+
+  /** 已登录但未登记校区：点击提示条补选 */
+  async onTapCompleteCampus() {
+    if (!this.data.isLoggedIn || !this.data.needsCampusSetup) return;
+    const app = getApp();
+    const picked = await this._pickCampusActionSheet();
+    if (!picked) return;
+    wx.showLoading({ title: '保存中...', mask: true });
+    try {
+      const r2 = await app.loginUser({ campus: picked });
+      wx.hideLoading();
+      if (r2 && r2.success && r2.userInfo) {
+        const c = normalizeHomeCampus(r2.userInfo.campus);
+        if (c) writeHomeCurrentCampus(c);
+        this.setData({
+          userInfo: r2.userInfo,
+          needsCampusSetup: !c
+        });
+        wx.showToast({ title: '已保存校区', icon: 'success' });
+      } else {
+        wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+      }
+    } catch (e) {
+      wx.hideLoading();
+      wx.showToast({ title: '保存失败', icon: 'none' });
+    }
+  },
+
   /**
    * 编辑用户信息
    */
@@ -262,18 +310,35 @@ Page({
       try {
         const res = await app.loginUser();
         wx.hideLoading();
-        if (res && res.success && res.userInfo) {
-          this.setData({
-            isLoggedIn: true,
-            userInfo: res.userInfo,
-            showUserInfoModal: true
+        if (!res || !res.success || !res.userInfo) {
+          wx.showToast({
+            title: (res && res.error) || '登录失败，请重试',
+            icon: 'none'
           });
           return;
         }
-        wx.showToast({
-          title: (res && res.error) || '登录失败，请重试',
-          icon: 'none'
-        });
+        let userInfo = res.userInfo;
+        if (!normalizeHomeCampus(userInfo.campus)) {
+          const picked = await this._pickCampusActionSheet();
+          if (!picked) {
+            wx.showToast({ title: '请选择所属校区后再进入首页', icon: 'none' });
+            this.setData({ isLoggedIn: true, userInfo, needsCampusSetup: true });
+            return;
+          }
+          wx.showLoading({ title: '保存校区...', mask: true });
+          const r2 = await app.loginUser({ campus: picked });
+          wx.hideLoading();
+          if (!r2 || !r2.success || !r2.userInfo) {
+            wx.showToast({ title: '保存校区失败，请重试', icon: 'none' });
+            this.setData({ isLoggedIn: true, userInfo, needsCampusSetup: true });
+            return;
+          }
+          userInfo = r2.userInfo;
+        }
+        const c = normalizeHomeCampus(userInfo.campus);
+        if (c) writeHomeCurrentCampus(c);
+        this.setData({ isLoggedIn: true, userInfo, needsCampusSetup: false });
+        wx.switchTab({ url: '/pages/home/index' });
       } catch (e) {
         wx.hideLoading();
         console.error('我的页登录失败:', e);
@@ -305,7 +370,8 @@ Page({
     const { userInfo } = e.detail;
     this.setData({
       userInfo: userInfo,
-      showUserInfoModal: false
+      showUserInfoModal: false,
+      needsCampusSetup: !!(this.data.isLoggedIn && userInfo && !normalizeHomeCampus(userInfo.campus))
     });
   }
 });
