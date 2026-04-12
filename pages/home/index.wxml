@@ -58,34 +58,30 @@
       </view>
     </view>
 
-    <!-- 常用服务：标题一行 + 校区切换单独一行（避免窄屏与标题挤同一行被裁切或不易发现） -->
+    <!-- 常用服务：标题与校区切换同一行，校区在右侧横向排列 -->
     <view class="section service-section">
-      <view class="service-section-heading">
+      <view class="service-section-header">
         <view class="section-title service-section-title">
           <text class="section-dot section-dot-red"></text>
           <text>常用服务</text>
         </view>
-      </view>
-      <view class="campus-switch-bar">
-        <text class="campus-switch-bar-label">浏览 / 下单校区</text>
-        <view class="campus-switch-buttons">
-          <view 
-            class="campus-switch-btn {{currentCampus === '白沙校区' ? 'active' : ''}}" 
-            hover-class="campus-switch-btn-hover"
-            hover-stay-time="80"
-            bindtap="onCampusChange" 
-            data-campus="白沙校区"
-          >
-            白沙校区
-          </view>
-          <view 
-            class="campus-switch-btn {{currentCampus === '金水校区' ? 'active' : ''}}" 
-            hover-class="campus-switch-btn-hover"
-            hover-stay-time="80"
-            bindtap="onCampusChange" 
-            data-campus="金水校区"
-          >
-            金水校区
+        <view class="campus-switch-inline">
+          <text class="campus-switch-inline-label">校区</text>
+          <view class="campus-switch-inline-btns">
+            <view
+              class="campus-switch-inline-btn {{currentCampus === '白沙校区' ? 'active' : ''}}"
+              hover-class="campus-switch-inline-btn-hover"
+              hover-stay-time="80"
+              bindtap="onCampusChange"
+              data-campus="白沙校区"
+            >白沙</view>
+            <view
+              class="campus-switch-inline-btn {{currentCampus === '金水校区' ? 'active' : ''}}"
+              hover-class="campus-switch-inline-btn-hover"
+              hover-stay-time="80"
+              bindtap="onCampusChange"
+              data-campus="金水校区"
+            >金水</view>
           </view>
         </view>
       </view>
@@ -134,15 +130,15 @@
       </view>
     </view>
 
-    <!-- 筛选栏：标题行（今日推荐 + 当前校区 + 排序） + 分类横向滚动 -->
+    <!-- 筛选栏：当前校区胶囊在上；下一行「今日推荐」单行 + 排序；再下为分类 -->
     <view class="filters-wrap">
+      <text class="filters-campus-pill filters-campus-pill-above">{{currentCampus}}</text>
       <view class="filters-header-row">
         <view class="filters-title-block">
-          <view class="section-title-inline">
+          <view class="section-title-inline filters-title-one-line">
             <text class="section-dot"></text>
             <text>今日推荐</text>
           </view>
-          <text class="filters-campus-pill">{{currentCampus}}</text>
         </view>
         <view class="filters-capsule">
           <block wx:for="{{filters}}" wx:key="*this">

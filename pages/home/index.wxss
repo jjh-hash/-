@@ -61,60 +61,58 @@
   text-shadow: 0 1px 2px rgba(0,0,0,0.35), 0 0 1px rgba(0,0,0,0.5);
 }
 
-/* 校区切换：独立一行卡片，避免与「常用服务」标题挤一行在窄屏上被裁切 */
-.service-section-heading {
-  padding: 0 var(--space-page) 8px;
-  box-sizing: border-box;
-}
-.campus-switch-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0 var(--space-page) 12px;
-  padding: 12px 14px;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.98);
-  border-radius: 14px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
-  border: 1px solid rgba(184, 189, 200, 0.35);
-}
-.campus-switch-bar-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-.campus-switch-bar .campus-switch-buttons {
+/* 常用服务标题行：左侧标题 + 右侧校区（标签与两枚按钮同一行横向） */
+.service-section-header {
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
-  gap: 10px;
-  width: 100%;
-}
-
-.campus-switch-btn {
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-page) 10px;
   box-sizing: border-box;
-  flex: 1;
-  min-width: 120px;
-  min-height: 40px;
-  padding: 8px 14px;
-  border-radius: 12px;
-  font-size: 13px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.campus-switch-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  max-width: 100%;
+}
+.campus-switch-inline-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.campus-switch-inline-btns {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+.campus-switch-inline-btn {
+  box-sizing: border-box;
+  min-width: 52px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
-  background: #f3f4f6;
-  transition: all var(--transition-fast);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(184, 189, 200, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-.campus-switch-btn-hover {
+.campus-switch-inline-btn-hover {
   opacity: 0.88;
 }
-
-.campus-switch-btn.active {
+.campus-switch-inline-btn.active {
   background: var(--color-primary);
   color: #fff;
+  border-color: var(--color-primary);
 }
 
 /* 悬浮搜索栏 */
@@ -180,7 +178,9 @@
 }
 
 /* ========== 常用服务（卡片式） ========== */
-.service-section-title {
+.service-section-header .service-section-title {
+  flex: 1;
+  min-width: 0;
   padding: 0 !important;
   margin: 0;
 }
@@ -414,7 +414,7 @@
 /* 第一行：今日推荐（左） + 推荐/销量/低价优先（右）同一排 */
 .filters-header-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
   gap: 12px;
@@ -423,9 +423,10 @@
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 .filters-campus-pill {
   font-size: 11px;
@@ -437,15 +438,36 @@
   max-width: 100%;
   box-sizing: border-box;
 }
+.filters-campus-pill-above {
+  display: inline-block;
+  margin-bottom: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.filters-title-one-line {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .filters-header-row .section-title-inline {
   margin-bottom: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
   flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
 }
 .filters-wrap .section-title-inline .section-dot {
-  margin-right: 6px;
+  margin-right: 5px;
+  width: 3px;
+  height: 13px;
 }
 /* 分类栏：与上方排序 tab 呼应的斜切连排样式，可横向滚动 */
 .category-bar {

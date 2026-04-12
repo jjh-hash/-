@@ -194,7 +194,7 @@ Page({
     }
     this.setData({
       statusBarHeight: bar,
-      scrollViewHeight: h
+      scrollViewHeight: Math.max(MIN_H, h)
     });
   },
 
