@@ -152,7 +152,7 @@ async function getConfig() {
           minOrderAmountLimit: defaultConfig.minOrderAmountLimit || 2000,
           estimatedDeliveryMinutes: defaultConfig.estimatedDeliveryMinutes || 30,
           orderTimeoutMinutes: defaultConfig.orderTimeoutMinutes || 15,
-          depositAmount: defaultConfig.depositAmount !== undefined ? defaultConfig.depositAmount : 2500,
+            depositAmount: defaultConfig.depositAmount !== undefined ? defaultConfig.depositAmount : 2500,
           systemStartTime: systemStartTime || null,
           deploymentTime: systemStartTime || null
         }

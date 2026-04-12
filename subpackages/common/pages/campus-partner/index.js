@@ -2,7 +2,7 @@
 Page({
   data: {
     status: 'loading',
-    depositAmountYuan: '25',
+    depositAmountYuan: '25.00',
     canRefund: false,
     refundableAfter: '',
     depositPaidAt: ''
@@ -31,7 +31,7 @@ Page({
       const d = result.data || {};
       this.setData({
         status: d.status || 'none',
-        depositAmountYuan: d.depositAmountYuan || '25',
+        depositAmountYuan: d.depositAmountYuan || '25.00',
         canRefund: !!d.canRefund,
         refundableAfter: d.refundableAfter ? this.formatRefundable(d.refundableAfter) : '',
         depositPaidAt: d.depositPaidAt ? this.formatDate(d.depositPaidAt) : ''

@@ -16,13 +16,13 @@ const {
 const campusTradeGuard = require('../../utils/campusTradeGuard');
 
 function cacheKeyProducts(campus) {
-  return `home_products_cache_${campus || CAMPUS_BAISHA}`;
+  return `home_stores_cache_v1_${campus || CAMPUS_BAISHA}`;
 }
 function cacheKeyBanners(campus) {
   return `home_banners_cache_${campus || CAMPUS_BAISHA}`;
 }
 function categoryCacheKey(campus, catKey) {
-  return `category_cache_${campus || CAMPUS_BAISHA}_${catKey}`;
+  return `category_stores_cache_v1_${campus || CAMPUS_BAISHA}_${catKey}`;
 }
 const FIRST_SCREEN_ITEMS_PER_COL = 4;
 /** 曾为底部固定校区条预留的像素；校区已回到「常用服务」行后恒为 0。保留常量可避免旧合并/缓存仍引用时出现 ReferenceError。 */
@@ -67,13 +67,16 @@ Page({
     greetingColor: '#ffffff',
     greetingSloganColor: '#ffffff',
     activeFilter: 0,
-    filters: ["推荐", "销量", "低价优先"],
+    /** 首页为店铺列表：排序按店铺维度 */
+    filters: ['推荐', '销量', '起送价'],
+    /** 与商家端店铺分类一致，用于 getStoreList.storeCategory */
     categoryOptions: [
       { key: 'all', label: '全部' },
-      { key: '盖饭套餐', label: '盖饭套餐' },
-      { key: '面食', label: '面食' },
-      { key: '饮品', label: '饮品' },
-      { key: '小食', label: '小食' }
+      { key: '学校食堂', label: '食堂' },
+      { key: '奶茶果汁', label: '奶茶' },
+      { key: '生鲜水果', label: '生鲜' },
+      { key: '校园超市', label: '超市' },
+      { key: '其他', label: '其他' }
     ],
     activeCategoryKey: 'all',
     quickCats: [
@@ -733,8 +736,9 @@ Page({
   onSearchSubmit(e) {
     const keyword = e.detail.value ? e.detail.value.trim() : this.data.searchKeyword.trim();
     if (!keyword) {
-      this.setData({ searchKeyword: '' });
-      this.loadProducts(undefined, false, this.data.activeCategoryKey);
+      this.setData({ searchKeyword: '' }, () => {
+        this.loadProducts('', false, this.data.activeCategoryKey);
+      });
       return;
     }
     this.setData({ searchKeyword: keyword, activeFilter: 0 });
@@ -743,8 +747,9 @@ Page({
 
   // 清空搜索
   onClearSearch() {
-    this.setData({ searchKeyword: '' });
-    this.loadProducts(undefined, false, this.data.activeCategoryKey);
+    this.setData({ searchKeyword: '' }, () => {
+      this.loadProducts('', false, this.data.activeCategoryKey);
+    });
   },
   
   // 搜索框聚焦事件（跳转到搜索页面或显示搜索历史）
@@ -798,16 +803,28 @@ Page({
     this.applyCampusAndRefresh(campus);
   },
 
-  // 加载商品列表（优化版本：添加缓存和并行请求）
+  /** 首页触底：加载下一页店铺 */
+  onHomeScrollToLower() {
+    if (this.data.productListLoading || !this.data.hasMoreProducts) return;
+    if (this.loadingProducts) return;
+    const kw = (this.data.searchKeyword || '').trim();
+    this.loadProducts(kw || undefined, true, this.data.activeCategoryKey);
+  },
+
+  // 加载首页店铺列表（分页 + 分类/搜索；进店后在店铺详情点餐）
   async loadProducts(keyword, isLoadMore = false, catKey = 'all') {
     // 防止重复请求
     if (this.loadingProducts) return;
     
     this.loadingProducts = true;
+    this._sortCache = null;
     
     try {
-      // 检查分类缓存
-      if (!isLoadMore && !keyword) {
+      const kwRaw = keyword !== undefined ? keyword : (this.data.searchKeyword || '');
+      const kw = typeof kwRaw === 'string' ? kwRaw.trim() : '';
+
+      // 检查分类缓存（仅无搜索、非加载更多）
+      if (!isLoadMore && !kw) {
         const cachedData = this.getCategoryCache(catKey);
         if (cachedData) {
           const payload = this.applyProductSort(this.data.activeFilter, cachedData.originalProducts);
@@ -820,7 +837,6 @@ Page({
               displayProductsRight: payload.right,
               productListLoading: false
             });
-            // 异步更新缓存数据，不阻塞用户体验
             this.updateCategoryCacheAsync(catKey);
             this.loadingProducts = false;
             return;
@@ -829,69 +845,52 @@ Page({
       }
 
       if (!isLoadMore) {
-        wx.showLoading({ title: keyword ? '搜索中...' : '加载中...' });
+        wx.showLoading({ title: kw ? '搜索中...' : '加载中...' });
       }
 
       const page = isLoadMore ? this.data.productPage + 1 : 1;
       const pageSize = this.data.productPageSize;
-      const needStores = !keyword && !isLoadMore && (catKey === 'all' || catKey === '盖饭套餐');
-      
-      // 并行请求商家列表和商品列表，减少加载时间
-      const [storeRes, productRes] = await Promise.all([
-        needStores ? callFunctionWithTimeout({
-          name: 'getStoreList',
-          data: {
-            page: 1,
-            pageSize: catKey === '盖饭套餐' ? 8 : 5,
-            storeCategory: catKey === '盖饭套餐' ? '学校食堂' : undefined,
-            campus: this.data.currentCampus // 添加校区信息
-          }
-        }, 12000) : Promise.resolve({ result: { code: 200, data: { list: [] } } }),
-        callFunctionWithTimeout({
-          name: 'getProductList',
-          data: {
-            page,
-            pageSize,
-            keyword: keyword || undefined,
-            categoryName: catKey && catKey !== 'all' ? catKey : undefined,
-            campus: this.data.currentCampus // 添加校区信息
-          }
-        }, 15000)
-      ]);
+      const storeCategory = catKey && catKey !== 'all' ? catKey : undefined;
 
-      // 处理商家列表
+      const storeRes = await callFunctionWithTimeout({
+        name: 'getStoreList',
+        data: {
+          page,
+          pageSize,
+          keyword: kw || undefined,
+          storeCategory,
+          campus: this.data.currentCampus
+        }
+      }, 15000);
+
       let stores = [];
+      let hasMore = false;
       if (storeRes.result && storeRes.result.code === 200) {
-        stores = (storeRes.result.data.list || []).map(shop => ({
+        const list = storeRes.result.data.list || [];
+        stores = list.map((shop) => ({
           ...shop,
           type: 'store',
+          listKey: shop._id,
           storeId: shop._id,
           logo: this.formatImageUrl(shop.logoUrl || shop.img || ''),
           name: shop.name,
           minOrderAmount: shop.minOrderAmount || 0,
-          deliveryFee: shop.deliveryFee || 0
-        }));
-      }
-
-      // 处理商品列表
-      let products = [];
-      let hasMore = true;
-      if (productRes.result && productRes.result.code === 200) {
-        const list = productRes.result.data.list || [];
-        products = list.map(item => ({
-          ...item,
-          type: 'product',
-          logo: this.formatImageUrl(item.coverUrl || item.imageUrl || item.img || ''),
-          name: item.name,
-          storeName: item.storeName,
-          sales: item.sales || item.monthlySales || 0
+          deliveryFee: shop.deliveryFee || 0,
+          sales: shop.monthlySales || shop.sales || 0
         }));
         hasMore = list.length === pageSize;
       }
 
-      // 合并商家和商品
-      const allItems = [...stores, ...products];
-      const originalProducts = isLoadMore ? [...this.data.originalProducts, ...allItems] : allItems;
+      let originalProducts;
+      if (isLoadMore) {
+        const existing = this.data.originalProducts || [];
+        const seen = new Set(existing.map((s) => s.storeId || s._id));
+        const merged = existing.concat(stores.filter((s) => !seen.has(s.storeId)));
+        originalProducts = merged;
+      } else {
+        originalProducts = stores;
+      }
+
       const payload = this.applyProductSort(this.data.activeFilter, originalProducts);
 
       if (payload) {
@@ -908,7 +907,7 @@ Page({
         this.setData(updateData);
 
         // 缓存数据
-        if (!isLoadMore && !keyword) {
+        if (!isLoadMore && !kw) {
           this.setCategoryCache(catKey, {
             originalProducts,
             productPage: page,
@@ -916,8 +915,7 @@ Page({
           });
         }
 
-        // 缓存到全局缓存
-        if (!keyword) {
+        if (!kw) {
           wx.setStorage({
             key: cacheKeyProducts(this.data.currentCampus),
             data: {
@@ -933,7 +931,7 @@ Page({
 
       this.lastLoadTime = Date.now();
     } catch (err) {
-      log.error('加载商品失败:', err);
+      log.error('加载店铺失败:', err);
       if (err && err.message && err.message.includes('超时')) {
         wx.showToast({ title: '网络较慢，请稍后重试', icon: 'none' });
       } else {
@@ -951,71 +949,44 @@ Page({
     try {
       const page = 1;
       const pageSize = this.data.productPageSize;
-      const needStores = catKey === 'all' || catKey === '盖饭套餐';
-      
-      // 并行请求商家列表和商品列表
-      const [storeRes, productRes] = await Promise.all([
-        needStores ? callFunctionWithTimeout({
-          name: 'getStoreList',
-          data: {
-            page: 1,
-            pageSize: catKey === '盖饭套餐' ? 8 : 5,
-            storeCategory: catKey === '盖饭套餐' ? '学校食堂' : undefined,
-            campus: this.data.currentCampus // 添加校区信息
-          }
-        }, 10000) : Promise.resolve({ result: { code: 200, data: { list: [] } } }),
-        callFunctionWithTimeout({
-          name: 'getProductList',
-          data: {
-            page,
-            pageSize,
-            categoryName: catKey && catKey !== 'all' ? catKey : undefined,
-            campus: this.data.currentCampus // 添加校区信息
-          }
-        }, 10000)
-      ]);
+      const storeCategory = catKey && catKey !== 'all' ? catKey : undefined;
 
-      // 处理商家列表
+      const storeRes = await callFunctionWithTimeout({
+        name: 'getStoreList',
+        data: {
+          page: 1,
+          pageSize,
+          storeCategory,
+          campus: this.data.currentCampus
+        }
+      }, 10000);
+
       let stores = [];
+      let hasMore = false;
       if (storeRes.result && storeRes.result.code === 200) {
-        stores = (storeRes.result.data.list || []).map(shop => ({
+        const list = storeRes.result.data.list || [];
+        stores = list.map((shop) => ({
           ...shop,
           type: 'store',
+          listKey: shop._id,
           storeId: shop._id,
           logo: this.formatImageUrl(shop.logoUrl || shop.img || ''),
           name: shop.name,
           minOrderAmount: shop.minOrderAmount || 0,
-          deliveryFee: shop.deliveryFee || 0
-        }));
-      }
-
-      // 处理商品列表
-      let products = [];
-      let hasMore = true;
-      if (productRes.result && productRes.result.code === 200) {
-        const list = productRes.result.data.list || [];
-        products = list.map(item => ({
-          ...item,
-          type: 'product',
-          logo: this.formatImageUrl(item.coverUrl || item.imageUrl || item.img || ''),
-          name: item.name,
-          storeName: item.storeName,
-          sales: item.sales || item.monthlySales || 0
+          deliveryFee: shop.deliveryFee || 0,
+          sales: shop.monthlySales || shop.sales || 0
         }));
         hasMore = list.length === pageSize;
       }
 
-      // 合并商家和商品
-      const allItems = [...stores, ...products];
-      
-      // 更新缓存
+      const allItems = stores;
+
       this.setCategoryCache(catKey, {
         originalProducts: allItems,
         productPage: page,
         hasMoreProducts: hasMore
       });
-      
-      // 缓存到全局缓存
+
       const payload = this.applyProductSort(this.data.activeFilter, allItems);
       if (payload) {
         wx.setStorage({
@@ -1044,21 +1015,24 @@ Page({
       return this._sortCache[sortCacheKey];
     }
     
-    // 根据排序类型排序
     switch (sortType) {
-      case 0: // 推荐
-        // 综合排序：优先显示店铺，然后按销量排序
+      case 0: // 推荐：销量为主，评分次之
         items.sort((a, b) => {
-          if (a.type === 'store' && b.type !== 'store') return -1;
-          if (a.type !== 'store' && b.type === 'store') return 1;
-          return (b.sales || 0) - (a.sales || 0);
+          const sa = a.sales || a.monthlySales || 0;
+          const sb = b.sales || b.monthlySales || 0;
+          if (sb !== sa) return sb - sa;
+          const ra = a.ratingAvg || a.score || 0;
+          const rb = b.ratingAvg || b.score || 0;
+          return rb - ra;
         });
         break;
       case 1: // 销量
-        items.sort((a, b) => (b.sales || 0) - (a.sales || 0));
+        items.sort((a, b) => (b.sales || b.monthlySales || 0) - (a.sales || a.monthlySales || 0));
         break;
-      case 2: // 低价优先
-        items.sort((a, b) => (a.price || 0) - (b.price || 0));
+      case 2: // 起送价从低到高
+        items.sort(
+          (a, b) => (a.minOrderAmount || a.start || 0) - (b.minOrderAmount || b.start || 0)
+        );
         break;
     }
     
@@ -1117,7 +1091,7 @@ Page({
   // 清理过期缓存
   cleanupOldCache() {
     try {
-      const categoryKeys = ['all', '盖饭套餐', '面食', '饮品', '小食'];
+      const categoryKeys = ['all', '学校食堂', '奶茶果汁', '生鲜水果', '校园超市', '其他'];
       const campuses = [CAMPUS_BAISHA, CAMPUS_JINSHUI];
       campuses.forEach((c) => {
         categoryKeys.forEach((key) => {
