@@ -221,9 +221,11 @@ async function wxLogin(merchantId) {
       merchants,
       user: {
         _id: userInfo._id,
+        openid: userInfo.openid,
         nickname: userInfo.nickname,
         avatar: userInfo.avatar,
-        role: userInfo.role
+        role: userInfo.role,
+        campus: userInfo.campus
       }
     }
   };
@@ -275,9 +277,11 @@ async function buildMerchantLoginResponse(merchantInfo, userInfo) {
       user: userInfo
         ? {
             _id: userInfo._id,
+            openid: userInfo.openid,
             nickname: userInfo.nickname,
             avatar: userInfo.avatar,
-            role: userInfo.role
+            role: userInfo.role,
+            campus: userInfo.campus
           }
         : null
     }

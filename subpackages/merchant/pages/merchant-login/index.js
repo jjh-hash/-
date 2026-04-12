@@ -1,4 +1,5 @@
 const { normalizeHomeCampus, STORAGE_KEY, CAMPUS_BAISHA } = require('../../../../utils/homeCampusStorage');
+const { applyMerchantAuthUserToStorage } = require('../../utils/applyMerchantAuthUser');
 
 Page({
   data:{ 
@@ -83,10 +84,8 @@ Page({
         // 保存新的商家信息
         wx.setStorageSync('isMerchant', true);
         wx.setStorageSync('merchantInfo', res.result.data.merchant);
-        if (res.result.data.user) {
-          wx.setStorageSync('userInfo', res.result.data.user);
-        }
-        
+        applyMerchantAuthUserToStorage(res.result.data.user, res.result.data.merchant);
+
         console.log('【商家登录】保存商家信息:', res.result.data.merchant);
         
         wx.showToast({ 
@@ -145,8 +144,8 @@ Page({
         // 保存新的商家信息
         wx.setStorageSync('isMerchant', true);
         wx.setStorageSync('merchantInfo', res.result.data.merchant);
-        wx.setStorageSync('userInfo', res.result.data.user);
-        
+        applyMerchantAuthUserToStorage(res.result.data.user, res.result.data.merchant);
+
         console.log('【商家登录】保存商家信息:', res.result.data.merchant);
         
         wx.showToast({ 

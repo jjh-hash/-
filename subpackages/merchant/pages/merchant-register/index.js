@@ -1,4 +1,5 @@
 const { normalizeHomeCampus, STORAGE_KEY, CAMPUS_BAISHA } = require('../../../../utils/homeCampusStorage');
+const { applyMerchantAuthUserToStorage } = require('../../utils/applyMerchantAuthUser');
 
 Page({
   data:{
@@ -266,10 +267,10 @@ Page({
       console.log('注册结果:', res.result);
       
       if (res.result && res.result.code === 200) {
-        // 保存商家身份标识和完整信息
+        // 保存商家身份标识和完整信息（user 需含 openid，否则返回用户端会误判未登录）
         wx.setStorageSync('isMerchant', true);
         wx.setStorageSync('merchantInfo', res.result.data.merchant);
-        wx.setStorageSync('userInfo', res.result.data.user);
+        applyMerchantAuthUserToStorage(res.result.data.user, res.result.data.merchant);
         
         wx.showToast({
           title: '注册成功',

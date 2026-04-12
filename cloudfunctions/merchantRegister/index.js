@@ -232,15 +232,17 @@ exports.main = async (event, context) => {
     
     console.log('商家注册成功:', merchantResult._id);
     
-    // 获取用户信息（包含头像）
+    // 获取用户信息（新注册用户时 userQuery 可能为空，openid 用上下文 OPENID）
     const userInfo = userQuery.data.length > 0 ? userQuery.data[0] : {};
-    
+    const openidOut = userInfo.openid || OPENID;
+
     return {
       code: 200,
       message: '注册成功',
       data: {
         merchant: {
           _id: merchantResult._id,
+          openid: OPENID,
           merchantName: shopName.trim(),
           contactPhone: '',
           status: 'pending',
@@ -248,9 +250,11 @@ exports.main = async (event, context) => {
         },
         user: {
           _id: userInfo._id || '',
+          openid: openidOut,
           nickname: userInfo.nickname || '商家用户',
           avatar: userInfo.avatar || '',
-          role: 'merchant'
+          role: 'merchant',
+          campus: userInfo.campus || campusNorm
         }
       }
     };

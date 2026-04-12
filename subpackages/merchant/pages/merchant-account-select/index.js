@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'merchantWxLoginPick';
+const { applyMerchantAuthUserToStorage } = require('../../utils/applyMerchantAuthUser');
 
 Page({
   data: {
@@ -63,9 +64,7 @@ Page({
 
         wx.setStorageSync('isMerchant', true);
         wx.setStorageSync('merchantInfo', res.result.data.merchant);
-        if (res.result.data.user) {
-          wx.setStorageSync('userInfo', res.result.data.user);
-        }
+        applyMerchantAuthUserToStorage(res.result.data.user, res.result.data.merchant);
 
         wx.showToast({ title: '登录成功', icon: 'success', duration: 1500 });
 
