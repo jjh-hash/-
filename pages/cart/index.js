@@ -9,6 +9,15 @@ const {
 
 const TAB_BAR_HEIGHT = 50; // 底部 tabBar 高度（px）
 
+/** 与首页一致：仅白沙 / 金水，缺省白沙 */
+function readCurrentCampus() {
+  try {
+    const s = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
+    if (s) return s;
+  } catch (e) {}
+  return CAMPUS_BAISHA;
+}
+
 // 防抖函数
 function debounce(func, wait) {
   let timeout;
@@ -37,11 +46,7 @@ Page({
   },
 
   onLoad() {
-    let campus = CAMPUS_BAISHA;
-    try {
-      const s = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
-      if (s) campus = s;
-    } catch (e) {}
+    const campus = readCurrentCampus();
     const sys = wx.getSystemInfoSync();
     const statusBar = (wx.getWindowInfo && wx.getWindowInfo().statusBarHeight) || sys.statusBarHeight || 20;
     const winH = sys.windowHeight || 500;
@@ -50,12 +55,7 @@ Page({
   },
 
   onShow() {
-    try {
-      const s = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
-      if (s && s !== this.data.currentCampus) {
-        this.setData({ currentCampus: s });
-      }
-    } catch (e) {}
+    this.setData({ currentCampus: readCurrentCampus() });
     this.loadCart();
   },
 
@@ -106,13 +106,13 @@ Page({
       }
     } catch (error) {
       console.error('加载购物车失败:', error);
-      // 出错时重置购物车数据
       this.setData({
         storeList: [],
         isEmpty: true,
         totalAmount: 0,
         totalAmountText: '0.00'
       });
+      this.loadRecommendStores();
     }
   }, 100),
 
@@ -264,11 +264,11 @@ Page({
     return url;
   },
 
-  /** 空车时推荐店铺（与首页同校区、getStoreList） */
+  /** 空车时推荐店铺（与首页同校区、getStoreList；白沙/金水与云函数白名单一致） */
   loadRecommendStores() {
     if (!wx.cloud) return;
-    this.setData({ recommendLoading: true });
-    const campus = this.data.currentCampus || CAMPUS_BAISHA;
+    const campus = readCurrentCampus();
+    this.setData({ recommendLoading: true, currentCampus: campus });
     wx.cloud
       .callFunction({
         name: 'getStoreList',
@@ -312,7 +312,7 @@ Page({
     };
     const url = urls[key];
     if (!url) return;
-    const c = encodeURIComponent(this.data.currentCampus || CAMPUS_BAISHA);
+    const c = encodeURIComponent(readCurrentCampus());
     wx.navigateTo({ url: `${url}?campus=${c}` });
   }
 });
