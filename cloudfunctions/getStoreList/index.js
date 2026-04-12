@@ -18,6 +18,30 @@ function normalizeCampus(campus) {
 
 const CAMPUS_ALLOWED = ['白沙校区', '金水校区'];
 
+/** 云数据库单次 get 有默认条数上限；此处单次最多拉 1000 条 active 商家（远超默认）。若 active 商家超过 1000，需建 merchants 组合索引后改为分页。 */
+const MERCHANT_MAX_BATCH = 1000;
+
+/** command.in 数组长度有上限，多分片用 or 组合 */
+const STORE_ID_IN_CHUNK = 100;
+
+function chunkArray(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) {
+    out.push(arr.slice(i, i + size));
+  }
+  return out;
+}
+
+/** 根据店铺 _id 列表构建 where 条件（支持超 in 上限的 id 列表） */
+function buildStoreIdWhere(cmd, storeIds) {
+  const unique = [...new Set(storeIds.filter(Boolean))];
+  if (unique.length <= STORE_ID_IN_CHUNK) {
+    return { _id: cmd.in(unique) };
+  }
+  const chunks = chunkArray(unique, STORE_ID_IN_CHUNK);
+  return cmd.or(chunks.map((ids) => ({ _id: cmd.in(ids) })));
+}
+
 /** 未识别或非白名单校区时返回 null，禁止退化为「不按校区查全量店铺」 */
 function resolveCampusStrict(raw) {
   const n = normalizeCampus(raw);
@@ -48,16 +72,25 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 1. 先查询已审核的商家（merchants集合）
-    const merchantsResult = await db.collection('merchants')
+    // 1. 拉取已审核商家（单次 get 默认条数远小于 MERCHANT_MAX_BATCH，显式 limit 避免截断）
+    const merchantsBatch = await db.collection('merchants')
       .where({
         status: 'active' // 已审核通过
       })
+      .limit(MERCHANT_MAX_BATCH)
       .get();
-    
-    log.log('【获取商家列表】已审核商家数量:', merchantsResult.data.length);
-    
-    if (merchantsResult.data.length === 0) {
+    const merchantRows = merchantsBatch.data || [];
+    if (merchantRows.length >= MERCHANT_MAX_BATCH) {
+      log.warn(
+        '【获取商家列表】active 商家已达',
+        MERCHANT_MAX_BATCH,
+        '条，可能未拉全；若商户数继续增长请在 merchants 为 status+_id 建索引并改为分页拉取'
+      );
+    }
+
+    log.log('【获取商家列表】已审核商家数量:', merchantRows.length);
+
+    if (merchantRows.length === 0) {
       return {
         code: 200,
         message: 'ok',
@@ -69,13 +102,13 @@ exports.main = async (event, context) => {
         }
       };
     }
-    
-    // 2. 提取所有商家的storeId
-    const storeIds = merchantsResult.data
-      .map(merchant => merchant.storeId)
-      .filter(storeId => storeId); // 过滤掉空值
-    
-    log.log('【获取商家列表】店铺ID列表:', storeIds);
+
+    // 2. 提取所有商家的 storeId（去重）
+    const storeIds = merchantRows
+      .map((merchant) => merchant.storeId)
+      .filter((storeId) => storeId);
+
+    log.log('【获取商家列表】店铺ID数量(含重复已去重前):', storeIds.length);
     
     if (storeIds.length === 0) {
       return {
@@ -89,43 +122,37 @@ exports.main = async (event, context) => {
         }
       };
     }
-    
-    // 3. 构建店铺查询条件
-    const storeWhereCondition = {
-      _id: db.command.in(storeIds), // 只查询已审核商家的店铺
-      businessStatus: 'open' // 营业中
-    };
-    
-    // 店铺分类筛选 - 严格匹配，确保只返回指定分类的店铺
-    // 注意：如果不传storeCategory参数，则返回所有商家（包括"其他"分类）
-    // 如果传了storeCategory参数，则只返回该分类的商家（不包括"其他"分类）
+
+    const cmd = db.command;
+    const idWhere = buildStoreIdWhere(cmd, storeIds);
+
+    // 3. 构建店铺查询条件（_id 可能为多分片 or，避免 in 超长）
+    const parts = [idWhere, { businessStatus: 'open' }];
+
     if (storeCategory) {
-      // 直接使用字符串匹配，更简单直接
-      storeWhereCondition.storeCategory = storeCategory;
+      parts.push({ storeCategory: storeCategory });
     }
-    
-    // 关键词搜索
-    if (keyword) {
-      storeWhereCondition.name = db.RegExp({ regexp: keyword, options: 'i' });
+    if (keyword && String(keyword).trim()) {
+      parts.push({ name: db.RegExp({ regexp: String(keyword).trim(), options: 'i' }) });
     }
 
     /**
      * 校区：金水仅显式 campus===金水校区；白沙含「白沙校区」及历史无 campus/空串（库里常无此字段）
      */
-    const cmd = db.command;
     if (campus === '金水校区') {
-      storeWhereCondition.campus = '金水校区';
+      parts.push({ campus: '金水校区' });
     } else {
-      storeWhereCondition = cmd.and([
-        storeWhereCondition,
+      parts.push(
         cmd.or([
           { campus: '白沙校区' },
           { campus: cmd.exists(false) },
           { campus: '' },
           { campus: null }
         ])
-      ]);
+      );
     }
+
+    const storeWhereCondition = cmd.and(parts);
     
     log.log('【获取商家列表】店铺查询条件 campus:', campus);
     log.log('【获取商家列表】筛选分类:', storeCategory);

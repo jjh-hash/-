@@ -18,6 +18,33 @@ function normalizeCampus(campus) {
 
 const CAMPUS_ALLOWED = ['白沙校区', '金水校区'];
 
+const MERCHANT_MAX_BATCH = 1000;
+const IN_CHUNK = 100;
+
+function chunkArray(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) {
+    out.push(arr.slice(i, i + size));
+  }
+  return out;
+}
+
+function buildIdInWhere(cmd, storeIds) {
+  const unique = [...new Set(storeIds.filter(Boolean))];
+  if (unique.length <= IN_CHUNK) {
+    return { _id: cmd.in(unique) };
+  }
+  return cmd.or(chunkArray(unique, IN_CHUNK).map((ids) => ({ _id: cmd.in(ids) })));
+}
+
+function buildStoreIdFieldInOr(cmd, field, ids) {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length <= IN_CHUNK) {
+    return { [field]: cmd.in(unique) };
+  }
+  return cmd.or(chunkArray(unique, IN_CHUNK).map((chunk) => ({ [field]: cmd.in(chunk) })));
+}
+
 function resolveCampusStrict(raw) {
   const n = normalizeCampus(raw);
   return CAMPUS_ALLOWED.includes(n) ? n : null;
@@ -45,11 +72,15 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 1. 获取已审核且营业中的店铺 ID 列表
+    // 1. 获取已审核且营业中的店铺 ID 列表（单次 get 有默认条数上限）
     const merchantsResult = await db.collection('merchants')
       .where({ status: 'active' })
       .field({ storeId: true })
+      .limit(MERCHANT_MAX_BATCH)
       .get();
+    if ((merchantsResult.data || []).length >= MERCHANT_MAX_BATCH) {
+      log.warn('【首页菜品流】active 商家已达', MERCHANT_MAX_BATCH, '条，可能未拉全');
+    }
 
     const storeIds = (merchantsResult.data || [])
       .map(m => m.storeId)
@@ -63,27 +94,23 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 构建店铺查询条件
+    // 构建店铺查询条件（与 getStoreList 一致：_id 多分片 in）
     const cmd = db.command;
-    let storeWhere = {
-      _id: cmd.in(storeIds),
-      businessStatus: 'open'
-    };
-
-    // 金水：仅 campus===金水校区；白沙：白沙标注 + 历史无 campus 字段（与 getStoreList 一致）
+    const idWhere = buildIdInWhere(cmd, storeIds);
+    const parts = [idWhere, { businessStatus: 'open' }];
     if (campus === '金水校区') {
-      storeWhere.campus = '金水校区';
+      parts.push({ campus: '金水校区' });
     } else {
-      storeWhere = cmd.and([
-        storeWhere,
+      parts.push(
         cmd.or([
           { campus: '白沙校区' },
           { campus: cmd.exists(false) },
           { campus: '' },
           { campus: null }
         ])
-      ]);
+      );
     }
+    const storeWhere = cmd.and(parts);
     log.log('【首页菜品流】应用校区过滤:', campus);
 
     const storesResult = await db.collection('stores')
@@ -119,12 +146,12 @@ exports.main = async (event, context) => {
     // 2. 若按分类筛选：先查出该分类名对应的 categoryId 列表（多店铺可能同名分类）
     let categoryIds = null;
     if (categoryName && categoryName.trim() && categoryName !== 'all') {
+      const catWhere = cmd.and([
+        buildStoreIdFieldInOr(cmd, 'storeId', openStoreIds),
+        { name: categoryName.trim(), status: 'active' }
+      ]);
       const catRes = await db.collection('categories')
-        .where({
-          storeId: db.command.in(openStoreIds),
-          name: categoryName.trim(),
-          status: 'active'
-        })
+        .where(catWhere)
         .field({ _id: true })
         .get();
       categoryIds = (catRes.data || []).map(c => c._id);
@@ -138,17 +165,17 @@ exports.main = async (event, context) => {
     }
 
     // 3. 查询商品：上架且审核通过，仅限上述店铺，可选按分类
-    const productWhere = {
-      storeId: db.command.in(openStoreIds),
-      status: 'on',
-      auditStatus: 'approved'
-    };
+    const pwParts = [
+      buildStoreIdFieldInOr(cmd, 'storeId', openStoreIds),
+      { status: 'on', auditStatus: 'approved' }
+    ];
     if (keyword && keyword.trim()) {
-      productWhere.name = db.RegExp({ regexp: keyword.trim(), options: 'i' });
+      pwParts.push({ name: db.RegExp({ regexp: keyword.trim(), options: 'i' }) });
     }
     if (categoryIds && categoryIds.length > 0) {
-      productWhere.categoryId = db.command.in(categoryIds);
+      pwParts.push({ categoryId: cmd.in(categoryIds) });
     }
+    const productWhere = cmd.and(pwParts);
 
     const countResult = await db.collection('products')
       .where(productWhere)
