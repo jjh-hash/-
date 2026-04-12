@@ -249,20 +249,22 @@ scroll-view.content {
   height: calc(16px + env(safe-area-inset-bottom));
 }
 
-/* ========== 空状态 ========== */
-.empty {
+/* ========== 空状态（可滚动：含快捷入口 + 推荐店铺） ========== */
+.content-empty-scroll {
+  box-sizing: border-box;
+}
+
+.empty-block {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 80px 24px;
-  min-height: 60vh;
+  padding: 32px 24px 20px;
   box-sizing: border-box;
 }
 
 .empty-icon {
-  font-size: 64px;
-  margin-bottom: 20px;
+  font-size: 56px;
+  margin-bottom: 16px;
   line-height: 1;
 }
 
@@ -276,7 +278,7 @@ scroll-view.content {
 .empty-desc {
   font-size: 14px;
   color: var(--color-text-placeholder);
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   text-align: center;
   line-height: 1.5;
 }
@@ -293,4 +295,132 @@ scroll-view.content {
 
 .go-home:active {
   opacity: 0.9;
+}
+
+.section-hd {
+  padding: 0 4px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.section-sub {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+}
+
+.cart-quick-section {
+  margin-top: 8px;
+  padding: 0 var(--space-page) 8px;
+}
+
+.cart-quick-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cart-quick-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 6px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.cart-quick-item-link {
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.cart-quick-item-hover {
+  opacity: 0.88;
+}
+
+.cart-quick-ico {
+  font-size: 22px;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.cart-quick-txt {
+  font-size: 12px;
+  color: var(--color-text);
+  font-weight: 500;
+  text-align: center;
+}
+
+.cart-rec-section {
+  padding: 16px var(--space-page) 8px;
+}
+
+.rec-loading,
+.rec-fallback {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-placeholder);
+}
+
+.rec-fallback-txt {
+  line-height: 1.5;
+}
+
+.rec-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rec-card {
+  width: calc(50% - 6px);
+  box-sizing: border-box;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.rec-card-hover {
+  opacity: 0.92;
+}
+
+.rec-logo {
+  width: 100%;
+  height: 88px;
+  display: block;
+  background: var(--color-border);
+}
+
+.rec-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 8px 10px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 4px 10px 10px;
 }

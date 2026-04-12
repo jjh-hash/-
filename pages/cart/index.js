@@ -1,6 +1,11 @@
 // 主包购物车 Tab 页：读取全局购物车，按店展示，支持改数量、删除、去结算、去店铺
 const cartUtil = require('../../utils/cart.js');
 const campusTradeGuard = require('../../utils/campusTradeGuard');
+const {
+  CAMPUS_BAISHA,
+  normalizeHomeCampus,
+  STORAGE_KEY
+} = require('../../utils/homeCampusStorage');
 
 const TAB_BAR_HEIGHT = 50; // 底部 tabBar 高度（px）
 
@@ -25,18 +30,32 @@ Page({
     storeList: [], // [ { storeId, storeInfo, items, cartTotal, deliveryType } ]
     isEmpty: true,
     totalAmount: 0, // 多店合计（元），用于统一付款展示
-    totalAmountText: '0.00' // 合计展示文案（WXML 不能调 .toFixed）
+    totalAmountText: '0.00', // 合计展示文案（WXML 不能调 .toFixed）
+    currentCampus: CAMPUS_BAISHA,
+    recommendStores: [],
+    recommendLoading: false
   },
 
   onLoad() {
+    let campus = CAMPUS_BAISHA;
+    try {
+      const s = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
+      if (s) campus = s;
+    } catch (e) {}
     const sys = wx.getSystemInfoSync();
     const statusBar = (wx.getWindowInfo && wx.getWindowInfo().statusBarHeight) || sys.statusBarHeight || 20;
     const winH = sys.windowHeight || 500;
     const scrollH = Math.max(200, winH - statusBar - TAB_BAR_HEIGHT);
-    this.setData({ scrollHeight: scrollH });
+    this.setData({ scrollHeight: scrollH, currentCampus: campus });
   },
 
   onShow() {
+    try {
+      const s = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
+      if (s && s !== this.data.currentCampus) {
+        this.setData({ currentCampus: s });
+      }
+    } catch (e) {}
     this.loadCart();
   },
 
@@ -73,12 +92,18 @@ Page({
       const totalAmountText = (typeof totalAmount === 'number' && !isNaN(totalAmount)) ? totalAmount.toFixed(2) : '0.00';
       
       // 批量更新数据，减少setData调用
+      const isEmpty = storeList.length === 0;
       this.setData({
         storeList,
-        isEmpty: storeList.length === 0,
+        isEmpty,
         totalAmount,
         totalAmountText
       });
+      if (isEmpty) {
+        this.loadRecommendStores();
+      } else {
+        this.setData({ recommendStores: [], recommendLoading: false });
+      }
     } catch (error) {
       console.error('加载购物车失败:', error);
       // 出错时重置购物车数据
@@ -229,5 +254,65 @@ Page({
     wx.navigateTo({
       url: `/subpackages/store/pages/store-detail/index?storeId=${storeId}`
     });
+  },
+
+  formatImageUrl(url) {
+    if (!url || String(url).trim() === '' || url === 'undefined' || url === 'null') {
+      return '/pages/小标/商家.png';
+    }
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return url;
+  },
+
+  /** 空车时推荐店铺（与首页同校区、getStoreList） */
+  loadRecommendStores() {
+    if (!wx.cloud) return;
+    this.setData({ recommendLoading: true });
+    const campus = this.data.currentCampus || CAMPUS_BAISHA;
+    wx.cloud
+      .callFunction({
+        name: 'getStoreList',
+        data: { page: 1, pageSize: 6, campus }
+      })
+      .then((res) => {
+        const list =
+          res &&
+          res.result &&
+          res.result.code === 200 &&
+          res.result.data &&
+          res.result.data.list
+            ? res.result.data.list
+            : [];
+        const recommendStores = list.map((shop) => {
+          const id = shop._id;
+          const minRaw =
+            shop.minOrderAmount != null ? shop.minOrderAmount : shop.minOrder || 0;
+          const min = Number(minRaw) || 0;
+          return {
+            storeId: id,
+            name: shop.name || '店铺',
+            logo: this.formatImageUrl(shop.logoUrl || shop.img || ''),
+            minOrderText: min % 1 === 0 ? String(min) : min.toFixed(1)
+          };
+        });
+        this.setData({ recommendStores, recommendLoading: false });
+      })
+      .catch(() => {
+        this.setData({ recommendStores: [], recommendLoading: false });
+      });
+  },
+
+  /** 快捷入口：跑腿 / 快递 / 闲置（与首页校区一致） */
+  onQuickService(e) {
+    const key = e.currentTarget.dataset.key;
+    const urls = {
+      reward: '/subpackages/category/pages/reward/index',
+      express: '/subpackages/category/pages/express/index',
+      secondhand: '/subpackages/secondhand/pages/secondhand/index'
+    };
+    const url = urls[key];
+    if (!url) return;
+    const c = encodeURIComponent(this.data.currentCampus || CAMPUS_BAISHA);
+    wx.navigateTo({ url: `${url}?campus=${c}` });
   }
 });

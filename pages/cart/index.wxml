@@ -43,12 +43,65 @@
     </view>
     <view class="safe-bottom"></view>
   </scroll-view>
-  <view class="content" wx:else>
-    <view class="empty">
+  <scroll-view wx:else scroll-y class="content content-empty-scroll" style="height: {{scrollHeight}}px;" show-scrollbar="{{false}}">
+    <view class="empty-block">
       <text class="empty-icon">🛒</text>
       <text class="empty-text">购物车是空的</text>
       <text class="empty-desc">去首页加购商品，再来这里统一结算</text>
       <navigator class="go-home" url="/pages/home/index" open-type="switchTab">去逛逛</navigator>
     </view>
-  </view>
+
+    <view class="cart-quick-section">
+      <view class="section-hd">
+        <text class="section-title">快捷服务</text>
+        <text class="section-sub">同首页校区 · {{currentCampus}}</text>
+      </view>
+      <view class="cart-quick-row">
+        <view class="cart-quick-item" bindtap="onQuickService" data-key="reward" hover-class="cart-quick-item-hover">
+          <text class="cart-quick-ico">⚡</text>
+          <text class="cart-quick-txt">跑腿</text>
+        </view>
+        <view class="cart-quick-item" bindtap="onQuickService" data-key="express" hover-class="cart-quick-item-hover">
+          <text class="cart-quick-ico">📦</text>
+          <text class="cart-quick-txt">代拿快递</text>
+        </view>
+        <view class="cart-quick-item" bindtap="onQuickService" data-key="secondhand" hover-class="cart-quick-item-hover">
+          <text class="cart-quick-ico">🏷️</text>
+          <text class="cart-quick-txt">跳蚤市场</text>
+        </view>
+        <navigator class="cart-quick-item cart-quick-item-link" url="/pages/home/index" open-type="switchTab" hover-class="cart-quick-item-hover">
+          <text class="cart-quick-ico">🏠</text>
+          <text class="cart-quick-txt">逛店铺</text>
+        </navigator>
+      </view>
+    </view>
+
+    <view class="cart-rec-section">
+      <view class="section-hd">
+        <text class="section-title">猜你喜欢</text>
+        <text class="section-sub">附近营业店铺</text>
+      </view>
+      <view class="rec-loading" wx:if="{{recommendLoading}}">
+        <text>推荐加载中…</text>
+      </view>
+      <view class="rec-grid" wx:elif="{{recommendStores.length > 0}}">
+        <view
+          class="rec-card"
+          wx:for="{{recommendStores}}"
+          wx:key="storeId"
+          bindtap="onGoStore"
+          data-store-id="{{item.storeId}}"
+          hover-class="rec-card-hover"
+        >
+          <image class="rec-logo" src="{{item.logo}}" mode="aspectFill" lazy-load />
+          <text class="rec-name">{{item.name}}</text>
+          <text class="rec-meta">¥{{item.minOrderText}} 起送</text>
+        </view>
+      </view>
+      <view class="rec-fallback" wx:else>
+        <text class="rec-fallback-txt">暂无推荐，请稍后再试或去首页逛逛</text>
+      </view>
+    </view>
+    <view class="safe-bottom"></view>
+  </scroll-view>
 </view>
