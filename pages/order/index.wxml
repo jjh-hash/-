@@ -3,25 +3,12 @@
   <scroll-view 
     scroll-y 
     class="content"
+    style="padding-top: {{contentTopInsetPx}}px"
     refresher-enabled="{{true}}"
     refresher-triggered="{{refreshing}}"
     bindrefresherrefresh="onPullDownRefresh"
     bindscroll="onScroll"
   >
-    <!-- 分类标签 -->
-    <view class="category-tabs">
-      <block wx:for="{{categories}}" wx:key="id">
-        <view 
-          class="category-tab {{selectedCategory === item.id ? 'active' : ''}}" 
-          bindtap="onCategoryTap" 
-          data-id="{{item.id}}"
-        >
-          <text class="category-icon">{{item.icon}}</text>
-          <text class="category-text">{{item.name}}</text>
-        </view>
-      </block>
-    </view>
-
     <!-- 加载状态 -->
     <view wx:if="{{loading}}" class="loading-container">
       <text>加载中...</text>
@@ -100,6 +87,22 @@
       </block>
     </view>
     
-    <view class="safe-area-bottom"></view>
+    <view class="order-scroll-bottom-spacer"></view>
   </scroll-view>
+
+  <!-- 底部分类：四枚独立悬浮胶囊，贴近底部导航栏 -->
+  <view class="order-category-dock">
+    <view class="category-capsule-row">
+      <block wx:for="{{categories}}" wx:key="id">
+        <view
+          class="category-capsule-float {{selectedCategory === item.id ? 'is-active' : ''}}"
+          bindtap="onCategoryTap"
+          data-id="{{item.id}}"
+        >
+          <text class="category-capsule-ico">{{item.icon}}</text>
+          <text class="category-capsule-txt">{{item.name}}</text>
+        </view>
+      </block>
+    </view>
+  </view>
 </view>

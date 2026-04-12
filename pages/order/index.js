@@ -1,9 +1,11 @@
 // 主包订单页：仅作重定向。redirectTo 失败时拉一次订单并提示从底部进入，不维护 Watch/轮询。
 const subscribeMessage = require('../../utils/subscribeMessage.js');
+const { getContentTopInset } = require('../../utils/safeArea.js');
 
 Page({
   data: {
-    statusBarHeight: 20,
+    /** 自定义导航页：列表避开状态栏/刘海 */
+    contentTopInsetPx: 20,
     orders: [],
     allOrders: [], // 存储所有订单
     filteredOrders: [], // 过滤后的订单
@@ -19,17 +21,13 @@ Page({
   },
 
   onLoad() {
-    const win = wx.getWindowInfo ? wx.getWindowInfo() : null;
-    const sys = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
-    this.setData({
-      statusBarHeight: (win && win.statusBarHeight) || sys.statusBarHeight || 20
-    });
+    this.setData({ contentTopInsetPx: getContentTopInset() });
     subscribeMessage.preloadOrderStatusTemplateId();
     this.loadOrders();
   },
 
   onShow() {
-    // 主包页仅作重定向，不做 Watch/轮询
+    this.setData({ contentTopInsetPx: getContentTopInset() });
   },
 
   onScroll() {

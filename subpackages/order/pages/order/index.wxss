@@ -9,34 +9,81 @@
 
 .content { height: 100vh; background: var(--color-bg-page); box-sizing: border-box; }
 
-/* 顶栏 Tab：白底 + 主色点缀（选中胶囊） */
-.category-tabs {
-  display: flex;
-  padding: 12px;
-  gap: 8px;
-  background: #fff;
-  border-bottom: 1px solid var(--color-border);
-  overflow-x: auto;
-  white-space: nowrap;
+.order-scroll-bottom-spacer {
+  height: calc(36px + 60px + env(safe-area-inset-bottom));
 }
-.category-tab {
+
+.order-category-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(42px + env(safe-area-inset-bottom));
+  transform: translateY(24px);
+  z-index: 99;
+  padding: 0 8px 0;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.category-capsule-row {
+  pointer-events: auto;
   display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.category-capsule-float {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
-  border-radius: var(--radius-tag);
-  background: #f5f6f8;
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  white-space: nowrap;
-  transition: all var(--transition-fast);
+  padding: 4px 2px 5px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(184, 189, 200, 0.42);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.09);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
-.category-tab.active {
+
+.category-capsule-float:active {
+  transform: scale(0.97);
+}
+
+.category-capsule-float.is-active {
   background: var(--color-primary);
+  border-color: rgba(255, 200, 60, 0.95);
+  box-shadow: 0 3px 14px rgba(255, 184, 0, 0.42);
+}
+
+.category-capsule-float.is-active .category-capsule-ico,
+.category-capsule-float.is-active .category-capsule-txt {
   color: #fff;
 }
-.category-icon { margin-right: 4px; font-size: 14px; }
-.category-text { font-size: 14px; font-weight: 500; }
+
+.category-capsule-ico {
+  font-size: 13px;
+  line-height: 1.1;
+  margin-bottom: 2px;
+  color: var(--color-text-secondary);
+}
+
+.category-capsule-txt {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--color-text);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .loading-container {
   display: flex;
@@ -147,9 +194,8 @@
 .refund-remark { font-size: 12px; color: var(--color-text-secondary); display: block; margin-top: 4px; line-height: 1.5; }
 .refund-amount { font-size: 12px; color: var(--color-primary); display: block; margin-top: 4px; }
 
-.order-time-info { margin: 8px 0; padding: 8px 12px; background: rgba(250,140,22,0.08); border-radius: var(--radius-btn); border-left: 3px solid var(--color-warning); }
-.order-time-info .time-text { font-size: 12px; color: var(--color-warning); display: block; margin-bottom: 4px; }
-.order-time-info .time-text:last-child { margin-bottom: 0; }
+.order-time-info { margin: 8px 0; padding: 8px 12px; background: rgba(250,140,22,0.08); border-radius: var(--radius-btn); border-left: 3px solid var(--color-warning); display: flex; flex-direction: column; gap: 4px; }
+.order-time-info .time-text { font-size: 12px; color: var(--color-warning); display: block; }
 .order-time-info .time-text.expired { color: var(--color-danger); }
 .order-time-info .time-text.countdown { color: var(--color-warning); }
 .order-time-info .time-text.delivery { color: var(--color-success); }
@@ -162,7 +208,11 @@
 .price-detail { margin-top: 4px; }
 .detail-text { font-size: 12px; color: var(--color-text-placeholder); }
 .action-buttons { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; flex: 0 0 38%; max-width: 38%; min-width: 140px; justify-content: flex-end; align-items: center; }
-.action-buttons button { padding: 8px 12px; border-radius: var(--radius-btn); font-size: 13px; min-height: 36px; white-space: nowrap; flex-shrink: 0; }
+.action-buttons .btn-cancel,
+.action-buttons .btn-pay,
+.action-buttons .btn-refund,
+.action-buttons .btn-contact,
+.action-buttons .btn-again { padding: 8px 12px; border-radius: var(--radius-btn); font-size: 13px; min-height: 36px; white-space: nowrap; flex-shrink: 0; }
 .btn-cancel { background: var(--color-bg-card); color: var(--color-text); border: 1px solid var(--color-border); }
 .btn-pay { background: #FFB800; color: #1C1C1E; font-weight: 600; border: none; }
 .btn-refund { background: var(--color-danger); color: #fff; font-weight: 500; border: none; }

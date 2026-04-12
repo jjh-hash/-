@@ -33,7 +33,6 @@ async function callFunctionWithRetry(options, maxRetries = 2, timeout = 10000) {
 
 Page({
   data: {
-    statusBarHeight: wx.getWindowInfo().statusBarHeight || 20,
     orders: [],
     allOrders: [], // 存储所有订单
     filteredOrders: [], // 过滤后的订单
