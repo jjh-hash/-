@@ -1,7 +1,7 @@
 /* 首页 - 增强吸引力与层次感 */
 .page { background: var(--color-bg-page); min-height: 100vh; }
-/* 高度由 wxml 绑定 scrollViewHeight（与 windowHeight 一致），勿用 100vh */
-.content { box-sizing: border-box; }
+/* 高度由 wxml 绑定 scrollViewHeight；min-height 防止真机 windowHeight 为 0 时 scroll-view 塌缩成全白 */
+.content { box-sizing: border-box; min-height: 55vh; }
 
 /* ========== 顶部区域：轮播 + 悬浮问候 + 悬浮搜索 ========== */
 .header-area {

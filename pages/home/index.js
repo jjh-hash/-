@@ -106,8 +106,9 @@ Page({
     // 窗口高度：优先新 API（与机型/分屏一致）；避免仅用 100vh 在 tabBar 页裁切
     this.applyWindowMetrics();
     this._resizeHandler = (res) => {
-      const h = res && res.size && res.size.windowHeight;
-      if (h && h > 0) {
+      const raw = res && res.size && res.size.windowHeight;
+      const h = Number(raw);
+      if (Number.isFinite(h) && h >= 360) {
         this.setData({ scrollViewHeight: h });
       }
     };
@@ -165,28 +166,35 @@ Page({
   },
 
   applyWindowMetrics() {
+    const MIN_H = 360;
+    const pickHeight = (raw) => {
+      const n = Number(raw);
+      return Number.isFinite(n) && n >= MIN_H ? n : 0;
+    };
+    let bar = 20;
+    let h = 0;
     try {
       const win = wx.getWindowInfo ? wx.getWindowInfo() : null;
-      if (win && win.windowHeight > 0) {
-        this.setData({
-          statusBarHeight: win.statusBarHeight || 20,
-          scrollViewHeight: win.windowHeight
-        });
-        return;
+      if (win) {
+        bar = win.statusBarHeight || 20;
+        h = pickHeight(win.windowHeight);
       }
     } catch (e) {}
-    wx.getSystemInfo({
-      success: (sys) => {
-        const bar = sys.statusBarHeight || 20;
-        const h = sys.windowHeight > 0 ? sys.windowHeight : 600;
-        this.setData({
-          statusBarHeight: bar,
-          scrollViewHeight: h
-        });
-      },
-      fail: (e) => {
-        log.error('【首页】系统信息', e);
+    if (h < MIN_H) {
+      try {
+        const sys = wx.getSystemInfoSync();
+        bar = sys.statusBarHeight || bar;
+        h = pickHeight(sys.windowHeight) || pickHeight(sys.screenHeight) || 0;
+      } catch (e2) {
+        log.warn('【首页】getSystemInfoSync', e2);
       }
+    }
+    if (h < MIN_H) {
+      h = this.data.scrollViewHeight >= MIN_H ? this.data.scrollViewHeight : 600;
+    }
+    this.setData({
+      statusBarHeight: bar,
+      scrollViewHeight: h
     });
   },
 
@@ -205,6 +213,9 @@ Page({
   },
 
   onShow() {
+    // 部分真机首帧 windowHeight 异常，返回 tab 时再算一次，避免 scroll-view 高度为 0 白屏
+    this.applyWindowMetrics();
+
     // 从子包返回时：本地存储可能已由子包写入最新校区，与页面 data 对齐并刷新列表
     let syncedFromStorage = false;
     try {
