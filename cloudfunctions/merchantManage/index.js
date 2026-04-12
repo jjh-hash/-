@@ -514,9 +514,40 @@ async function resumeMerchant(openid, data) {
 }
 
 /**
- * 删除商家（删除所有相关数据）
+ * 按条件分批删除文档（云数据库单次 get 默认上限 100）
  */
-async function deleteMerchant(openid, data) {
+async function removeDocsWhere(db, collectionName, field, value) {
+  const coll = db.collection(collectionName);
+  for (;;) {
+    const res = await coll.where({ [field]: value }).limit(100).get();
+    if (!res.data || res.data.length === 0) break;
+    await Promise.all(res.data.map(doc => coll.doc(doc._id).remove().catch(err => {
+      console.error(`【删除商家】${collectionName} 删除单条失败:`, doc._id, err);
+    })));
+  }
+}
+
+/**
+ * 删除单个店铺及其子数据（商品、分类、照片、评价、订单）
+ */
+async function deleteStoreAndChildren(db, storeId) {
+  if (!storeId) return;
+  console.log('【删除商家】清理店铺及子数据 storeId:', storeId);
+  await removeDocsWhere(db, 'store_photos', 'storeId', storeId);
+  await removeDocsWhere(db, 'products', 'storeId', storeId);
+  await removeDocsWhere(db, 'categories', 'storeId', storeId);
+  await removeDocsWhere(db, 'reviews', 'storeId', storeId);
+  await removeDocsWhere(db, 'orders', 'storeId', storeId);
+  await db.collection('stores').doc(storeId).remove()
+    .then(() => console.log('【删除商家】店铺文档已删除:', storeId))
+    .catch(err => console.error('【删除商家】删除店铺文档失败:', storeId, err));
+}
+
+/**
+ * 删除商家（删除所有相关数据）
+ * 说明：除 merchants.storeId 外，会删除 stores.merchantId === 该商家 _id 的全部店铺（修复重复建店遗留）。
+ */
+async function deleteMerchant(_callerOpenid, data) {
   const { merchantId } = data;
   
   console.log('【删除商家】商家ID:', merchantId);
@@ -529,7 +560,6 @@ async function deleteMerchant(openid, data) {
   }
   
   try {
-    // 1. 查询商家信息
     const merchant = await db.collection('merchants').doc(merchantId).get();
     
     if (!merchant.data) {
@@ -540,143 +570,50 @@ async function deleteMerchant(openid, data) {
     }
     
     const merchantData = merchant.data;
-    const storeId = merchantData.storeId;
-    const openid = merchantData.openid;
+    const merchantOpenid = merchantData.openid;
     const account = merchantData.account;
     
-    console.log('【删除商家】开始删除，店铺ID:', storeId, 'OpenID:', openid, '账号:', account);
-    
-    // 2. 删除所有相关数据（并行执行以提高效率）
-    const deletePromises = [];
-    
-    // 2.1 删除商家记录
-    deletePromises.push(
-      db.collection('merchants').doc(merchantId).remove()
-        .then(() => console.log('【删除商家】商家记录已删除'))
-        .catch(err => console.error('【删除商家】删除商家记录失败:', err))
-    );
-    
-    // 2.2 删除店铺信息（如果存在）
-    if (storeId) {
-      deletePromises.push(
-        db.collection('stores').doc(storeId).remove()
-          .then(() => console.log('【删除商家】店铺信息已删除'))
-          .catch(err => console.error('【删除商家】删除店铺信息失败:', err))
-      );
-      
-      // 2.3 删除店铺照片
-      deletePromises.push(
-        db.collection('store_photos')
-          .where({ storeId: storeId })
-          .get()
-          .then(result => {
-            if (result.data.length > 0) {
-              const deletePhotoPromises = result.data.map(photo => 
-                db.collection('store_photos').doc(photo._id).remove()
-              );
-              return Promise.all(deletePhotoPromises);
-            }
-          })
-          .then(() => console.log('【删除商家】店铺照片已删除'))
-          .catch(err => console.error('【删除商家】删除店铺照片失败:', err))
-      );
-      
-      // 2.4 删除商品
-      deletePromises.push(
-        db.collection('products')
-          .where({ storeId: storeId })
-          .get()
-          .then(result => {
-            if (result.data.length > 0) {
-              const deleteProductPromises = result.data.map(product => 
-                db.collection('products').doc(product._id).remove()
-              );
-              return Promise.all(deleteProductPromises);
-            }
-          })
-          .then(() => console.log('【删除商家】商品已删除'))
-          .catch(err => console.error('【删除商家】删除商品失败:', err))
-      );
-      
-      // 2.5 删除分类
-      deletePromises.push(
-        db.collection('categories')
-          .where({ storeId: storeId })
-          .get()
-          .then(result => {
-            if (result.data.length > 0) {
-              const deleteCategoryPromises = result.data.map(category => 
-                db.collection('categories').doc(category._id).remove()
-              );
-              return Promise.all(deleteCategoryPromises);
-            }
-          })
-          .then(() => console.log('【删除商家】分类已删除'))
-          .catch(err => console.error('【删除商家】删除分类失败:', err))
-      );
-      
-      // 2.6 删除评论
-      deletePromises.push(
-        db.collection('reviews')
-          .where({ storeId: storeId })
-          .get()
-          .then(result => {
-            if (result.data.length > 0) {
-              const deleteReviewPromises = result.data.map(review => 
-                db.collection('reviews').doc(review._id).remove()
-              );
-              return Promise.all(deleteReviewPromises);
-            }
-          })
-          .then(() => console.log('【删除商家】评论已删除'))
-          .catch(err => console.error('【删除商家】删除评论失败:', err))
-      );
-      
-      // 2.7 删除订单（将订单状态标记为已删除，而不是真正删除，保留订单历史）
-      // 注意：订单通常不直接删除，而是标记为已删除状态
-      // 如果需要真正删除订单，可以取消下面的注释
-      /*
-      deletePromises.push(
-        db.collection('orders')
-          .where({ storeId: storeId })
-          .get()
-          .then(result => {
-            if (result.data.length > 0) {
-              const deleteOrderPromises = result.data.map(order => 
-                db.collection('orders').doc(order._id).remove()
-              );
-              return Promise.all(deleteOrderPromises);
-            }
-          })
-          .then(() => console.log('【删除商家】订单已删除'))
-          .catch(err => console.error('【删除商家】删除订单失败:', err))
-      );
-      */
+    const storeIdSet = new Set();
+    if (merchantData.storeId) {
+      storeIdSet.add(merchantData.storeId);
     }
     
-    // 2.8 删除用户记录（如果openid存在）
-    if (openid) {
-      deletePromises.push(
-        db.collection('users')
-          .where({ openid: openid, role: 'merchant' })
-          .get()
-          .then(result => {
-            if (result.data.length > 0) {
-              const deleteUserPromises = result.data.map(user => 
-                db.collection('users').doc(user._id).remove()
-              );
-              return Promise.all(deleteUserPromises);
-            }
-          })
-          .then(() => console.log('【删除商家】用户记录已删除'))
-          .catch(err => console.error('【删除商家】删除用户记录失败:', err))
-      );
+    const storesByMerchant = await db.collection('stores')
+      .where({ merchantId: merchantId })
+      .get();
+    (storesByMerchant.data || []).forEach(s => {
+      if (s && s._id) storeIdSet.add(s._id);
+    });
+    
+    console.log('【删除商家】待删店铺数:', storeIdSet.size, '账号:', account, 'openid:', merchantOpenid || '(无)');
+    
+    for (const sid of storeIdSet) {
+      await deleteStoreAndChildren(db, sid);
     }
     
-    // 等待所有删除操作完成
-    await Promise.all(deletePromises);
+    await db.collection('merchants').doc(merchantId).remove()
+      .then(() => console.log('【删除商家】商家记录已删除'))
+      .catch(err => console.error('【删除商家】删除商家记录失败:', err));
     
-    console.log('【删除商家】所有相关数据已删除');
+    if (merchantOpenid) {
+      const remain = await db.collection('merchants').where({ openid: merchantOpenid }).count();
+      if (remain.total === 0) {
+        const usersRes = await db.collection('users')
+          .where({ openid: merchantOpenid, role: 'merchant' })
+          .get();
+        if (usersRes.data && usersRes.data.length > 0) {
+          await Promise.all(usersRes.data.map(user =>
+            db.collection('users').doc(user._id).remove()
+              .catch(err => console.error('【删除商家】删除用户失败:', user._id, err))
+          ));
+          console.log('【删除商家】已无其他商家账号，已删除 users 中 merchant 角色记录');
+        }
+      } else {
+        console.log('【删除商家】该微信下仍有其他商家记录，保留 users');
+      }
+    }
+    
+    console.log('【删除商家】所有相关数据已处理完成');
     
     return {
       code: 200,
