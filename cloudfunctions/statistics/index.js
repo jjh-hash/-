@@ -842,6 +842,11 @@ async function calculateTotalRevenue() {
       // 查询失败不影响主流程
     }
     
+    if (totalRevenue < 0) {
+      console.warn('【计算总营收】营收为负，已按0处理:', totalRevenue);
+      totalRevenue = 0;
+    }
+    
     return totalRevenue;
   } catch (error) {
     console.error('【计算总营收】失败:', error);
@@ -928,6 +933,11 @@ async function calculateTodayStats() {
       .count();
     
     const todayNewMerchants = todayMerchantsResult.total || 0;
+    
+    if (todayRevenue < 0) {
+      console.warn('【计算今日统计】今日营收为负，已按0处理:', todayRevenue);
+      todayRevenue = 0;
+    }
     
     return {
       revenue: todayRevenue,
@@ -1021,6 +1031,11 @@ async function calculateYesterdayStats() {
       .count();
     
     const yesterdayNewMerchants = yesterdayMerchantsResult.total || 0;
+    
+    if (yesterdayRevenue < 0) {
+      console.warn('【计算昨日统计】昨日营收为负，已按0处理:', yesterdayRevenue);
+      yesterdayRevenue = 0;
+    }
     
     return {
       revenue: yesterdayRevenue,
@@ -1258,7 +1273,7 @@ async function calculateRevenueChart() {
         return sum + platformFee;
       }, 0);
       
-      dailyRevenues.push(dayRevenue);
+      dailyRevenues.push(dayRevenue < 0 ? 0 : dayRevenue);
     }
     
     // 找出最大值用于计算高度
