@@ -1,0 +1,6 @@
+.redirecting {
+  padding: 32rpx;
+  color: #666;
+  font-size: 28rpx;
+  text-align: center;
+}

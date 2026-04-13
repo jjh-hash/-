@@ -42,8 +42,14 @@ App({
       wx.cloud.callFunction = function (options) {
         try {
           const token = wx.getStorageSync('adminToken');
-          const pages = getCurrentPages();
-          const route = pages.length ? pages[pages.length - 1].route || '' : '';
+          let route = '';
+          try {
+            const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+            if (Array.isArray(pages) && pages.length > 0) {
+              const current = pages[pages.length - 1];
+              route = current && typeof current.route === 'string' ? current.route : '';
+            }
+          } catch (e) {}
           const adminRoute =
             route.indexOf('admin') !== -1 ||
             route.indexOf('merchant-register') !== -1;

@@ -193,12 +193,12 @@ Page({
     if (index === 0) {
       // 跳转到店铺详情页（点餐页面）
       wx.navigateTo({
-        url: `/pages/store-detail/index?storeId=${this.data.storeId}`
+        url: `/subpackages/store/pages/store-detail/index?storeId=${this.data.storeId}`
       });
     } else if (index === 1) {
       // 跳转到评价页面
       wx.navigateTo({
-        url: `/pages/reviews/index?storeId=${this.data.storeId}`
+        url: `/subpackages/store/pages/reviews/index?storeId=${this.data.storeId}`
       });
     }
     // index === 2 是当前页面（商家信息），不需要跳转

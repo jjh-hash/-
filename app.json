@@ -5,7 +5,8 @@
     "pages/order/index",
     "pages/cart/index",
     "pages/profile/index",
-    "pages/user-login/index"
+    "pages/user-login/index",
+    "pages/reviews/index"
   ],
   "subPackages": [
     {

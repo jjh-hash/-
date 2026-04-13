@@ -63,6 +63,17 @@
           <text class="edit-btn" bindtap="onEditConfig" data-type="orderTimeoutMinutes">编辑</text>
         </view>
       </view>
+
+      <view class="config-item">
+        <view class="config-label">
+          <text class="label-text">校园兼职保证金</text>
+          <text class="label-desc">校园兼职开通需缴纳的保证金金额</text>
+        </view>
+        <view class="config-value">
+          <text class="value-text">¥{{platformConfig.depositAmount}}</text>
+          <text class="edit-btn" bindtap="onEditConfig" data-type="depositAmount">编辑</text>
+        </view>
+      </view>
     </view>
 
     <!-- 轮播图管理 -->

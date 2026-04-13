@@ -219,7 +219,7 @@ Page({
           setTimeout(() => {
             // 跳转到评论页面并刷新
             wx.redirectTo({
-              url: `/pages/reviews/index?storeId=${storeId}&refresh=true`,
+              url: `/subpackages/store/pages/reviews/index?storeId=${storeId}&refresh=true`,
               success: () => {
                 console.log('跳转到评论页面成功');
               },

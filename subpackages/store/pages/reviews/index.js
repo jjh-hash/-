@@ -254,11 +254,11 @@ Page({
     // 根据标签跳转
     if (index === 0) {
       wx.navigateTo({
-        url: '/pages/store-detail/index'
+        url: `/subpackages/store/pages/store-detail/index?storeId=${this.data.storeId}`
       });
     } else if (index === 2) {
       wx.navigateTo({
-        url: '/pages/store-detail/index?tab=merchant'
+        url: `/subpackages/merchant/pages/merchant-info/index?storeId=${this.data.storeId}`
       });
     }
   },
