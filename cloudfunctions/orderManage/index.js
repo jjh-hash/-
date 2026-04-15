@@ -4758,6 +4758,8 @@ function formatRiderOrder(order) {
     pickupAddress: pickupAddress,
     deliveryDistance: deliveryDistance,
     deliveryAddress: deliveryAddress,
+    customerName: (order.address && order.address.name) || '',
+    customerPhone: (order.address && order.address.phone) || '',
     status: getStatusText(order.orderStatus, order.riderOpenid),
     orderStatus: order.orderStatus,
     items: itemsText,

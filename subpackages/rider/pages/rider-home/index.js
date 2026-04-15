@@ -709,6 +709,37 @@ Page({
     });
   },
 
+  // 联系顾客
+  onContactCustomer(e) {
+    const phone = (e.currentTarget.dataset.phone || '').trim();
+    const customerName = e.currentTarget.dataset.name || '顾客';
+    if (!phone) {
+      wx.showToast({
+        title: '未获取到顾客电话',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.showModal({
+      title: '联系顾客',
+      content: `是否拨打${customerName}电话：${phone}`,
+      confirmText: '拨打',
+      success: (res) => {
+        if (!res.confirm) return;
+        wx.makePhoneCall({
+          phoneNumber: phone,
+          fail: () => {
+            wx.showToast({
+              title: '拨号失败，请稍后重试',
+              icon: 'none'
+            });
+          }
+        });
+      }
+    });
+  },
+
   onAvatarTap() {
     // 跳转到个人中心页面
     wx.navigateTo({

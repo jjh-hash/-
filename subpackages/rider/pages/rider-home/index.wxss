@@ -172,8 +172,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex: 1;
   width: 100%;
-  padding: 48px 24px;
+  min-height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
 }
 
 .empty-icon-wrap {
@@ -224,6 +227,9 @@
 /* 订单列表 */
 .order-list {
   width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .order-skeleton-list .ds-skeleton-line { flex-shrink: 0; }
@@ -347,6 +353,47 @@
 .status-tag text {
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-tag);
+  background: var(--color-bg-page);
+}
+
+.contact-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.contact-btn {
+  flex-shrink: 0;
+  min-width: 88px;
+  height: 32px;
+  line-height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--color-secondary);
+  color: #fff;
+  font-size: 13px;
+}
+
+.contact-btn::after {
+  border: none;
+}
+
+.contact-btn:active {
+  opacity: 0.9;
 }
 
 /* 餐品信息 */

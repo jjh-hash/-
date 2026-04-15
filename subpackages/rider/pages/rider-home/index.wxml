@@ -116,6 +116,12 @@
                 <text class="delivery-address">{{item.deliveryAddress}}</text>
               </view>
             </view>
+
+            <!-- 顾客联系方式（待送达阶段可联系） -->
+            <view class="contact-row" wx:if="{{item.customerPhone}}">
+              <text class="contact-text">顾客：{{item.customerName || '用户'}} {{item.customerPhone}}</text>
+              <button class="contact-btn" bindtap="onContactCustomer" data-phone="{{item.customerPhone}}" data-name="{{item.customerName || '用户'}}">联系顾客</button>
+            </view>
             
             <!-- 状态标签 -->
             <view class="status-tag" wx:if="{{item.status}}">
