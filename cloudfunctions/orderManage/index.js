@@ -3282,7 +3282,7 @@ async function createRewardOrder(openid, data) {
       
       // 订单状态
       orderStatus: 'pending', // pending-待确认, confirmed-已确认, preparing-准备中, delivering-配送中, completed-已完成, cancelled-已取消
-      payStatus: 'paid', // 模拟已支付
+      payStatus: 'unpaid', // 悬赏需真实支付成功后再置为 paid
       
       // 用户信息（用于无店铺订单显示）
       userInfo: {
@@ -3361,7 +3361,8 @@ async function getReceiveOrders(openid, data) {
     
     // 构建查询条件：只查询游戏陪玩、悬赏、代拿快递订单
     const typeCond = {
-      orderType: db.command.in(['gaming', 'reward', 'express'])
+      orderType: db.command.in(['gaming', 'reward', 'express']),
+      payStatus: 'paid' // 仅展示已支付任务，避免未支付任务被接单
     };
     
     // 根据状态筛选（如果不传status，默认查询所有进行中的订单状态）
@@ -3660,7 +3661,7 @@ async function checkCampusPartnerActive(openid) {
 }
 
 /**
- * 骑手接单（配送单）：校园兼职已开通或骑手审核通过均可接单
+ * 骑手接单（配送单）：仅校园兼职已开通可接单
  */
 async function grabOrder(openid, data) {
   try {
@@ -3676,41 +3677,13 @@ async function grabOrder(openid, data) {
       };
     }
     
-    // 优先校验校园兼职：已开通则可接配送单
+    // 校验校园兼职：已开通才可接配送单
     const campusActive = await checkCampusPartnerActive(openid);
-    if (campusActive) {
-      // 通过，继续后续订单校验
-    } else {
-      // 未开通校园兼职时，兼容原骑手审核
-      let riderStatus = 'not_registered';
-      try {
-        const riderQuery = await db.collection('riders')
-          .where({ openid: openid })
-          .get();
-        
-        if (riderQuery.data && riderQuery.data.length > 0) {
-          riderStatus = riderQuery.data[0].status || 'pending';
-        }
-      } catch (error) {
-        if (error.errCode === -502005 || error.message.includes('collection not exist')) {
-          riderStatus = 'not_registered';
-        } else {
-          console.error('【骑手接单】查询骑手状态失败:', error);
-        }
-      }
-      
-      if (riderStatus !== 'approved') {
-        let message = '请先开通校园兼职（缴纳保证金）或注册骑手后再接配送单';
-        if (riderStatus === 'pending') {
-          message = '您的骑手申请正在审核中，或可先开通校园兼职接单';
-        } else if (riderStatus === 'rejected') {
-          message = '您的骑手申请未通过，或可先开通校园兼职接单';
-        }
-        return {
-          code: 403,
-          message: message
-        };
-      }
+    if (!campusActive) {
+      return {
+        code: 403,
+        message: '请先开通校园兼职（缴纳保证金）后再接配送单'
+      };
     }
     
     // 获取订单信息

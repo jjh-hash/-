@@ -260,9 +260,10 @@ Page({
     try {
       const res = await wx.cloud.callFunction({ name: 'campusPartnerManage', data: { action: 'getStatus' } });
       const d = res.result && res.result.data;
-      this.setData({ campusPartnerActive: d && d.status === 'active' });
+      const campusPartnerActive = !!(d && d.status === 'active');
+      this.setData({ campusPartnerActive, canGrabOrder: campusPartnerActive });
     } catch (e) {
-      this.setData({ campusPartnerActive: false });
+      this.setData({ campusPartnerActive: false, canGrabOrder: false });
     }
   },
 
@@ -368,7 +369,7 @@ Page({
       const res = await wx.cloud.callFunction({ name: 'riderManage', data: { action: 'getRiderStatus', data: {} } });
       if (res.result && res.result.code === 200) {
         const d = res.result.data || {};
-        this.setData({ riderStatus: d.status || 'not_registered', canGrabOrder: !!d.canGrabOrder });
+        this.setData({ riderStatus: d.status || 'not_registered' });
       }
     } catch (e) {
       console.error('loadRiderStatus', e);

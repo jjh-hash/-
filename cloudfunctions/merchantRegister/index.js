@@ -73,17 +73,31 @@ exports.main = async (event, context) => {
       };
     }
     
+    const wxContext = cloud.getWXContext();
+    const { OPENID } = wxContext;
+
     // 检查账号是否已被使用
     const accountCheck = await db.collection('merchants')
       .where({
         account: account.trim()
       })
       .get();
-    
-    if (accountCheck.data.length > 0) {
+
+    const existingMerchant = accountCheck.data.length > 0 ? accountCheck.data[0] : null;
+    const canResubmitByAccount = !!(existingMerchant && existingMerchant.status === 'rejected');
+
+    if (existingMerchant && !canResubmitByAccount) {
       return {
         code: 400,
         message: '该账号已被注册，请使用其他账号',
+        data: null
+      };
+    }
+
+    if (canResubmitByAccount && existingMerchant.openid && existingMerchant.openid !== OPENID) {
+      return {
+        code: 403,
+        message: '该账号已绑定其他微信号，请联系管理员处理',
         data: null
       };
     }
@@ -95,7 +109,13 @@ exports.main = async (event, context) => {
       })
       .get();
     
-    if (merchantNameCheck.data.length > 0) {
+    const occupiedByOtherMerchant = merchantNameCheck.data.some((m) => {
+      if (!m || !m._id) return false;
+      if (!canResubmitByAccount) return true;
+      return m._id !== existingMerchant._id;
+    });
+
+    if (occupiedByOtherMerchant) {
       console.log('商家名称已存在:', shopName);
       return {
         code: 400,
@@ -141,13 +161,8 @@ exports.main = async (event, context) => {
       };
     }
     
-    // 4. 获取微信用户信息
-    const wxContext = cloud.getWXContext();
-    const { OPENID } = wxContext;
-    
-    // 5. 同一微信号可注册多个商家（多条 merchants 记录可共用同一 openid）
-    
-    // 6. 检查并更新用户角色为商家
+    // 4. 同一微信号可注册多个商家（多条 merchants 记录可共用同一 openid）
+    // 5. 检查并更新用户角色为商家
     const userQuery = await db.collection('users')
       .where({ openid: OPENID })
       .get();
@@ -189,24 +204,44 @@ exports.main = async (event, context) => {
       .update(password.trim())
       .digest('hex');
     
-    // 8. 创建商家记录
-    const merchantResult = await db.collection('merchants').add({
-      data: {
-        openid: OPENID,
-        merchantName: shopName.trim(),
-        account: account.trim(),
-        password: passwordHash, // 存储加密后的密码
-        contactPhone: '',
-        campus: campusNorm,
-        role: 'owner',
-        status: 'pending',
-        inviteCodeId: inviteCodeData._id,
-        contractStatus: 'unsigned',
-        qualificationStatus: 'pending',
-        createdAt: db.serverDate(),
-        updatedAt: db.serverDate()
-      }
-    });
+    let merchantId = '';
+    if (canResubmitByAccount) {
+      // 被拒绝账号允许重提：复用原记录并重置审核状态
+      await db.collection('merchants').doc(existingMerchant._id).update({
+        data: {
+          openid: OPENID,
+          merchantName: shopName.trim(),
+          account: account.trim(),
+          password: passwordHash,
+          campus: campusNorm,
+          status: 'pending',
+          qualificationStatus: 'pending',
+          inviteCodeId: inviteCodeData._id,
+          updatedAt: db.serverDate()
+        }
+      });
+      merchantId = existingMerchant._id;
+    } else {
+      // 8. 创建商家记录
+      const merchantResult = await db.collection('merchants').add({
+        data: {
+          openid: OPENID,
+          merchantName: shopName.trim(),
+          account: account.trim(),
+          password: passwordHash, // 存储加密后的密码
+          contactPhone: '',
+          campus: campusNorm,
+          role: 'owner',
+          status: 'pending',
+          inviteCodeId: inviteCodeData._id,
+          contractStatus: 'unsigned',
+          qualificationStatus: 'pending',
+          createdAt: db.serverDate(),
+          updatedAt: db.serverDate()
+        }
+      });
+      merchantId = merchantResult._id;
+    }
     
     // 9. 更新邀请码使用次数
     await db.collection('invite_codes').doc(inviteCodeData._id).update({
@@ -230,7 +265,7 @@ exports.main = async (event, context) => {
       }
     }
     
-    console.log('商家注册成功:', merchantResult._id);
+    console.log('商家注册成功:', merchantId, canResubmitByAccount ? '(重提)' : '(新建)');
     
     // 获取用户信息（新注册用户时 userQuery 可能为空，openid 用上下文 OPENID）
     const userInfo = userQuery.data.length > 0 ? userQuery.data[0] : {};
@@ -238,10 +273,10 @@ exports.main = async (event, context) => {
 
     return {
       code: 200,
-      message: '注册成功',
+      message: canResubmitByAccount ? '重新提交成功，待审核' : '注册成功',
       data: {
         merchant: {
-          _id: merchantResult._id,
+          _id: merchantId,
           openid: OPENID,
           merchantName: shopName.trim(),
           contactPhone: '',

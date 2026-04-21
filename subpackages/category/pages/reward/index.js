@@ -44,7 +44,8 @@ Page({
     ],
     orderDuration: 30, // 订单在任务大厅存在时长（分钟），默认30分钟
     orderDurationUnit: 'minute', // 时长单位：'minute' 或 'hour'
-    orderExpiredAtDisplay: '' // 订单截止时间显示文本（自动计算）
+    orderExpiredAtDisplay: '', // 订单截止时间显示文本（自动计算）
+    submitting: false // 防止重复提交
   },
 
   onLoad(options) {
@@ -325,6 +326,10 @@ Page({
 
   // 立即下单
   async onPlaceOrder() {
+    if (this.data.submitting) {
+      return;
+    }
+
     // 验证必填项
     const missingFields = [];
     
@@ -342,6 +347,11 @@ Page({
 
     if (!this.data.address) {
       missingFields.push('联系信息');
+    }
+
+    const bountyYuan = parseFloat(this.data.bounty) || 0;
+    if (bountyYuan <= 0) {
+      missingFields.push('赏金金额');
     }
 
     // 验证订单存在时长
@@ -369,11 +379,12 @@ Page({
       return;
     }
 
+    this.setData({ submitting: true });
     wx.showLoading({ title: '提交订单中...' });
 
     try {
       // 计算总价
-      const totalPrice = parseFloat(this.data.bounty) || 0;
+      const totalPrice = bountyYuan;
       
       // 准备订单数据
       const orderData = {
@@ -402,22 +413,14 @@ Page({
         }
       });
 
-      wx.hideLoading();
-
       if (res.result && res.result.code === 200) {
-        wx.showToast({
-          title: '发布成功，已为您打开任务大厅',
-          icon: 'success',
-          duration: 2000
-        });
-
-        // 跳转到任务大厅，用户可查看/接单或点「我发布的」查看自己的任务
-        setTimeout(() => {
-          wx.reLaunch({
-            url: '/subpackages/order/pages/receive-order/index'
-          });
-        }, 1500);
+        const orderId = res.result.data?.orderId;
+        const orderNo = res.result.data?.orderNo;
+        const amountFen = Math.round(totalPrice * 100);
+        await this.payRewardOrder(orderId, orderNo, amountFen);
       } else {
+        wx.hideLoading();
+        this.setData({ submitting: false });
         wx.showToast({
           title: res.result?.message || '订单提交失败',
           icon: 'none',
@@ -426,11 +429,105 @@ Page({
       }
     } catch (error) {
       wx.hideLoading();
+      this.setData({ submitting: false });
       console.error('提交订单异常:', error);
       wx.showToast({
         title: '订单提交失败，请重试',
         icon: 'none',
         duration: 2000
+      });
+    }
+  },
+
+  // 悬赏订单支付：输入多少支付多少（单位：分）
+  async payRewardOrder(orderId, orderNo, totalAmountFen) {
+    if (!orderId || !totalAmountFen || totalAmountFen <= 0) {
+      wx.hideLoading();
+      this.setData({ submitting: false });
+      wx.showToast({ title: '支付参数异常', icon: 'none' });
+      return;
+    }
+
+    try {
+      const prepayRes = await wx.cloud.callFunction({
+        name: 'paymentManage',
+        data: {
+          action: 'unifiedOrder',
+          data: {
+            orderId,
+            totalFee: totalAmountFen,
+            description: `悬赏支付-${orderNo || orderId}`
+          }
+        }
+      });
+
+      wx.hideLoading();
+
+      if (!prepayRes.result || prepayRes.result.code !== 200) {
+        this.setData({ submitting: false });
+        wx.showToast({
+          title: prepayRes.result?.message || '统一下单失败',
+          icon: 'none'
+        });
+        return;
+      }
+
+      const payParams = prepayRes.result.data;
+      wx.requestPayment({
+        timeStamp: payParams.timeStamp,
+        nonceStr: payParams.nonceStr,
+        package: payParams.package,
+        signType: payParams.signType,
+        paySign: payParams.paySign,
+        success: async () => {
+          try {
+            await wx.cloud.callFunction({
+              name: 'orderManage',
+              data: {
+                action: 'updateOrderPayStatus',
+                data: {
+                  orderId,
+                  payStatus: 'paid'
+                }
+              }
+            });
+          } catch (updateErr) {
+            console.warn('更新悬赏订单支付状态失败:', updateErr);
+          }
+
+          wx.showToast({
+            title: '支付成功，已发布',
+            icon: 'success',
+            duration: 1800
+          });
+
+          setTimeout(() => {
+            wx.reLaunch({
+              url: '/subpackages/order/pages/receive-order/index'
+            });
+          }, 1500);
+        },
+        fail: () => {
+          this.setData({ submitting: false });
+          wx.showToast({
+            title: '支付未完成，可稍后在订单中继续支付',
+            icon: 'none',
+            duration: 2500
+          });
+          setTimeout(() => {
+            wx.redirectTo({
+              url: '/subpackages/order/pages/order/index'
+            });
+          }, 1200);
+        }
+      });
+    } catch (error) {
+      wx.hideLoading();
+      this.setData({ submitting: false });
+      console.error('悬赏支付异常:', error);
+      wx.showToast({
+        title: '支付异常，请重试',
+        icon: 'none'
       });
     }
   },

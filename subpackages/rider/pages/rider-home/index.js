@@ -14,8 +14,9 @@ Page({
     pickupOrders: [], // 待取货订单列表
     deliverLoading: false,
     deliverOrders: [], // 待送达订单列表
-    riderStatus: 'not_registered', // 骑手审核状态: not_registered, pending, approved, rejected
-    canGrabOrder: false, // 是否可以接单
+    riderStatus: 'not_registered', // 历史兼容字段，不再作为接单判定依据
+    campusPartnerActive: false,
+    canGrabOrder: false, // 是否可以接单（仅由校园兼职开通状态决定）
     grabbingOrderId: null,
     pickupOrderId: null,
     deliveringOrderId: null,
@@ -36,6 +37,7 @@ Page({
       const c = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
       if (c) this._riderCampusForApi = c;
     } catch (e) {}
+    this.loadCampusPartnerStatus();
     this.loadRiderStatus();
     this.loadOrdersByTab(this.data.activeTab);
     this.startOrderWatch();
@@ -55,6 +57,7 @@ Page({
       const c = normalizeHomeCampus(wx.getStorageSync(STORAGE_KEY));
       if (c) this._riderCampusForApi = c;
     } catch (e) {}
+    this.loadCampusPartnerStatus();
     this.loadRiderStatus();
     const now = Date.now();
     if (!this._ordersLastLoadTime || now - this._ordersLastLoadTime > 60000) {
@@ -248,6 +251,17 @@ Page({
     this.setData({ lastScrollTime: now, scrollTop });
   },
 
+  async loadCampusPartnerStatus() {
+    try {
+      const res = await wx.cloud.callFunction({ name: 'campusPartnerManage', data: { action: 'getStatus' } });
+      const d = res.result && res.result.data;
+      const campusPartnerActive = !!(d && d.status === 'active');
+      this.setData({ campusPartnerActive, canGrabOrder: campusPartnerActive });
+    } catch (error) {
+      this.setData({ campusPartnerActive: false, canGrabOrder: false });
+    }
+  },
+
   // 加载骑手审核状态
   async loadRiderStatus() {
     try {
@@ -262,11 +276,9 @@ Page({
       if (res.result && res.result.code === 200) {
         const statusData = res.result.data || {};
         const status = statusData.status || 'not_registered';
-        const canGrabOrder = statusData.canGrabOrder || false;
         
         this.setData({
-          riderStatus: status,
-          canGrabOrder: canGrabOrder
+          riderStatus: status
         });
 
         // 更新本地存储的骑手信息
@@ -455,28 +467,18 @@ Page({
   
   // 抢单
   async onGrabOrder(e) {
-    // 检查审核状态
+    // 检查保证金开通状态
     if (!this.data.canGrabOrder) {
-      let message = '';
-      if (this.data.riderStatus === 'not_registered') {
-        message = '您还未注册骑手，请先注册';
-      } else if (this.data.riderStatus === 'pending') {
-        message = '您的申请正在审核中，审核通过后才能接单';
-      } else if (this.data.riderStatus === 'rejected') {
-        message = '您的申请未通过审核，请联系管理员';
-      } else {
-        message = '您暂无接单权限';
-      }
-      
       wx.showModal({
         title: '无法接单',
-        content: message,
-        showCancel: false,
-        confirmText: '知道了',
+        content: '请先开通校园兼职并缴纳保证金，开通后可直接接配送单',
+        showCancel: true,
+        cancelText: '取消',
+        confirmText: '去开通',
         success: (res) => {
-          if (this.data.riderStatus === 'not_registered') {
+          if (res.confirm) {
             wx.navigateTo({
-              url: '/subpackages/rider/pages/rider-register/index'
+              url: '/subpackages/common/pages/campus-partner/index'
             });
           }
         }
@@ -754,9 +756,9 @@ Page({
     });
   },
 
-  onGoRegister() {
+  goCampusPartner() {
     wx.navigateTo({
-      url: '/subpackages/rider/pages/rider-register/index'
+      url: '/subpackages/common/pages/campus-partner/index'
     });
   },
 

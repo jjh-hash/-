@@ -5,26 +5,21 @@
     <text class="top-title">骑手工作台</text>
   </view>
 
-  <!-- 审核状态提示 -->
-  <view class="status-banner status-{{riderStatus}}" wx:if="{{riderStatus !== 'approved'}}">
+  <!-- 接单资格提示 -->
+  <view class="status-banner status-{{campusPartnerActive ? 'approved' : 'not_registered'}}" wx:if="{{!campusPartnerActive}}">
     <view class="status-content">
       <text class="status-icon">
-        <text wx:if="{{riderStatus === 'not_registered'}}">⚠️</text>
-        <text wx:elif="{{riderStatus === 'pending'}}">⏳</text>
-        <text wx:elif="{{riderStatus === 'rejected'}}">❌</text>
+        <text>⚠️</text>
       </text>
       <text class="status-text">
-        <text wx:if="{{riderStatus === 'not_registered'}}">未审核 - 请先注册成为骑手</text>
-        <text wx:elif="{{riderStatus === 'pending'}}">待审核 - 您的申请正在审核中，审核通过后才能接单</text>
-        <text wx:elif="{{riderStatus === 'rejected'}}">审核未通过 - 请联系管理员</text>
+        <text>未开通校园兼职 - 请先缴纳保证金，开通后可直接接单</text>
       </text>
       <button 
         class="status-action-btn" 
-        wx:if="{{riderStatus === 'not_registered'}}"
-        bindtap="onGoRegister"
+        bindtap="goCampusPartner"
         size="mini"
       >
-        注册骑手
+        去开通
       </button>
     </view>
   </view>

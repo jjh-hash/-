@@ -25,7 +25,7 @@
     <view class="section card" wx:elif="{{status === 'pending_payment'}}">
       <view class="card-head">
         <text class="title">待缴纳保证金</text>
-        <text class="desc">请缴纳保证金 ¥{{depositAmountYuan}} 后即可开通校园兼职，接任务与配送单。</text>
+        <text class="desc">请缴纳保证金 ¥{{depositAmountYuan}} 后开通校园兼职，立即可接任务与配送单（无需审核）。</text>
       </view>
       <button class="btn btn-primary" bindtap="onConfirmDeposit">确认缴纳</button>
     </view>
@@ -34,6 +34,7 @@
     <view class="section card card-active" wx:elif="{{status === 'active'}}">
       <view class="card-head">
         <text class="title">已开通校园兼职</text>
+        <text class="desc">保证金已生效，您可直接接配送单与任务单。</text>
         <text class="desc date-desc" wx:if="{{depositPaidAt}}">缴纳时间：{{depositPaidAt}}</text>
       </view>
       <view class="action-hint">选择接单类型</view>

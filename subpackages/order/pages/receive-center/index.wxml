@@ -55,8 +55,8 @@
     class="tab-content"
     bindscroll="onDeliveryScroll"
   >
-    <view class="delivery-tip" wx:if="{{!campusPartnerActive && riderStatus !== 'approved'}}">
-      <text>接配送单需先开通校园兼职（缴纳保证金，满 30 天可退）或注册骑手。</text>
+    <view class="delivery-tip" wx:if="{{!campusPartnerActive}}">
+      <text>接配送单需先开通校园兼职（缴纳保证金，满 30 天可退），开通后可直接接单。</text>
       <button class="btn-link" bindtap="goCampusPartner">去开通校园兼职</button>
       <button class="btn-link" bindtap="goRiderHome">去配送页</button>
     </view>
