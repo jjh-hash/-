@@ -115,13 +115,9 @@
   border-color: var(--color-primary);
 }
 
-/* 悬浮搜索栏 */
-.search-float {
-  position: absolute;
-  left: var(--space-page);
-  right: var(--space-page);
-  bottom: 20px;
-  z-index: 3;
+/* 搜索栏：位于常用服务下方，保持原视觉样式 */
+.search-below-services {
+  margin: 10px var(--space-page) 0;
 }
 .search {
   height: 44px;

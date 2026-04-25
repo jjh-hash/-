@@ -35,27 +35,6 @@
         <text class="hero-slogan" style="color: {{greetingSloganColor}}">校园生活，触手可及</text>
       </view>
 
-      <!-- 悬浮搜索栏 -->
-      <view class="search-float">
-        <view class="search ds-press">
-          <view class="search-icon-wrap">
-            <text class="search-icon">搜</text>
-          </view>
-          <input 
-            class="input" 
-            placeholder="搜店铺名…" 
-            placeholder-class="ph" 
-            value="{{searchKeyword}}"
-            bindinput="onSearchInput"
-            bindconfirm="onSearchSubmit"
-            bindfocus="onSearchFocus"
-            confirm-type="search"
-          />
-          <view class="clear-btn" wx:if="{{searchKeyword}}" bindtap="onClearSearch">
-            <text class="clear-icon">×</text>
-          </view>
-        </view>
-      </view>
     </view>
 
     <!-- 常用服务：标题与校区切换同一行，校区在右侧横向排列 -->
@@ -127,6 +106,26 @@
           </view>
         </view>
         -->
+      </view>
+      <view class="search-below-services">
+        <view class="search ds-press">
+          <view class="search-icon-wrap">
+            <text class="search-icon">搜</text>
+          </view>
+          <input 
+            class="input" 
+            placeholder="搜店铺名…" 
+            placeholder-class="ph" 
+            value="{{searchKeyword}}"
+            bindinput="onSearchInput"
+            bindconfirm="onSearchSubmit"
+            bindfocus="onSearchFocus"
+            confirm-type="search"
+          />
+          <view class="clear-btn" wx:if="{{searchKeyword}}" bindtap="onClearSearch">
+            <text class="clear-icon">×</text>
+          </view>
+        </view>
       </view>
     </view>
 
