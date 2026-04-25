@@ -1,4 +1,5 @@
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 
 // 兼容性辅助函数：padStart的替代方案
 function padStart(str, targetLength, padString) {
@@ -21,6 +22,37 @@ cloud.init({
 
 const db = cloud.database();
 const { extractAdminSessionToken, verifyAdminSession } = require('./adminSession');
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+async function validateMerchantSession(merchantId, sessionToken) {
+  if (!merchantId || !sessionToken) return false;
+  try {
+    const now = new Date();
+    const sessionQuery = await db.collection('merchant_sessions')
+      .where({
+        merchantId,
+        tokenHash: sha256(sessionToken),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    if (!sessionQuery.data || sessionQuery.data.length === 0) return false;
+    const session = sessionQuery.data[0];
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) return false;
+    await db.collection('merchant_sessions').doc(session._id).update({
+      data: { lastSeenAt: db.serverDate(), updatedAt: db.serverDate() }
+    });
+    return true;
+  } catch (e) {
+    console.error('校验商家会话失败:', e);
+    return false;
+  }
+}
 
 /**
  * 发送退款进度通知订阅消息（静默失败）
@@ -602,7 +634,7 @@ async function getRefundDetail(event, openid) {
 async function updateRefundStatus(event, openid) {
   try {
     const data = event.data || {};
-    const { refundId, status, remark } = data;
+    const { refundId, status, remark, merchantId, sessionToken } = data;
 
     if (!refundId || !status) {
       return {
@@ -655,6 +687,29 @@ async function updateRefundStatus(event, openid) {
     
     // 方法1：通过订单的storeId查询店铺，然后验证商家权限
     let hasPermission = false;
+    
+    // 方法0：优先走 merchantId + sessionToken 鉴权（跨设备账号密码登录场景）
+    if (order.storeId && merchantId && sessionToken) {
+      try {
+        const merchantDoc = await db.collection('merchants').doc(merchantId).get();
+        if (merchantDoc.data) {
+          const m = merchantDoc.data;
+          const mStoreId = m.storeId || m._id;
+          if (mStoreId === order.storeId) {
+            if (m.openid === openid) {
+              hasPermission = true;
+            } else {
+              hasPermission = await validateMerchantSession(m._id, sessionToken);
+            }
+            if (hasPermission) {
+              console.log('【更新退款状态】权限验证通过：merchantId + sessionToken');
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('【更新退款状态】session鉴权失败:', err);
+      }
+    }
     
     if (order.storeId) {
       try {

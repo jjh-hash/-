@@ -61,9 +61,11 @@ Page({
         wx.removeStorageSync('isMerchant');
         wx.removeStorageSync('merchantInfo');
         wx.removeStorageSync('userInfo');
+        wx.removeStorageSync('merchantSessionToken');
 
         wx.setStorageSync('isMerchant', true);
         wx.setStorageSync('merchantInfo', res.result.data.merchant);
+        wx.setStorageSync('merchantSessionToken', res.result.data.sessionToken || res.result.data.merchant.sessionToken || '');
         applyMerchantAuthUserToStorage(res.result.data.user, res.result.data.merchant);
 
         wx.showToast({ title: '登录成功', icon: 'success', duration: 1500 });

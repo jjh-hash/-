@@ -611,6 +611,7 @@ Page({
         data: {
           action: 'merchantReply',
           data: {
+            merchantId: (wx.getStorageSync('merchantInfo') || {})._id || undefined,
             reviewId: currentReviewId,
             replyContent: replyContent.trim()
           }

@@ -315,6 +315,7 @@ Page({
         data: {
           action: 'updateRefundStatus',
           data: {
+            merchantId: (wx.getStorageSync('merchantInfo') || {})._id || undefined,
             refundId: refundId,
             status: status,
             remark: remark || (status === 'approved' ? '商家已同意退款' : '商家已拒绝退款')

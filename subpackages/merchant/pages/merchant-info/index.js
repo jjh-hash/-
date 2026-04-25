@@ -58,7 +58,14 @@ Page({
 
       // 调用云函数获取店铺详情
       // 如果不传storeId，云函数会自动通过openid查找商家店铺
+      const merchantInfo = wx.getStorageSync('merchantInfo') || {};
       const requestData = storeId ? { storeId: storeId } : {};
+      if (merchantInfo._id) {
+        requestData.merchantId = merchantInfo._id;
+      }
+      if (!requestData.storeId && merchantInfo.storeId) {
+        requestData.storeId = merchantInfo.storeId;
+      }
       
       console.log('【商家信息页面】调用云函数参数:', requestData);
       

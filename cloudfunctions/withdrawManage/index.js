@@ -1,5 +1,6 @@
 // 商家提现管理云函数
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -9,6 +10,37 @@ const db = cloud.database();
 
 // 最低提现金额（分），1 元
 const MIN_WITHDRAW_AMOUNT = 100;
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+async function validateMerchantSession(merchantId, sessionToken) {
+  if (!merchantId || !sessionToken) return false;
+  try {
+    const now = new Date();
+    const sessionQuery = await db.collection('merchant_sessions')
+      .where({
+        merchantId,
+        tokenHash: sha256(sessionToken),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    if (!sessionQuery.data || sessionQuery.data.length === 0) return false;
+    const session = sessionQuery.data[0];
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) return false;
+    await db.collection('merchant_sessions').doc(session._id).update({
+      data: { lastSeenAt: db.serverDate(), updatedAt: db.serverDate() }
+    });
+    return true;
+  } catch (e) {
+    console.error('校验商家会话失败:', e);
+    return false;
+  }
+}
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
@@ -106,7 +138,7 @@ async function computeAvailableBalance(merchantInfo) {
  * 获取可提现余额（供前端展示/校验）
  */
 async function getAvailableBalance(openid, data) {
-  const merchantInfo = await getMerchantInfo(openid, data && data.merchantId);
+  const merchantInfo = await getMerchantInfo(openid, data && data.merchantId, data && data.sessionToken);
   if (!merchantInfo) {
     return { code: 403, message: '商家不存在' };
   }
@@ -127,7 +159,7 @@ async function getAvailableBalance(openid, data) {
  * 提交提现申请
  */
 async function submitWithdrawal(openid, data) {
-  const { amountYuan, remark, merchantId: clientMerchantId } = data || {};
+  const { amountYuan, remark, merchantId: clientMerchantId, sessionToken } = data || {};
   const amountFen = amountYuan != null ? Math.round(parseFloat(amountYuan) * 100) : 0;
 
   if (!amountFen || amountFen < MIN_WITHDRAW_AMOUNT) {
@@ -137,7 +169,7 @@ async function submitWithdrawal(openid, data) {
     };
   }
 
-  const merchantInfo = await getMerchantInfo(openid, clientMerchantId);
+  const merchantInfo = await getMerchantInfo(openid, clientMerchantId, sessionToken);
   if (!merchantInfo) {
     return { code: 403, message: '商家不存在' };
   }
@@ -242,7 +274,7 @@ async function submitWithdrawal(openid, data) {
  * 提现记录列表（分页）
  */
 async function getWithdrawalList(openid, data) {
-  const merchantInfo = await getMerchantInfo(openid, data && data.merchantId);
+  const merchantInfo = await getMerchantInfo(openid, data && data.merchantId, data && data.sessionToken);
   if (!merchantInfo) {
     return { code: 403, message: '商家不存在' };
   }
@@ -296,10 +328,15 @@ function getStatusText(status) {
 /**
  * 根据 openid 或传入的 merchantId 解析商家信息
  */
-async function getMerchantInfo(openid, clientMerchantId) {
+async function getMerchantInfo(openid, clientMerchantId, sessionToken) {
   if (clientMerchantId) {
     const doc = await db.collection('merchants').doc(clientMerchantId).get();
-    if (doc.data) return doc.data;
+    if (doc.data) {
+      if (doc.data.openid === openid) return doc.data;
+      const tokenOk = await validateMerchantSession(doc.data._id, sessionToken);
+      if (tokenOk) return doc.data;
+      return null;
+    }
   }
   const list = await db.collection('merchants').where({ openid }).get();
   if (list.data && list.data.length > 0) return list.data[0];

@@ -1,11 +1,50 @@
 // 商品分类管理云函数
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
 const db = cloud.database();
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+async function validateMerchantSession(merchantId, sessionToken) {
+  if (!merchantId || !sessionToken) return false;
+  try {
+    const now = new Date();
+    const sessionQuery = await db.collection('merchant_sessions')
+      .where({
+        merchantId,
+        tokenHash: sha256(sessionToken),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    if (!sessionQuery.data || sessionQuery.data.length === 0) {
+      return false;
+    }
+    const session = sessionQuery.data[0];
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) {
+      return false;
+    }
+    await db.collection('merchant_sessions').doc(session._id).update({
+      data: {
+        lastSeenAt: db.serverDate(),
+        updatedAt: db.serverDate()
+      }
+    });
+    return true;
+  } catch (e) {
+    console.error('校验商家会话失败:', e);
+    return false;
+  }
+}
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
@@ -48,7 +87,7 @@ exports.main = async (event, context) => {
  * 添加分类
  */
 async function addCategory(openid, data) {
-  const { name, icon, merchantId } = data;
+  const { name, icon, merchantId, sessionToken } = data;
   
   console.log('【添加分类】接收到的参数:', { name, icon, merchantId });
   
@@ -93,10 +132,13 @@ async function addCategory(openid, data) {
     merchantInfo = merchant.data[0];
   }
   if (merchantInfo.openid !== openid) {
-    return {
-      code: 403,
-      message: '无权操作该商家账号'
-    };
+    const tokenOk = await validateMerchantSession(merchantInfo._id, sessionToken);
+    if (!tokenOk) {
+      return {
+        code: 403,
+        message: '无权操作该商家账号'
+      };
+    }
   }
   
   let storeId = merchantInfo.storeId;
@@ -168,7 +210,7 @@ async function getCategories(openid, data) {
   console.log('【获取分类】接收到的参数:', data);
   
   // 安全的解构赋值，处理 data 为 undefined 的情况
-  const { storeId, merchantId } = data || {};
+  const { storeId, merchantId, sessionToken } = data || {};
   
   console.log('【获取分类】解析后的参数:', { storeId, merchantId });
   
@@ -176,11 +218,20 @@ async function getCategories(openid, data) {
   if (merchantId) {
     console.log('【获取分类】使用提供的 merchantId:', merchantId);
     const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (!merchant.data || merchant.data.openid !== openid) {
+    if (!merchant.data) {
       return {
         code: 403,
         message: '无权操作该商家账号'
       };
+    }
+    if (merchant.data.openid !== openid) {
+      const tokenOk = await validateMerchantSession(merchant.data._id, sessionToken);
+      if (!tokenOk) {
+        return {
+          code: 403,
+          message: '无权操作该商家账号'
+        };
+      }
     }
     merchantInfo = merchant.data;
   } else {
@@ -246,7 +297,7 @@ async function getCategories(openid, data) {
  * 更新分类
  */
 async function updateCategory(openid, data) {
-  const { categoryId, name, icon, merchantId } = data;
+  const { categoryId, name, icon, merchantId, sessionToken } = data;
   
   // 1. 验证参数
   if (!categoryId) {
@@ -290,6 +341,16 @@ async function updateCategory(openid, data) {
     }
     
     merchantInfo = merchant.data[0];
+  }
+  
+  if (merchantInfo.openid !== openid) {
+    const tokenOk = await validateMerchantSession(merchantInfo._id, sessionToken);
+    if (!tokenOk) {
+      return {
+        code: 403,
+        message: '无权操作该商家账号'
+      };
+    }
   }
   
   // 3. 验证分类是否属于该商家
@@ -355,7 +416,7 @@ async function updateCategory(openid, data) {
  * 删除分类
  */
 async function deleteCategory(openid, data) {
-  const { categoryId, merchantId } = data;
+  const { categoryId, merchantId, sessionToken } = data;
   
   // 1. 验证参数
   if (!categoryId) {
@@ -392,6 +453,16 @@ async function deleteCategory(openid, data) {
     }
     
     merchantInfo = merchant.data[0];
+  }
+  
+  if (merchantInfo.openid !== openid) {
+    const tokenOk = await validateMerchantSession(merchantInfo._id, sessionToken);
+    if (!tokenOk) {
+      return {
+        code: 403,
+        message: '无权操作该商家账号'
+      };
+    }
   }
   
   // 3. 验证分类是否属于该商家

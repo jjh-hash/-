@@ -147,6 +147,7 @@ Page({
         name: 'updateMerchantInfo',
         data: {
           action: 'changePassword',
+          merchantId: (wx.getStorageSync('merchantInfo') || {})._id || undefined,
           oldPassword: this.data.oldPassword,
           newPassword: this.data.newPassword
         }
@@ -169,6 +170,7 @@ Page({
         setTimeout(() => {
           wx.removeStorageSync('merchantInfo');
           wx.removeStorageSync('isMerchant');
+          wx.removeStorageSync('merchantSessionToken');
           wx.reLaunch({
             url: '/subpackages/merchant/pages/merchant-login/index'
           });

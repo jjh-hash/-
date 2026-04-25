@@ -1,10 +1,42 @@
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
 const db = cloud.database();
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+async function validateMerchantSession(merchantId, sessionToken) {
+  if (!merchantId || !sessionToken) return false;
+  try {
+    const now = new Date();
+    const sessionQuery = await db.collection('merchant_sessions')
+      .where({
+        merchantId,
+        tokenHash: sha256(sessionToken),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    if (!sessionQuery.data || sessionQuery.data.length === 0) return false;
+    const session = sessionQuery.data[0];
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) return false;
+    await db.collection('merchant_sessions').doc(session._id).update({
+      data: { lastSeenAt: db.serverDate(), updatedAt: db.serverDate() }
+    });
+    return true;
+  } catch (e) {
+    console.error('校验商家会话失败:', e);
+    return false;
+  }
+}
 
 exports.main = async (event, context) => {
   const { action, data } = event;
@@ -293,7 +325,7 @@ async function getReviewList(data) {
 
 // 商家回复评论
 async function merchantReply(data, openid) {
-  const { reviewId, replyContent } = data;
+  const { reviewId, replyContent, merchantId, sessionToken } = data;
 
   if (!reviewId || !replyContent) {
     return {
@@ -318,19 +350,33 @@ async function merchantReply(data, openid) {
     }
 
     // 验证商家权限
-    const merchantResult = await db.collection('merchants')
-      .where({ openid: openid })
-      .get();
-
-    if (merchantResult.data.length === 0) {
+    let merchant = null;
+    if (merchantId) {
+      const merchantDoc = await db.collection('merchants').doc(merchantId).get();
+      if (merchantDoc.data) {
+        if (merchantDoc.data.openid === openid) {
+          merchant = merchantDoc.data;
+        } else {
+          const tokenOk = await validateMerchantSession(merchantDoc.data._id, sessionToken);
+          if (tokenOk) merchant = merchantDoc.data;
+        }
+      }
+    }
+    if (!merchant) {
+      const merchantResult = await db.collection('merchants')
+        .where({ openid: openid })
+        .get();
+      if (merchantResult.data.length > 0) {
+        merchant = merchantResult.data[0];
+      }
+    }
+    if (!merchant) {
       return {
         code: 403,
         message: '无权限回复',
         data: null
       };
     }
-
-    const merchant = merchantResult.data[0];
     const review = reviewResult.data;
 
     // 验证是否是该商家的店铺

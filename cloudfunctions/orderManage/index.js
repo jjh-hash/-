@@ -1,5 +1,6 @@
 // 订单管理云函数
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -12,6 +13,55 @@ const {
   calculateRiderIncomeFenByAddress,
   getRiderIncomeFenFromOrder
 } = require('./pricingRules');
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+async function validateMerchantSession(merchantId, sessionToken) {
+  if (!merchantId || !sessionToken) return false;
+  try {
+    const now = new Date();
+    const sessionQuery = await db.collection('merchant_sessions')
+      .where({
+        merchantId,
+        tokenHash: sha256(sessionToken),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    if (!sessionQuery.data || sessionQuery.data.length === 0) return false;
+    const session = sessionQuery.data[0];
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) return false;
+    await db.collection('merchant_sessions').doc(session._id).update({
+      data: { lastSeenAt: db.serverDate(), updatedAt: db.serverDate() }
+    });
+    return true;
+  } catch (e) {
+    console.error('校验商家会话失败:', e);
+    return false;
+  }
+}
+
+async function hasMerchantPermissionForStore(openid, storeId, merchantId, sessionToken) {
+  if (!storeId) return false;
+  let merchantDoc = null;
+  if (merchantId) {
+    const doc = await db.collection('merchants').doc(merchantId).get();
+    if (doc.data) merchantDoc = doc.data;
+  }
+  if (!merchantDoc) {
+    const list = await db.collection('merchants').where({ openid }).limit(1).get();
+    if (list.data && list.data.length > 0) merchantDoc = list.data[0];
+  }
+  if (!merchantDoc) return false;
+  const ownedStoreId = merchantDoc.storeId || merchantDoc._id;
+  if (ownedStoreId !== storeId) return false;
+  if (merchantDoc.openid === openid) return true;
+  return await validateMerchantSession(merchantDoc._id, sessionToken);
+}
 
 /** 与 users / 首页一致：白沙校区、金水校区；兼容 baisha、jinshui */
 function normalizeCampusValue(campus) {
@@ -1063,7 +1113,7 @@ async function getOrderList(openid, data) {
  */
 async function getMerchantOrders(openid, data) {
   try {
-    const { status, page = 1, pageSize = 20, merchantId, storeId: providedStoreId, payStatus } = data;
+    const { status, page = 1, pageSize = 20, merchantId, storeId: providedStoreId, payStatus, sessionToken } = data;
     
     console.log('【获取商家订单】参数:', { status, page, pageSize, merchantId, providedStoreId, payStatus });
     
@@ -1075,6 +1125,12 @@ async function getMerchantOrders(openid, data) {
       console.log('【获取商家订单】使用提供的 merchantId:', merchantId);
       const merchant = await db.collection('merchants').doc(merchantId).get();
       if (merchant.data) {
+        if (merchant.data.openid !== openid) {
+          const tokenOk = await validateMerchantSession(merchant.data._id, sessionToken);
+          if (!tokenOk) {
+            return { code: 403, message: '无权操作该商家账号' };
+          }
+        }
         merchantInfo = merchant.data;
         // 验证：如果是账户密码登录，需要验证 openid 是否匹配（安全验证）
         // 但账户密码登录时，openid 是当前微信用户的，不是商家的，所以暂时跳过验证
@@ -1222,7 +1278,7 @@ async function getMerchantOrders(openid, data) {
  */
 async function updateOrderStatus(openid, data) {
   try {
-    const { orderId, status } = data;
+    const { orderId, status, merchantId, sessionToken } = data;
     
     console.log('【更新订单状态】参数:', { orderId, status });
     
@@ -1243,6 +1299,13 @@ async function updateOrderStatus(openid, data) {
     }
     
     const order = orderResult.data;
+    const merchantAllowed = await hasMerchantPermissionForStore(openid, order.storeId, merchantId, sessionToken);
+    if (!merchantAllowed) {
+      return {
+        code: 403,
+        message: '无权操作该订单'
+      };
+    }
     
     // 判断是否为特殊订单类型（游戏陪玩、悬赏、代拿快递）
     const isSpecialOrder = order.orderType === 'gaming' || order.orderType === 'reward' || order.orderType === 'express';
@@ -1302,7 +1365,7 @@ async function updateOrderStatus(openid, data) {
  */
 async function updateOrderPayStatus(openid, data) {
   try {
-    const { orderId, payStatus } = data;
+    const { orderId, payStatus, merchantId, sessionToken } = data;
     
     console.log('【更新订单支付状态】参数:', { orderId, payStatus });
     
@@ -1342,29 +1405,8 @@ async function updateOrderPayStatus(openid, data) {
     
     if (!hasPermission && order.storeId) {
       try {
-        const merchantResult = await db.collection('merchants')
-          .where({ 
-            openid: openid,
-            status: db.command.in(['active', 'pending'])
-          })
-          .get();
-        
-        if (merchantResult.data && merchantResult.data.length > 0) {
-          const merchant = merchantResult.data[0];
-          
-          // 查询商家关联的店铺
-          const storeResult = await db.collection('stores')
-            .where({ merchantId: merchant._id })
-            .get();
-          
-          if (storeResult.data && storeResult.data.length > 0) {
-            const store = storeResult.data.find(s => s._id === order.storeId);
-            if (store) {
-              hasPermission = true;
-              console.log('【更新订单支付状态】权限验证通过：商家权限');
-            }
-          }
-        }
+        hasPermission = await hasMerchantPermissionForStore(openid, order.storeId, merchantId, sessionToken);
+        if (hasPermission) console.log('【更新订单支付状态】权限验证通过：商家权限');
       } catch (err) {
         console.warn('【更新订单支付状态】权限验证失败:', err);
       }
@@ -1626,7 +1668,7 @@ async function updateSalesStatistics(order) {
  */
 async function cancelOrder(openid, data, event) {
   try {
-    const { orderId } = data;
+    const { orderId, merchantId, sessionToken } = data;
     
     console.log('【取消订单】参数:', { orderId, openid });
     
@@ -1660,33 +1702,14 @@ async function cancelOrder(openid, data, event) {
     // 2. 检查是否是商家（未支付订单允许商家取消）
     if (!hasPermission && order.storeId) {
       try {
-        // 查询商家信息
-        const merchantResult = await db.collection('merchants')
-          .where({ 
-            openid: openid,
-            status: db.command.in(['active', 'pending'])
-          })
-          .get();
-        
-        if (merchantResult.data && merchantResult.data.length > 0) {
-          const merchant = merchantResult.data[0];
-          
-          // 查询商家关联的店铺
-          const storeResult = await db.collection('stores')
-            .where({ merchantId: merchant._id })
-            .get();
-          
-          if (storeResult.data && storeResult.data.length > 0) {
-            const store = storeResult.data.find(s => s._id === order.storeId);
-            if (store) {
-              // 商家只能取消未支付的订单
-              if (order.payStatus === 'unpaid') {
-                hasPermission = true;
-                console.log('【取消订单】权限验证通过：商家取消未支付订单');
-              } else {
-                console.log('【取消订单】商家只能取消未支付的订单');
-              }
-            }
+        const merchantAllowed = await hasMerchantPermissionForStore(openid, order.storeId, merchantId, sessionToken);
+        if (merchantAllowed) {
+          // 商家只能取消未支付的订单
+          if (order.payStatus === 'unpaid') {
+            hasPermission = true;
+            console.log('【取消订单】权限验证通过：商家取消未支付订单');
+          } else {
+            console.log('【取消订单】商家只能取消未支付的订单');
           }
         }
       } catch (err) {

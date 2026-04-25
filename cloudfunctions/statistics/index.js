@@ -1,5 +1,6 @@
 // 统计数据云函数
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 
 // 兼容性辅助函数：padStart的替代方案
 function padStart(str, targetLength, padString) {
@@ -22,6 +23,51 @@ cloud.init({
 
 const db = cloud.database();
 const { extractAdminSessionToken, verifyAdminSession, deny } = require('./adminSession');
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+async function validateMerchantSession(merchantId, sessionToken) {
+  if (!merchantId || !sessionToken) return false;
+  try {
+    const now = new Date();
+    const sessionQuery = await db.collection('merchant_sessions')
+      .where({
+        merchantId,
+        tokenHash: sha256(sessionToken),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    if (!sessionQuery.data || sessionQuery.data.length === 0) return false;
+    const session = sessionQuery.data[0];
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) return false;
+    await db.collection('merchant_sessions').doc(session._id).update({
+      data: { lastSeenAt: db.serverDate(), updatedAt: db.serverDate() }
+    });
+    return true;
+  } catch (e) {
+    console.error('【统计数据】校验商家会话失败:', e);
+    return false;
+  }
+}
+
+async function resolveAuthorizedMerchant(openid, merchantId, sessionToken) {
+  if (merchantId) {
+    const doc = await db.collection('merchants').doc(merchantId).get();
+    if (!doc.data) return null;
+    if (doc.data.openid === openid) return doc.data;
+    const tokenOk = await validateMerchantSession(doc.data._id, sessionToken);
+    if (tokenOk) return doc.data;
+    return null;
+  }
+  const list = await db.collection('merchants').where({ openid }).limit(1).get();
+  if (list.data && list.data.length > 0) return list.data[0];
+  return null;
+}
 
 exports.main = async (event, context) => {
   try {
@@ -116,30 +162,19 @@ exports.main = async (event, context) => {
  */
 async function getSalesOverview(openid, data) {
   try {
-    const { storeId, year, month, merchantId } = data;
+    const { storeId, year, month, merchantId, sessionToken } = data;
     
     console.log('【销售概览】参数:', { storeId, year, month, merchantId });
     
     // 优先使用传入的 storeId
     let targetStoreId = storeId;
     
-    // 如果提供了 merchantId，优先使用 merchantId 查询
-    if (!targetStoreId && merchantId) {
-      console.log('【销售概览】使用提供的 merchantId:', merchantId);
-      const merchant = await db.collection('merchants').doc(merchantId).get();
-      if (merchant.data) {
-        targetStoreId = merchant.data.storeId || merchant.data._id;
-      }
-    }
-    
-    // 如果没有传入storeId和merchantId，通过openid查找商家的店铺（微信登录场景）
     if (!targetStoreId) {
-      const merchant = await db.collection('merchants')
-        .where({ openid })
-        .get();
-      
-      if (merchant.data && merchant.data.length > 0) {
-        targetStoreId = merchant.data[0].storeId || merchant.data[0]._id;
+      const merchant = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
+      if (merchant) {
+        targetStoreId = merchant.storeId || merchant._id;
+      } else if (merchantId) {
+        return { code: 403, message: '无权操作该商家账号' };
       }
     }
     
@@ -385,30 +420,19 @@ async function getSalesOverview(openid, data) {
  */
 async function getSalesChart(openid, data) {
   try {
-    const { storeId, startDate, endDate, type = 'day', merchantId } = data;
+    const { storeId, startDate, endDate, type = 'day', merchantId, sessionToken } = data;
     
     console.log('【销售图表】参数:', { storeId, startDate, endDate, type, merchantId });
     
     // 优先使用传入的 storeId
     let targetStoreId = storeId;
     
-    // 如果提供了 merchantId，优先使用 merchantId 查询
-    if (!targetStoreId && merchantId) {
-      console.log('【销售图表】使用提供的 merchantId:', merchantId);
-      const merchant = await db.collection('merchants').doc(merchantId).get();
-      if (merchant.data) {
-        targetStoreId = merchant.data.storeId || merchant.data._id;
-      }
-    }
-    
-    // 如果没有传入storeId和merchantId，通过openid查找商家的店铺（微信登录场景）
     if (!targetStoreId) {
-      const merchant = await db.collection('merchants')
-        .where({ openid })
-        .get();
-      
-      if (merchant.data && merchant.data.length > 0) {
-        targetStoreId = merchant.data[0].storeId || merchant.data[0]._id;
+      const merchant = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
+      if (merchant) {
+        targetStoreId = merchant.storeId || merchant._id;
+      } else if (merchantId) {
+        return { code: 403, message: '无权操作该商家账号' };
       }
     }
     
@@ -541,30 +565,19 @@ async function getSalesChart(openid, data) {
  */
 async function getSalesTrend(openid, data) {
   try {
-    const { storeId, period = 'week', merchantId } = data;
+    const { storeId, period = 'week', merchantId, sessionToken } = data;
     
     console.log('【销售趋势】参数:', { storeId, period, merchantId });
     
     // 优先使用传入的 storeId
     let targetStoreId = storeId;
     
-    // 如果提供了 merchantId，优先使用 merchantId 查询
-    if (!targetStoreId && merchantId) {
-      console.log('【销售趋势】使用提供的 merchantId:', merchantId);
-      const merchant = await db.collection('merchants').doc(merchantId).get();
-      if (merchant.data) {
-        targetStoreId = merchant.data.storeId || merchant.data._id;
-      }
-    }
-    
-    // 如果没有传入storeId和merchantId，通过openid查找商家的店铺（微信登录场景）
     if (!targetStoreId) {
-      const merchant = await db.collection('merchants')
-        .where({ openid })
-        .get();
-      
-      if (merchant.data && merchant.data.length > 0) {
-        targetStoreId = merchant.data[0].storeId || merchant.data[0]._id;
+      const merchant = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
+      if (merchant) {
+        targetStoreId = merchant.storeId || merchant._id;
+      } else if (merchantId) {
+        return { code: 403, message: '无权操作该商家账号' };
       }
     }
     
@@ -1316,35 +1329,15 @@ async function calculateRevenueChart() {
  */
 async function getAccountBalance(openid, data) {
   try {
-    const { merchantId } = data || {};
+    const { merchantId, sessionToken } = data || {};
     console.log('【账户余额】参数:', { merchantId });
     
-    let merchantInfo = null;
-    
-    // 如果提供了 merchantId，优先使用 merchantId 查询
-    if (merchantId) {
-      console.log('【账户余额】使用提供的 merchantId:', merchantId);
-      const merchant = await db.collection('merchants').doc(merchantId).get();
-      if (merchant.data) {
-        merchantInfo = merchant.data;
-      }
-    }
-    
-    // 如果没有提供 merchantId 或查询失败，使用 openid 查询（微信登录场景）
+    const merchantInfo = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
     if (!merchantInfo) {
-      console.log('【账户余额】使用 openid 查询商家:', openid);
-      const merchant = await db.collection('merchants')
-        .where({ openid })
-        .get();
-      
-      if (!merchant.data || merchant.data.length === 0) {
-        return {
-          code: 404,
-          message: '商家不存在'
-        };
-      }
-      
-      merchantInfo = merchant.data[0];
+      return {
+        code: merchantId ? 403 : 404,
+        message: merchantId ? '无权操作该商家账号' : '商家不存在'
+      };
     }
     
     const targetStoreId = merchantInfo.storeId || merchantInfo._id;

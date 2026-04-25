@@ -1,5 +1,6 @@
 // 店铺照片管理云函数
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 
 // 兼容性辅助函数：padStart的替代方案
 function padStart(str, targetLength, padString) {
@@ -21,6 +22,39 @@ cloud.init({
 });
 
 const db = cloud.database();
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+async function validateMerchantSession(merchantId, sessionToken) {
+  if (!merchantId || !sessionToken) return false;
+  try {
+    const now = new Date();
+    const sessionQuery = await db.collection('merchant_sessions')
+      .where({
+        merchantId,
+        tokenHash: sha256(sessionToken),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    if (!sessionQuery.data || sessionQuery.data.length === 0) return false;
+    const session = sessionQuery.data[0];
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) {
+      return false;
+    }
+    await db.collection('merchant_sessions').doc(session._id).update({
+      data: { lastSeenAt: db.serverDate(), updatedAt: db.serverDate() }
+    });
+    return true;
+  } catch (e) {
+    console.error('校验商家会话失败:', e);
+    return false;
+  }
+}
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
@@ -67,7 +101,7 @@ exports.main = async (event, context) => {
  * 添加店铺照片
  */
 async function addStorePhoto(openid, data) {
-  const { name, category, fileID, merchantId } = data;
+  const { name, category, fileID, merchantId, sessionToken } = data;
   
   console.log('【添加照片】接收到的参数:', { name, category, fileID, merchantId });
   
@@ -106,6 +140,12 @@ async function addStorePhoto(openid, data) {
     }
     
     merchantInfo = merchant.data[0];
+  }
+  if (merchantInfo.openid !== openid) {
+    const tokenOk = await validateMerchantSession(merchantInfo._id, sessionToken);
+    if (!tokenOk) {
+      return { code: 403, message: '无权操作该商家账号' };
+    }
   }
   
   let storeId = merchantInfo.storeId;
@@ -148,7 +188,7 @@ async function addStorePhoto(openid, data) {
  * 获取店铺照片列表
  */
 async function getStorePhotos(openid, data) {
-  const { storeId, category, merchantId } = data;
+  const { storeId, category, merchantId, sessionToken } = data;
   
   console.log('【获取店铺照片】参数:', { storeId, category, merchantId });
   
@@ -191,6 +231,12 @@ async function getStorePhotos(openid, data) {
       merchantInfo = merchant.data[0];
     }
     
+    if (merchantInfo.openid !== openid) {
+      const tokenOk = await validateMerchantSession(merchantInfo._id, sessionToken);
+      if (!tokenOk) {
+        return { code: 403, message: '无权操作该商家账号' };
+      }
+    }
     // 如果没有关联店铺，使用商家ID作为店铺ID
     const merchantStoreId = merchantInfo.storeId || merchantInfo._id;
     whereCondition.storeId = merchantStoreId;
@@ -231,31 +277,30 @@ async function getStorePhotos(openid, data) {
  * 更新店铺照片
  */
 async function updateStorePhoto(openid, data) {
-  const { photoId, name, category } = data;
+  const { photoId, name, category, sessionToken } = data;
   
   // 1. 验证商家权限
-  const merchant = await db.collection('merchants')
-    .where({ openid })
-    .get();
-  
-  if (!merchant.data.length) {
-    return {
-      code: 403,
-      message: '商家不存在'
-    };
-  }
-  
-  // 2. 验证照片是否属于该商家
   const photo = await db.collection('store_photos').doc(photoId).get();
-  
   if (!photo.data) {
     return {
       code: 404,
       message: '照片不存在'
     };
   }
-  
-  if (photo.data.merchantId !== merchant.data[0]._id) {
+  const merchant = await db.collection('merchants').doc(photo.data.merchantId).get();
+  if (!merchant.data) {
+    return {
+      code: 403,
+      message: '商家不存在'
+    };
+  }
+  if (merchant.data.openid !== openid) {
+    const tokenOk = await validateMerchantSession(merchant.data._id, sessionToken);
+    if (!tokenOk) {
+      return { code: 403, message: '无权操作该商家账号' };
+    }
+  }
+  if (photo.data.merchantId !== merchant.data._id) {
     return {
       code: 403,
       message: '无权操作'
@@ -293,31 +338,30 @@ async function updateStorePhoto(openid, data) {
  * 删除店铺照片
  */
 async function deleteStorePhoto(openid, data) {
-  const { photoId } = data;
+  const { photoId, sessionToken } = data;
   
   // 1. 验证商家权限
-  const merchant = await db.collection('merchants')
-    .where({ openid })
-    .get();
-  
-  if (!merchant.data.length) {
-    return {
-      code: 403,
-      message: '商家不存在'
-    };
-  }
-  
-  // 2. 验证照片是否属于该商家
   const photo = await db.collection('store_photos').doc(photoId).get();
-  
   if (!photo.data) {
     return {
       code: 404,
       message: '照片不存在'
     };
   }
-  
-  if (photo.data.merchantId !== merchant.data[0]._id) {
+  const merchant = await db.collection('merchants').doc(photo.data.merchantId).get();
+  if (!merchant.data) {
+    return {
+      code: 403,
+      message: '商家不存在'
+    };
+  }
+  if (merchant.data.openid !== openid) {
+    const tokenOk = await validateMerchantSession(merchant.data._id, sessionToken);
+    if (!tokenOk) {
+      return { code: 403, message: '无权操作该商家账号' };
+    }
+  }
+  if (photo.data.merchantId !== merchant.data._id) {
     return {
       code: 403,
       message: '无权操作'

@@ -42,6 +42,8 @@ App({
       wx.cloud.callFunction = function (options) {
         try {
           const token = wx.getStorageSync('adminToken');
+          const merchantInfo = wx.getStorageSync('merchantInfo') || {};
+          const merchantSessionToken = merchantInfo.sessionToken || wx.getStorageSync('merchantSessionToken') || '';
           let route = '';
           try {
             const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
@@ -53,6 +55,7 @@ App({
           const adminRoute =
             route.indexOf('admin') !== -1 ||
             route.indexOf('merchant-register') !== -1;
+          const merchantRoute = route.indexOf('merchant/') !== -1 || route.indexOf('subpackages/merchant/') !== -1;
           if (
             token &&
             adminRoute &&
@@ -64,6 +67,27 @@ App({
             options = Object.assign({}, options, {
               data: Object.assign({}, options.data, { adminSessionToken: token })
             });
+          }
+          // 商家端云函数请求统一注入会话令牌，支持账号密码跨设备登录后的写操作鉴权
+          if (
+            merchantSessionToken &&
+            merchantRoute &&
+            options &&
+            options.data &&
+            typeof options.data === 'object'
+          ) {
+            const payload = Object.assign({}, options.data);
+            const nestedData = payload.data && typeof payload.data === 'object'
+              ? Object.assign({}, payload.data)
+              : null;
+            if (payload.sessionToken === undefined) {
+              payload.sessionToken = merchantSessionToken;
+            }
+            if (nestedData && nestedData.sessionToken === undefined) {
+              nestedData.sessionToken = merchantSessionToken;
+            }
+            if (nestedData) payload.data = nestedData;
+            options = Object.assign({}, options, { data: payload });
           }
         } catch (e) {}
         return _origCallFunction(options);

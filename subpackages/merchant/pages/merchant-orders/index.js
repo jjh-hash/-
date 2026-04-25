@@ -637,6 +637,7 @@ Page({
               data: {
                 action: 'updateOrderPayStatus',
                 data: {
+                  merchantId: (wx.getStorageSync('merchantInfo') || {})._id || undefined,
                   orderId: orderId,
                   payStatus: 'paid'
                 }
@@ -795,6 +796,7 @@ Page({
               data: {
                 action: 'cancelOrder',
                 data: {
+                  merchantId: (wx.getStorageSync('merchantInfo') || {})._id || undefined,
                   orderId: orderId
                 }
               }
@@ -879,6 +881,7 @@ Page({
         data: {
           action: 'updateOrderStatus',
           data: {
+            merchantId: (wx.getStorageSync('merchantInfo') || {})._id || undefined,
             orderId: orderId,
             status: 'confirmed'
           }
@@ -961,6 +964,7 @@ Page({
         data: {
           action: 'updateOrderStatus',
           data: {
+            merchantId: (wx.getStorageSync('merchantInfo') || {})._id || undefined,
             orderId: orderId,
             status: 'ready' // 商家出餐，订单状态更新为ready（商家已出餐）
           }
@@ -1316,6 +1320,7 @@ Page({
         data: {
           action: 'updateRefundStatus',
           data: {
+            merchantId: (wx.getStorageSync('merchantInfo') || {})._id || undefined,
             refundId: refundId,
             status: status,
             remark: status === 'approved' ? '商家已同意退款' : '商家已拒绝退款'

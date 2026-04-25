@@ -1,5 +1,6 @@
 // 店铺管理云函数
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV // 使用当前云环境
@@ -9,6 +10,51 @@ const db = cloud.database();
 
 const CAMPUS_BAISHA = '白沙校区';
 const CAMPUS_JINSHUI = '金水校区';
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+async function validateMerchantSession(merchantId, sessionToken) {
+  if (!merchantId || !sessionToken) return false;
+  try {
+    const now = new Date();
+    const sessionQuery = await db.collection('merchant_sessions')
+      .where({
+        merchantId,
+        tokenHash: sha256(sessionToken),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    if (!sessionQuery.data || sessionQuery.data.length === 0) return false;
+    const session = sessionQuery.data[0];
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) return false;
+    await db.collection('merchant_sessions').doc(session._id).update({
+      data: { lastSeenAt: db.serverDate(), updatedAt: db.serverDate() }
+    });
+    return true;
+  } catch (e) {
+    console.error('【店铺管理】校验商家会话失败:', e);
+    return false;
+  }
+}
+
+async function resolveAuthorizedMerchant(openid, merchantId, sessionToken) {
+  if (merchantId) {
+    const doc = await db.collection('merchants').doc(merchantId).get();
+    if (!doc.data) return null;
+    if (doc.data.openid === openid) return doc.data;
+    const tokenOk = await validateMerchantSession(doc.data._id, sessionToken);
+    if (tokenOk) return doc.data;
+    return null;
+  }
+  const list = await db.collection('merchants').where({ openid }).limit(1).get();
+  if (list.data && list.data.length > 0) return list.data[0];
+  return null;
+}
 
 /** 新建店铺时写入 campus，与商家注册时 merchants.campus 一致（首页所选校区） */
 function campusForNewStore(merchantInfo) {
@@ -105,36 +151,16 @@ exports.main = async (event, context) => {
  * 获取店铺信息（商家端）
  */
 async function getStoreInfo(openid, data) {
-  const { merchantId } = data || {};
+  const { merchantId, sessionToken } = data || {};
   
   console.log('【获取店铺信息】参数:', { openid, merchantId });
   
-  let merchantInfo = null;
-  
-  // 如果提供了 merchantId，优先使用 merchantId 查询
-  if (merchantId) {
-    console.log('【获取店铺信息】使用提供的 merchantId:', merchantId);
-    const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
-    }
-  }
-  
-  // 如果没有提供 merchantId 或查询失败，使用 openid 查询（微信登录场景）
+  const merchantInfo = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
   if (!merchantInfo) {
-    console.log('【获取店铺信息】使用 openid 查询商家:', openid);
-    const merchant = await db.collection('merchants')
-      .where({ openid })
-      .get();
-    
-    if (!merchant.data.length) {
-      return {
-        code: 404,
-        message: '商家不存在'
-      };
-    }
-    
-    merchantInfo = merchant.data[0];
+    return {
+      code: 403,
+      message: '无权操作该商家账号'
+    };
   }
   
   let storeId = merchantInfo.storeId || merchantInfo._id;
@@ -252,38 +278,18 @@ async function getStoreInfo(openid, data) {
  * 更新店铺信息（商家端）
  */
 async function updateStoreInfo(openid, data) {
-  const { merchantName, contactPhone, avatar, name, announcement, address, storeCategory, category, minOrderAmount, merchantId } = data;
+  const { merchantName, contactPhone, avatar, name, announcement, address, storeCategory, category, minOrderAmount, merchantId, sessionToken } = data;
   
   console.log('【更新店铺信息】接收到的参数:', data);
   console.log('【更新店铺信息】商家OpenID:', openid, 'merchantId:', merchantId);
   
   // 1. 查询商家信息
-  let merchantInfo = null;
-  
-  // 如果提供了 merchantId，优先使用 merchantId 查询
-  if (merchantId) {
-    console.log('【更新店铺信息】使用提供的 merchantId:', merchantId);
-    const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
-    }
-  }
-  
-  // 如果没有提供 merchantId 或查询失败，使用 openid 查询（微信登录场景）
+  const merchantInfo = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
   if (!merchantInfo) {
-    console.log('【更新店铺信息】使用 openid 查询商家:', openid);
-    const merchant = await db.collection('merchants')
-      .where({ openid })
-      .get();
-    
-    if (!merchant.data.length) {
-      return {
-        code: 404,
-        message: '商家不存在'
-      };
-    }
-    
-    merchantInfo = merchant.data[0];
+    return {
+      code: 403,
+      message: '无权操作该商家账号'
+    };
   }
   
   let storeId = merchantInfo.storeId || merchantInfo._id;
@@ -453,7 +459,7 @@ async function updateStoreInfo(openid, data) {
  */
 async function getStoreDetail(openid, data) {
   try {
-    const { storeId } = data;
+    const { storeId, merchantId, sessionToken } = data || {};
     
     console.log('【获取店铺详情】店铺ID:', storeId);
     console.log('【获取店铺详情】用户OpenID:', openid);
@@ -464,13 +470,9 @@ async function getStoreDetail(openid, data) {
     if (!targetStoreId) {
       console.log('【获取店铺详情】未提供storeId，尝试通过openid查找商家店铺');
       
-      // 通过openid查找商家
-      const merchant = await db.collection('merchants')
-        .where({ openid })
-        .get();
-      
-      if (merchant.data && merchant.data.length > 0) {
-        targetStoreId = merchant.data[0].storeId || merchant.data[0]._id;
+      const merchant = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
+      if (merchant) {
+        targetStoreId = merchant.storeId || merchant._id;
         console.log('【获取店铺详情】找到商家店铺ID:', targetStoreId);
       } else {
         return {
@@ -571,37 +573,17 @@ async function getStoreDetail(openid, data) {
  * 更新营业时间
  */
 async function updateBusinessHours(openid, data) {
-  const { startTime, endTime, merchantId } = data;
+  const { startTime, endTime, merchantId, sessionToken } = data;
   
   console.log('【更新营业时间】接收到的参数:', { startTime, endTime, merchantId });
   
   // 查询商家信息
-  let merchantInfo = null;
-  
-  // 如果提供了 merchantId，优先使用 merchantId 查询
-  if (merchantId) {
-    console.log('【更新营业时间】使用提供的 merchantId:', merchantId);
-    const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
-    }
-  }
-  
-  // 如果没有提供 merchantId 或查询失败，使用 openid 查询（微信登录场景）
+  const merchantInfo = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
   if (!merchantInfo) {
-    console.log('【更新营业时间】使用 openid 查询商家:', openid);
-    const merchant = await db.collection('merchants')
-      .where({ openid })
-      .get();
-    
-    if (!merchant.data.length) {
-      return {
-        code: 404,
-        message: '商家不存在'
-      };
-    }
-    
-    merchantInfo = merchant.data[0];
+    return {
+      code: 403,
+      message: '无权操作该商家账号'
+    };
   }
   
   let storeId = merchantInfo.storeId || merchantInfo._id;
@@ -713,37 +695,17 @@ async function updateBusinessHours(openid, data) {
  * 更新自动接单设置
  */
 async function updateAutoAccept(openid, data) {
-  const { autoAccept, merchantId } = data;
+  const { autoAccept, merchantId, sessionToken } = data;
   
   console.log('【更新自动接单】接收到的参数:', { autoAccept, merchantId });
   
   // 查询商家信息
-  let merchantInfo = null;
-  
-  // 如果提供了 merchantId，优先使用 merchantId 查询
-  if (merchantId) {
-    console.log('【更新自动接单】使用提供的 merchantId:', merchantId);
-    const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
-    }
-  }
-  
-  // 如果没有提供 merchantId 或查询失败，使用 openid 查询（微信登录场景）
+  const merchantInfo = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
   if (!merchantInfo) {
-    console.log('【更新自动接单】使用 openid 查询商家:', openid);
-    const merchant = await db.collection('merchants')
-      .where({ openid })
-      .get();
-    
-    if (!merchant.data.length) {
-      return {
-        code: 404,
-        message: '商家不存在'
-      };
-    }
-    
-    merchantInfo = merchant.data[0];
+    return {
+      code: 403,
+      message: '无权操作该商家账号'
+    };
   }
   
   let storeId = merchantInfo.storeId || merchantInfo._id;
@@ -787,37 +749,17 @@ async function updateAutoAccept(openid, data) {
  * 更新营业状态
  */
 async function updateBusinessStatus(openid, data) {
-  const { businessStatus, merchantId } = data;
+  const { businessStatus, merchantId, sessionToken } = data;
   
   console.log('【更新营业状态】参数:', { businessStatus, merchantId });
   
   // 查询商家信息
-  let merchantInfo = null;
-  
-  // 如果提供了 merchantId，优先使用 merchantId 查询
-  if (merchantId) {
-    console.log('【更新营业状态】使用提供的 merchantId:', merchantId);
-    const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
-    }
-  }
-  
-  // 如果没有提供 merchantId 或查询失败，使用 openid 查询（微信登录场景）
+  const merchantInfo = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
   if (!merchantInfo) {
-    console.log('【更新营业状态】使用 openid 查询商家:', openid);
-    const merchant = await db.collection('merchants')
-      .where({ openid })
-      .get();
-    
-    if (!merchant.data.length) {
-      return {
-        code: 404,
-        message: '商家不存在'
-      };
-    }
-    
-    merchantInfo = merchant.data[0];
+    return {
+      code: 403,
+      message: '无权操作该商家账号'
+    };
   }
   
   let storeId = merchantInfo.storeId || merchantInfo._id;
@@ -1184,37 +1126,17 @@ async function getStoreDetailWithProducts(openid, data) {
  * 更新店铺公告
  */
 async function updateStoreAnnouncement(openid, data) {
-  const { announcement, merchantId } = data;
+  const { announcement, merchantId, sessionToken } = data;
   
   console.log('【更新店铺公告】接收到的参数:', { announcement, merchantId });
   
   // 查询商家信息
-  let merchantInfo = null;
-  
-  // 如果提供了 merchantId，优先使用 merchantId 查询
-  if (merchantId) {
-    console.log('【更新店铺公告】使用提供的 merchantId:', merchantId);
-    const merchant = await db.collection('merchants').doc(merchantId).get();
-    if (merchant.data) {
-      merchantInfo = merchant.data;
-    }
-  }
-  
-  // 如果没有提供 merchantId 或查询失败，使用 openid 查询（微信登录场景）
+  const merchantInfo = await resolveAuthorizedMerchant(openid, merchantId, sessionToken);
   if (!merchantInfo) {
-    console.log('【更新店铺公告】使用 openid 查询商家:', openid);
-    const merchant = await db.collection('merchants')
-      .where({ openid })
-      .get();
-    
-    if (!merchant.data.length) {
-      return {
-        code: 404,
-        message: '商家不存在'
-      };
-    }
-    
-    merchantInfo = merchant.data[0];
+    return {
+      code: 403,
+      message: '无权操作该商家账号'
+    };
   }
   
   let storeId = merchantInfo.storeId || merchantInfo._id;

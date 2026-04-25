@@ -8,6 +8,51 @@ cloud.init({
 
 const db = cloud.database();
 
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+async function validateMerchantSession(merchantId, sessionToken) {
+  if (!merchantId || !sessionToken) return false;
+  try {
+    const now = new Date();
+    const sessionQuery = await db.collection('merchant_sessions')
+      .where({
+        merchantId,
+        tokenHash: sha256(sessionToken),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    if (!sessionQuery.data || sessionQuery.data.length === 0) return false;
+    const session = sessionQuery.data[0];
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) return false;
+    await db.collection('merchant_sessions').doc(session._id).update({
+      data: { lastSeenAt: db.serverDate(), updatedAt: db.serverDate() }
+    });
+    return true;
+  } catch (e) {
+    console.error('校验商家会话失败:', e);
+    return false;
+  }
+}
+
+async function resolveAuthorizedMerchant(openid, merchantId, sessionToken) {
+  if (merchantId) {
+    const doc = await db.collection('merchants').doc(merchantId).get();
+    if (!doc.data) return null;
+    if (doc.data.openid === openid) return doc.data;
+    const tokenOk = await validateMerchantSession(doc.data._id, sessionToken);
+    if (tokenOk) return doc.data;
+    return null;
+  }
+  const list = await db.collection('merchants').where({ openid }).limit(1).get();
+  if (list.data && list.data.length > 0) return list.data[0];
+  return null;
+}
+
 exports.main = async (event, context) => {
   console.log('更新商家信息请求:', event);
   
@@ -19,7 +64,7 @@ exports.main = async (event, context) => {
   console.log('接收到的头像参数:', event.avatar);
   
   try {
-    const { merchantName, contactPhone, avatar } = event;
+    const { merchantName, contactPhone, avatar, merchantId, sessionToken } = event;
     
     console.log('解析后的参数 - merchantName:', merchantName);
     console.log('解析后的参数 - contactPhone:', contactPhone);
@@ -31,20 +76,15 @@ exports.main = async (event, context) => {
     
     console.log('当前用户OpenID:', OPENID);
     
-    // 1. 检查商家是否存在
-    const merchantQuery = await db.collection('merchants')
-      .where({ openid: OPENID })
-      .get();
-    
-    if (merchantQuery.data.length === 0) {
+    // 1. 检查商家是否存在并校验权限
+    const merchantInfo = await resolveAuthorizedMerchant(OPENID, merchantId, sessionToken);
+    if (!merchantInfo) {
       return {
-        code: 404,
-        message: '商家信息不存在',
+        code: 403,
+        message: '无权操作该商家账号',
         data: null
       };
     }
-    
-    const merchantInfo = merchantQuery.data[0];
     
     // 2. 构建更新数据
     const updateData = {
@@ -115,7 +155,7 @@ exports.main = async (event, context) => {
  * 修改商家密码
  */
 async function changePassword(event) {
-  const { oldPassword, newPassword } = event;
+  const { oldPassword, newPassword, merchantId, sessionToken } = event;
   
   // 参数验证
   if (!oldPassword || !newPassword) {
@@ -149,20 +189,15 @@ async function changePassword(event) {
     
     console.log('修改密码请求，OpenID:', OPENID);
     
-    // 查找商家账号
-    const merchantQuery = await db.collection('merchants')
-      .where({ openid: OPENID })
-      .get();
-    
-    if (!merchantQuery.data || merchantQuery.data.length === 0) {
+    // 查找商家账号并校验权限
+    const merchant = await resolveAuthorizedMerchant(OPENID, merchantId, sessionToken);
+    if (!merchant) {
       return {
-        code: 404,
-        message: '商家账号不存在',
+        code: 403,
+        message: '无权操作该商家账号',
         data: null
       };
     }
-    
-    const merchant = merchantQuery.data[0];
     
     console.log('找到商家账号，ID:', merchant._id, '账号:', merchant.account);
     

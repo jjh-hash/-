@@ -8,6 +8,38 @@ cloud.init({
 
 const db = cloud.database();
 
+function generateSessionToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value)).digest('hex');
+}
+
+async function createMerchantSession(merchantInfo, meta = {}) {
+  const sessionToken = generateSessionToken();
+  const tokenHash = sha256(sessionToken);
+  const ttlDays = 7;
+  const now = Date.now();
+  const expiresAt = new Date(now + ttlDays * 24 * 60 * 60 * 1000);
+  const { loginType = 'unknown' } = meta;
+
+  await db.collection('merchant_sessions').add({
+    data: {
+      merchantId: merchantInfo._id,
+      tokenHash,
+      loginType,
+      status: 'active',
+      createdAt: db.serverDate(),
+      updatedAt: db.serverDate(),
+      lastSeenAt: db.serverDate(),
+      expiresAt
+    }
+  });
+
+  return sessionToken;
+}
+
 exports.main = async (event, context) => {
   console.log('商家登录请求:', event);
 
@@ -97,7 +129,7 @@ async function accountLogin(account, password) {
       }
     }
 
-    return await buildMerchantLoginResponse(merchantInfo, userInfo);
+    return await buildMerchantLoginResponse(merchantInfo, userInfo, { loginType: 'account' });
   } catch (error) {
     console.error('账户登录失败:', error);
     return {
@@ -161,7 +193,7 @@ async function wxLogin(merchantId) {
         data: null
       };
     }
-    return await buildMerchantLoginResponse(doc.data, userInfo);
+    return await buildMerchantLoginResponse(doc.data, userInfo, { loginType: 'wx' });
   }
 
   const merchantQuery = await db.collection('merchants')
@@ -189,7 +221,7 @@ async function wxLogin(merchantId) {
   }
 
   if (merchantQuery.data.length === 1) {
-    return await buildMerchantLoginResponse(merchantQuery.data[0], userInfo);
+    return await buildMerchantLoginResponse(merchantQuery.data[0], userInfo, { loginType: 'wx' });
   }
 
   const sorted = merchantQuery.data.slice().sort((a, b) => {
@@ -234,7 +266,8 @@ async function wxLogin(merchantId) {
 /**
  * 更新最后登录时间并返回与账户登录一致的数据结构
  */
-async function buildMerchantLoginResponse(merchantInfo, userInfo) {
+async function buildMerchantLoginResponse(merchantInfo, userInfo, meta = {}) {
+  const sessionToken = await createMerchantSession(merchantInfo, meta);
   await db.collection('merchants').doc(merchantInfo._id).update({
     data: {
       lastLoginAt: db.serverDate(),
@@ -272,8 +305,10 @@ async function buildMerchantLoginResponse(merchantInfo, userInfo) {
         role: merchantInfo.role || 'owner',
         account: merchantInfo.account,
         storeId: storeId,
-        openid: merchantInfo.openid
+        openid: merchantInfo.openid,
+        sessionToken
       },
+      sessionToken,
       user: userInfo
         ? {
             _id: userInfo._id,
